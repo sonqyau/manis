@@ -62,7 +62,7 @@ jobs:
       - name: Generate application bundle
         run: |
           chmod +x build.sh
-          ./build.sh --mode spm --config release --bundle
+          ./build.sh --mode spm --config release --bundle --kernel --geo
 
       - name: Upload miho.app bundle
         uses: actions/upload-artifact@v5
