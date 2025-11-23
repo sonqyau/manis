@@ -23,7 +23,7 @@ enum DNSError: Error, LocalizedError {
 final class DNSProxyDaemon {
   @MainActor static let shared = DNSProxyDaemon()
 
-  private let logger = Logger(subsystem: "com.swift.miho.daemon", category: "dns")
+  private let logger = Logger(subsystem: "com.sonqyau.miho.daemon", category: "dns")
   private var customDNS: String = ""
 
   private init() {}

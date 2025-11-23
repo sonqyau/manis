@@ -36,7 +36,7 @@ final class DaemonDomain {
   }
 
   private let logger = MihoLog.shared.logger(for: .daemon)
-  private let daemonPlistName = "com.swift.miho.daemon"
+  private let daemonPlistName = "com.sonqyau.miho.daemon"
   private var connection: NSXPCConnection?
   private let stateSubject: CurrentValueSubject<State, Never>
 
@@ -77,7 +77,7 @@ final class DaemonDomain {
       throw DaemonError.registrationFailed(error)
     }
   }
-
+  
   func unregister() async throws(DaemonError) {
     do {
       try await SMAppService.daemon(plistName: daemonPlistName).unregister()

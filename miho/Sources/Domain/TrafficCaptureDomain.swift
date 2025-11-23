@@ -517,7 +517,7 @@ enum SystemProxyConfigurator {
   static func updateProxyConfiguration(
     modifier: (inout [String: Any]) -> Void,
   ) throws {
-    guard let prefs = SCPreferencesCreate(nil, "com.swift.miho.proxy" as CFString, nil) else {
+    guard let prefs = SCPreferencesCreate(nil, "com.sonqyau.miho.proxy" as CFString, nil) else {
       throw TrafficCaptureDriverError.systemConfigurationUnavailable
     }
 
@@ -863,6 +863,16 @@ final class NetworkSetupPACDriver: PacProxyDriver {
   }
 }
 
+private func getExecutableURL() -> URL? {
+  if let bundleURL = Bundle.main.url(forResource: "miho_miho", withExtension: "bundle"),
+     let bundle = Bundle(url: bundleURL),
+     let binaryURL = bundle.url(forResource: "miho", withExtension: nil)
+  {
+    return binaryURL
+  }
+  return Bundle.main.url(forResource: "miho", withExtension: nil, subdirectory: "Resources")
+}
+
 @MainActor
 final class ProcessManualDriver: ManualProcessDriver {
   let descriptor = TrafficCaptureDriverDescriptor(
@@ -884,11 +894,7 @@ final class ProcessManualDriver: ManualProcessDriver {
     guard mode == .manual else { return }
     guard process?.isRunning != true else { throw TrafficCaptureDriverError.processAlreadyRunning }
 
-    guard let executableURL = Bundle.main.url(
-      forResource: "miho",
-      withExtension: nil,
-      subdirectory: "Resources",
-    ) else {
+    guard let executableURL = getExecutableURL() else {
       throw TrafficCaptureDriverError.executableNotFound
     }
 
@@ -971,11 +977,7 @@ final class PosixSpawnManualDriver: ManualProcessDriver {
       throw TrafficCaptureDriverError.processAlreadyRunning
     }
 
-    guard let executableURL = Bundle.main.url(
-      forResource: "miho",
-      withExtension: nil,
-      subdirectory: "Resources",
-    ) else {
+    guard let executableURL = getExecutableURL() else {
       throw TrafficCaptureDriverError.executableNotFound
     }
 

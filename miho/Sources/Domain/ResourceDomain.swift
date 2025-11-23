@@ -87,6 +87,16 @@ final class ResourceDomain {
     logger.info("GeoIP database extracted")
   }
 
+  private func getResourceURL(forResource name: String, withExtension ext: String?) -> URL? {
+    if let bundleURL = Bundle.main.url(forResource: "miho_miho", withExtension: "bundle"),
+       let bundle = Bundle(url: bundleURL),
+       let resourceURL = bundle.url(forResource: name, withExtension: ext)
+    {
+      return resourceURL
+    }
+    return Bundle.main.url(forResource: name, withExtension: ext)
+  }
+
   private func isGeoIPDatabaseValid() -> Bool {
     guard let attrs = try? FileManager.default.attributesOfItem(atPath: geoIPDatabasePath.path),
           let size = attrs[.size] as? Int64 else { return false }
@@ -94,8 +104,8 @@ final class ResourceDomain {
   }
 
   private func extractBundledGeoIPDatabase() throws {
-    guard let path = Bundle.main.url(forResource: "Country.mmdb", withExtension: "lzfse") else {
-      if let uncompressed = Bundle.main.url(forResource: "Country", withExtension: "mmdb") {
+    guard let path = getResourceURL(forResource: "Country.mmdb", withExtension: "lzfse") else {
+      if let uncompressed = getResourceURL(forResource: "Country", withExtension: "mmdb") {
         try FileManager.default.copyItem(at: uncompressed, to: geoIPDatabasePath)
         return
       }
@@ -112,7 +122,7 @@ final class ResourceDomain {
       return
     }
 
-    guard let path = Bundle.main.url(forResource: "geosite.dat", withExtension: "lzfse")
+    guard let path = getResourceURL(forResource: "geosite.dat", withExtension: "lzfse")
     else { return }
 
     do {
@@ -137,7 +147,7 @@ final class ResourceDomain {
       return
     }
 
-    guard let bundled = Bundle.main.url(forResource: "config", withExtension: "yaml") else {
+    guard let bundled = getResourceURL(forResource: "config", withExtension: "yaml") else {
       throw ResourceError.bundledConfigNotFound
     }
 

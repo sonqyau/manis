@@ -6,13 +6,13 @@ import SystemConfiguration
 final class ServiceProxyDaemon: NSObject, ProtocolProxyDaemon, NSXPCListenerDelegate {
   private let listener: NSXPCListener
   private var connections = [NSXPCConnection]()
-  private let logger = Logger(subsystem: "com.swift.miho.daemon", category: "service")
+  private let logger = Logger(subsystem: "com.sonqyau.miho.daemon", category: "service")
 
   private var mihomoTask: Process?
-  private let allowedBundleIdentifier = "com.swift.miho"
+  private let allowedBundleIdentifier = "com.sonqyau.miho"
 
   override init() {
-    listener = NSXPCListener(machServiceName: "com.swift.miho.daemon")
+    listener = NSXPCListener(machServiceName: "com.sonqyau.miho.daemon")
     super.init()
     listener.delegate = self
   }

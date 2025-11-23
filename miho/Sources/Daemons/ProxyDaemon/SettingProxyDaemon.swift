@@ -27,7 +27,7 @@ enum ProxySettingError: Error, LocalizedError {
 
 final class SettingProxyDaemon {
   @MainActor static let shared = SettingProxyDaemon()
-  private let logger = Logger(subsystem: "com.swift.miho.daemon", category: "proxy-settings")
+  private let logger = Logger(subsystem: "com.sonqyau.miho.daemon", category: "proxy-settings")
 
   private init() {}
 

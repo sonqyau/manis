@@ -60,6 +60,8 @@ jobs:
         run: swift build -c release
 
       - name: Generate application bundle
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           chmod +x build.sh
           ./build.sh --mode spm --config release --bundle --kernel --geo

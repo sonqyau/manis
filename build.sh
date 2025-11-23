@@ -15,7 +15,7 @@ XCODE_PROJECT="miho.xcodeproj"
 XCODE_SCHEME="miho"
 APP_NAME="miho"
 DAEMON_NAME="ProxyDaemon"
-APP_BUNDLE_ID="com.swift.miho"
+APP_BUNDLE_ID="com.sonqyau.miho"
 
 ROOT_DIR_PATH="${BASH_SOURCE[0]%/*}"
 [ "$ROOT_DIR_PATH" = "${BASH_SOURCE[0]}" ] && ROOT_DIR_PATH=.
@@ -37,7 +37,11 @@ TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/miho.XXXXXX")"
 trap 'rm -rf -- "${TMPDIR}"' EXIT
 
 http_fetch(){ local url="$1"; local out="$2";
-    curl -fsS --retry 5 --retry-delay 2 --connect-timeout 10 -L "$url" -o "$out" || return 22;
+    local curl_args=(-fsS --retry 5 --retry-delay 2 --connect-timeout 10 -L "$url" -o "$out")
+    if [[ "$url" == https://api.github.com/* ]] && [ -n "${GITHUB_TOKEN:-}" ]; then
+        curl_args+=(-H "Authorization: Bearer ${GITHUB_TOKEN}" -H "X-GitHub-Api-Version: 2022-11-28" -H "Accept: application/vnd.github+json")
+    fi
+    curl "${curl_args[@]}" || return 22;
 }
 
 get_arch(){
@@ -285,17 +289,42 @@ build_xcode(){
 package_app_bundle(){
     local bundle_path="${SPM_BUILD_DIR}/${APP_NAME}.app"
     rm -rf -- "$bundle_path"
-    mkdir -p "${bundle_path}/Contents/MacOS" "${bundle_path}/Contents/Helpers" "${bundle_path}/Contents/Resources" "${bundle_path}/Contents/Library/LaunchDaemon"
+    
+    mkdir -p "${bundle_path}/Contents/MacOS" \
+             "${bundle_path}/Contents/Resources" \
+             "${bundle_path}/Contents/Library/LaunchServices" \
+             "${bundle_path}/Contents/Helpers"
+    
     cp -a -- "${SPM_BUILD_DIR}/${APP_NAME}" "${bundle_path}/Contents/MacOS/" 2>/dev/null || fatal "Primary executable not found: ${SPM_BUILD_DIR}/${APP_NAME}"
+    
     [ -f "${SPM_BUILD_DIR}/${DAEMON_NAME}" ] && cp -a -- "${SPM_BUILD_DIR}/${DAEMON_NAME}" "${bundle_path}/Contents/Helpers/" || true
-    cp -a -- "${KERNEL_DIR}/binary" "${bundle_path}/Contents/Resources/" || true
+    
+    if [ -d "${SPM_BUILD_DIR}/${APP_NAME}_${APP_NAME}.bundle" ]; then
+        cp -a -- "${SPM_BUILD_DIR}/${APP_NAME}_${APP_NAME}.bundle" "${bundle_path}/Contents/Resources/"
+        if [ -f "${bundle_path}/Contents/Resources/${APP_NAME}_${APP_NAME}.bundle/binary" ]; then
+            ln -sf "../Resources/${APP_NAME}_${APP_NAME}.bundle/binary" "${bundle_path}/Contents/Resources/binary"
+        fi
+    else
+        cp -a -- "${KERNEL_DIR}/binary" "${bundle_path}/Contents/Resources/" 2>/dev/null || true
+    fi
+    
     if [ -f "miho/Supporting Files/Info.plist" ]; then
         cp -a -- "miho/Supporting Files/Info.plist" "${bundle_path}/Contents/Info.plist"
     else
         fatal "Info.plist not found"
     fi
+    
     /usr/libexec/PlistBuddy -c "Set :CFBundleExecutable ${APP_NAME}" "${bundle_path}/Contents/Info.plist" 2>/dev/null || true
-    /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${APP_BUNDLE_ID}" "${bundle_path}/Contents/Info.plist" 2>/dev/null || true
+    /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${APP_BUNDLE_ID}" "${bundle_path}/Contents/Info.plist"
+    
+    if [ -f "miho/Sources/Daemons/LaunchDaemon/com.sonqyau.miho.daemon.plist" ]; then
+        mkdir -p "${bundle_path}/Contents/Library/LaunchDaemons"
+        cp -a -- "miho/Sources/Daemons/LaunchDaemon/com.sonqyau.miho.daemon.plist" \
+            "${bundle_path}/Contents/Library/LaunchDaemons/"
+        # cp -a -- "miho/Sources/Daemons/LaunchDaemon/com.sonqyau.miho.daemon.plist" \
+        #     "${bundle_path}/Contents/Resources/com.sonqyau.miho.daemon.plist"
+    fi
+    
     log_info "Application bundle prepared at ${bundle_path}"
 }
 

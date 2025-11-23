@@ -171,9 +171,9 @@ struct CategoryLogger: @unchecked Sendable {
 }
 
 final class MihoLog: Sendable {
-  private static let mainSubsystem = "com.swift.miho"
-  private static let daemonSubsystem = "com.swift.miho.daemon"
-  private static let networkExtensionSubsystem = "com.swift.miho.networkextension"
+  private static let mainSubsystem = "com.sonqyau.miho"
+  private static let daemonSubsystem = "com.sonqyau.miho.daemon"
+  private static let networkExtensionSubsystem = "com.sonqyau.miho.networkextension"
 
   static let shared = MihoLog()
 

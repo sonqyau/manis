@@ -42,7 +42,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.swift.miho</string>
+			<string>com.sonqyau.miho</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>miho</string>
@@ -53,13 +53,15 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>LSMinimumSystemVersion</key>
-	<string>26.0</string>
+	<string>${MACOSX_DEPLOYMENT_TARGET}</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSUserNotificationUsageDescription</key>
 	<string>Mihomo needs notification access to warn you about config changes, proxy status, and critical helper actions.</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>All rights reserved.</string>
+	<string>Copyright © sonqyau. All rights reserved.</string>
 	<key>NSSupportsAutomaticTermination</key>
 	<false/>
 	<key>NSSupportsSuddenTermination</key>

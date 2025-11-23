@@ -61,11 +61,22 @@ final class ConfigValidation {
 
   func validate(configPath: String, workingDirectory: String? = nil) async throws
   -> ValidationResult {
-    guard
-      let exec = Bundle.main.url(
-        forResource: "miho", withExtension: nil, subdirectory: "Resources",
-      )?.path
-    else {
+    var execPath: String?
+
+    if let bundleURL = Bundle.main.url(forResource: "miho_miho", withExtension: "bundle"),
+       let bundle = Bundle(url: bundleURL),
+       let binaryURL = bundle.url(forResource: "miho", withExtension: nil)
+    {
+      execPath = binaryURL.path
+    } else if let exec = Bundle.main.url(
+      forResource: "miho",
+      withExtension: nil,
+      subdirectory: "Resources",
+    ) {
+      execPath = exec.path
+    }
+
+    guard let exec = execPath else {
       throw ConfigValidationError.executableNotFound
     }
 

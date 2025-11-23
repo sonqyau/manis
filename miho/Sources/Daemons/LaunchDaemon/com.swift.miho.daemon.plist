@@ -3,25 +3,23 @@
 <plist version="1.0">
 <dict>
 	<key>Label</key>
-	<string>com.swift.miho.daemon</string>
+	<string>com.sonqyau.miho.daemon</string>
 	<key>MachServices</key>
 	<dict>
-		<key>com.swift.miho.daemon</key>
+		<key>com.sonqyau.miho.daemon</key>
 		<true/>
 	</dict>
-	<key>Program</key>
-	<string>ProxyDaemon</string>
-	<key>ProgramArguments</key>
-	<array>
-		<string>ProxyDaemon</string>
-	</array>
+    <key>ProgramArguments</key>
+    <array>
+        <string>ProxyDaemon</string>
+    </array>
 	<key>KeepAlive</key>
 	<false/>
 	<key>RunAtLoad</key>
 	<false/>
 	<key>StandardErrorPath</key>
-	<string>/tmp/com.swift.miho.daemon.stderr</string>
+	<string>/tmp/com.sonqyau.miho.daemon.stderr</string>
 	<key>StandardOutPath</key>
-	<string>/tmp/com.swift.miho.daemon.stdout</string>
+	<string>/tmp/com.sonqyau.miho.daemon.stdout</string>
 </dict>
 </plist>

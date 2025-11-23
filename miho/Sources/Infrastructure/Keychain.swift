@@ -5,7 +5,7 @@ import Security
 final class Keychain: @unchecked Sendable {
   static let shared = Keychain()
 
-  private let service = "com.swift.miho.secrets"
+  private let service = "com.sonqyau.miho.secrets"
 
   private init() { }
 

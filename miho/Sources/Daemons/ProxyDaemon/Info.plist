@@ -7,7 +7,7 @@
 	<key>CFBundleExecutable</key>
 	<string>ProxyDaemon</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.swift.miho.daemon</string>
+	<string>com.sonqyau.miho.daemon</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>

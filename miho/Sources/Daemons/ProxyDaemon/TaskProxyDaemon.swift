@@ -29,7 +29,7 @@ final class TaskProxyDaemon {
   static let shared = TaskProxyDaemon()
 
   private var task: Process?
-  private let logger = Logger(subsystem: "com.swift.miho.daemon", category: "task")
+  private let logger = Logger(subsystem: "com.sonqyau.miho.daemon", category: "task")
 
   private init() {}
 

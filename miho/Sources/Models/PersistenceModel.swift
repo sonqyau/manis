@@ -12,7 +12,7 @@ private struct PersistenceModelDependencies {
 }
 
 private enum RemoteInstanceKeychain {
-  static let prefix = "com.swift.miho.remote-instance"
+  static let prefix = "com.sonqyau.miho.remote-instance"
 
   static func key(for id: UUID) -> String {
     "\(prefix).\(id.uuidString)"
