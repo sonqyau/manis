@@ -147,7 +147,7 @@ struct MenuBarContentView: View {
               color: .purple,
             )
           } else if bindableStore.isTrafficCaptureActivating {
-            MenuBarStatusBadge(text: "Activating…", color: .orange)
+            MenuBarStatusBadge(text: "Activating", color: .orange)
           }
         }
       }

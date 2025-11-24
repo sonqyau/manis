@@ -1,65 +1,122 @@
 package main
 
 import "C"
-
 import (
-	"encoding/json"
+	"errors"
 	"sync"
 	"unsafe"
+)
 
-	"github.com/metacubex/mihomo/tunnel/statistic"
+/*
+#include <stdlib.h>
+*/
+import "C"
+
+const (
+	ErrCodeSuccess         = 0
+	ErrCodeInvalidHandle   = -1
+	ErrCodeAlreadyCreated  = -2
+	ErrCodeAlreadyStarted  = -3
+	ErrCodeNotStarted      = -4
+	ErrCodeInvalidConfig   = -5
+	ErrCodeInternalError   = -6
 )
 
 var (
 	gate sync.RWMutex
-	core *coreCtx
+	instances = make(map[uintptr]*instanceCtx)
+	nextHandle uintptr = 1
 )
 
-type coreCtx struct {
-	initialized bool
-	running     bool
-	homeDir     string
-	configFile  string
-
-	trafficCb C.MihomoTrafficCallback
-	trafficCtx unsafe.Pointer
-
-	memoryCb C.MihomoMemoryCallback
-	memoryCtx unsafe.Pointer
-
-	logCb C.MihomoLogCallback
-	logCtx unsafe.Pointer
-
-	stateChangeCb C.MihomoStateChangeCallback
-	stateChangeCtx unsafe.Pointer
+type instanceCtx struct {
+	handle     uintptr
+	created    bool
+	started    bool
+	configPath string
 }
 
-func seize(write, ensure bool) (*coreCtx, func(), bool) {
-	if write {
-		gate.Lock()
-	} else {
-		gate.RLock()
+func nextInstanceHandle() uintptr {
+	handle := nextHandle
+	nextHandle++
+	return handle
+}
+
+func getInstance(handle C.longlong) (*instanceCtx, error) {
+	h := uintptr(handle)
+	
+	gate.RLock()
+	defer gate.RUnlock()
+	
+	instance, exists := instances[h]
+	if !exists || !instance.created {
+		return nil, errors.New("invalid handle")
 	}
-	released := false
-	rel := func() {
-		if released {
-			return
+	
+	return instance, nil
+}
+
+//export mihomo_create
+func mihomo_create(configPath *C.char) C.longlong {
+	if configPath == nil {
+		return C.longlong(ErrCodeInvalidConfig)
+	}
+	
+	config := C.GoString(configPath)
+	if config == "" {
+		return C.longlong(ErrCodeInvalidConfig)
+	}
+	
+	gate.Lock()
+	defer gate.Unlock()
+	
+	for _, instance := range instances {
+		if instance.configPath == config {
+			return C.longlong(ErrCodeAlreadyCreated)
 		}
-		released = true
-		if write {
-			gate.Unlock()
-		} else {
-			gate.RUnlock()
-		}
 	}
-	if ensure && core == nil {
-		core = &coreCtx{}
+	
+	instance := &instanceCtx{
+		handle:     nextInstanceHandle(),
+		created:    true,
+		started:    false,
+		configPath: config,
 	}
-	if core == nil {
-		rel()
-		return nil, func() {}, false
+	
+	instances[instance.handle] = instance
+	return C.longlong(instance.handle)
+}
+
+//export mihomo_destroy
+func mihomo_destroy(handle C.longlong) C.int {
+	h := uintptr(handle)
+	
+	gate.Lock()
+	defer gate.Unlock()
+	
+	instance, exists := instances[h]
+	if !exists {
+		return ErrCodeInvalidHandle
 	}
-	return core, rel, true
+	
+	if instance.started {
+		instance.started = false
+	}
+	
+	delete(instances, h)
+	return ErrCodeSuccess
+}
+
+//export mihomo_free_string
+func mihomo_free_string(ptr *C.char) {
+	if ptr != nil {
+		C.free(unsafe.Pointer(ptr))
+	}
+}
+
+//export mihomo_get_last_error
+func mihomo_get_last_error() *C.char {
+	errorMsg := "No error"
+	return C.CString(errorMsg)
 }
 
 func main() {}

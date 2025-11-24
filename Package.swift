@@ -66,6 +66,10 @@ let package = Package(
       swiftSettings: [
         .enableUpcomingFeature("StrictConcurrency"),
       ],
+      linkerSettings: [
+        .linkedLibrary("mihomo", .when(platforms: [.macOS])),
+        .unsafeFlags(["-Lmiho/Resources/Kernel/build"], .when(platforms: [.macOS])),
+      ],
     ),
     .executableTarget(
       name: "ProxyDaemon",

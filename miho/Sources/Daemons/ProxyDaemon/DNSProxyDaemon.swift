@@ -1,7 +1,7 @@
 import Foundation
 import OSLog
 
-enum DNSError: Error, LocalizedError {
+enum DNSProxyDaemonError: Error, LocalizedError {
   case failedToSetDNS
   case failedToFlushCache
 
@@ -54,11 +54,11 @@ final class DNSProxyDaemon {
       task.waitUntilExit()
 
       if task.terminationStatus != 0 {
-        throw DNSError.failedToSetDNS
+        throw DNSProxyDaemonError.failedToSetDNS
       }
     } catch {
       logger.error("Failed to hijack DNS: \(error.localizedDescription)")
-      throw DNSError.failedToSetDNS
+      throw DNSProxyDaemonError.failedToSetDNS
     }
   }
 
@@ -74,11 +74,11 @@ final class DNSProxyDaemon {
       task.waitUntilExit()
 
       if task.terminationStatus != 0 {
-        throw DNSError.failedToSetDNS
+        throw DNSProxyDaemonError.failedToSetDNS
       }
     } catch {
       logger.error("Failed to revert DNS: \(error.localizedDescription)")
-      throw DNSError.failedToSetDNS
+      throw DNSProxyDaemonError.failedToSetDNS
     }
   }
 
@@ -101,7 +101,7 @@ final class DNSProxyDaemon {
 
     } catch {
       logger.error("DNS cache flush failed: \(error.localizedDescription)")
-      throw DNSError.failedToFlushCache
+      throw DNSProxyDaemonError.failedToFlushCache
     }
   }
 }

@@ -42,7 +42,7 @@ struct DaemonView: View {
     } else if store.requiresApproval {
       "Approve the privileged helper in System Settings to enable TUN mode."
     } else {
-      "Miho requires a privileged helper to manage system proxy settings. Administrator approval is required."
+      "Mihomo requires a privileged helper to manage system proxy settings. Administrator approval is required."
     }
   }
 }

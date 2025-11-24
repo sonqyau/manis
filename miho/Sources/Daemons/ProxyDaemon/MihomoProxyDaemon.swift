@@ -1,7 +1,7 @@
 import Foundation
 import OSLog
 
-enum MihomoTaskError: Error, LocalizedError {
+enum MihomoProxyDaemonError: Error, LocalizedError {
   case alreadyRunning
   case failedToStart
   case invalidPath
@@ -25,8 +25,8 @@ enum MihomoTaskError: Error, LocalizedError {
 }
 
 @MainActor
-final class TaskProxyDaemon {
-  static let shared = TaskProxyDaemon()
+final class MihomoProxyDaemon {
+  static let shared = MihomoProxyDaemon()
 
   private var task: Process?
   private let logger = Logger(subsystem: "com.sonqyau.miho.daemon", category: "task")
@@ -37,7 +37,7 @@ final class TaskProxyDaemon {
     throws
   {
     if task?.isRunning == true {
-      throw MihomoTaskError.alreadyRunning
+      throw MihomoProxyDaemonError.alreadyRunning
     }
 
     let process = Process()
@@ -75,7 +75,7 @@ final class TaskProxyDaemon {
       logger.info("Mihomo core process started")
     } catch {
       logger.error("Failed to start Mihomo core process: \(error.localizedDescription)")
-      throw MihomoTaskError.failedToStart
+      throw MihomoProxyDaemonError.failedToStart
     }
   }
 

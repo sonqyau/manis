@@ -2,7 +2,7 @@ import Foundation
 import OSLog
 import SystemConfiguration
 
-enum ProxySettingError: Error, LocalizedError {
+enum SystemProxyDaemonError: Error, LocalizedError {
   case failedToGetPreferences
   case failedToSetPreferences
   case failedToCommit
@@ -25,8 +25,8 @@ enum ProxySettingError: Error, LocalizedError {
   }
 }
 
-final class SettingProxyDaemon {
-  @MainActor static let shared = SettingProxyDaemon()
+final class SystemProxyDaemon {
+  @MainActor static let shared = SystemProxyDaemon()
   private let logger = Logger(subsystem: "com.sonqyau.miho.daemon", category: "proxy-settings")
 
   private init() {}
@@ -38,11 +38,11 @@ final class SettingProxyDaemon {
 
     guard let prefRef = SCPreferencesCreate(nil, "miho" as CFString, nil) else {
       logger.error("Unable to create network preferences session")
-      throw ProxySettingError.failedToGetPreferences
+      throw SystemProxyDaemonError.failedToGetPreferences
     }
 
     guard let sets = SCPreferencesGetValue(prefRef, kSCPrefNetworkServices) as? [String: Any] else {
-      throw ProxySettingError.failedToGetPreferences
+      throw SystemProxyDaemonError.failedToGetPreferences
     }
 
     for (key, value) in sets {
@@ -86,7 +86,7 @@ final class SettingProxyDaemon {
       }
 
       guard SCPreferencesPathSetValue(prefRef, servicePath, newProxies as CFDictionary) else {
-        throw ProxySettingError.failedToSetPreferences
+        throw SystemProxyDaemonError.failedToSetPreferences
       }
     }
 
@@ -94,7 +94,7 @@ final class SettingProxyDaemon {
       SCPreferencesApplyChanges(prefRef)
     else {
       logger.error("Failed to apply proxy configuration changes")
-      throw ProxySettingError.failedToCommit
+      throw SystemProxyDaemonError.failedToCommit
     }
 
     logger.info("System proxy configuration enabled")
@@ -103,11 +103,11 @@ final class SettingProxyDaemon {
   func disableProxy(filterInterface: Bool) throws {
     logger.info("Disabling system proxy configuration")
     guard let prefRef = SCPreferencesCreate(nil, "miho" as CFString, nil) else {
-      throw ProxySettingError.failedToGetPreferences
+      throw SystemProxyDaemonError.failedToGetPreferences
     }
 
     guard let sets = SCPreferencesGetValue(prefRef, kSCPrefNetworkServices) as? [String: Any] else {
-      throw ProxySettingError.failedToGetPreferences
+      throw SystemProxyDaemonError.failedToGetPreferences
     }
 
     for (key, value) in sets {
@@ -135,7 +135,7 @@ final class SettingProxyDaemon {
       newProxies[kCFNetworkProxiesProxyAutoConfigEnable as String] = 0
 
       guard SCPreferencesPathSetValue(prefRef, servicePath, newProxies as CFDictionary) else {
-        throw ProxySettingError.failedToSetPreferences
+        throw SystemProxyDaemonError.failedToSetPreferences
       }
     }
 
@@ -143,7 +143,7 @@ final class SettingProxyDaemon {
       SCPreferencesApplyChanges(prefRef)
     else {
       logger.error("Failed to apply proxy disable changes")
-      throw ProxySettingError.failedToCommit
+      throw SystemProxyDaemonError.failedToCommit
     }
 
     logger.info("System proxy configuration disabled")

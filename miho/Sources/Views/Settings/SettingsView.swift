@@ -418,7 +418,7 @@ struct SettingsView: View {
         VStack(spacing: 12) {
           ProgressView()
             .controlSize(.large)
-          Text("Applying Changes…")
+          Text("Applying Changes")
             .font(.body.weight(.medium))
             .foregroundStyle(.secondary)
         }

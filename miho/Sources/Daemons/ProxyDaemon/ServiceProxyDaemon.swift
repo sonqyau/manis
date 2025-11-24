@@ -72,7 +72,7 @@ final class ServiceProxyDaemon: NSObject, ProtocolProxyDaemon, NSXPCListenerDele
     log.info("Enabling system proxy: HTTP(S)=\(port), SOCKS=\(socksPort)")
     Task { @MainActor in
       do {
-        try SettingProxyDaemon.shared.enableProxy(
+        try SystemProxyDaemon.shared.enableProxy(
           httpPort: port,
           socksPort: socksPort,
           pacURL: pac,
@@ -94,7 +94,7 @@ final class ServiceProxyDaemon: NSObject, ProtocolProxyDaemon, NSXPCListenerDele
     log.info("Disabling system proxy")
     Task { @MainActor in
       do {
-        try SettingProxyDaemon.shared.disableProxy(filterInterface: filterInterface)
+        try SystemProxyDaemon.shared.disableProxy(filterInterface: filterInterface)
         reply(nil)
       } catch {
         log.error("Failed to disable proxy: \(error.localizedDescription)")
@@ -112,7 +112,7 @@ final class ServiceProxyDaemon: NSObject, ProtocolProxyDaemon, NSXPCListenerDele
     nonisolated(unsafe) let proxyInfo = info
     Task { @MainActor in
       do {
-        try SettingProxyDaemon.shared.restoreProxy(
+        try SystemProxyDaemon.shared.restoreProxy(
           currentPort: currentPort,
           socksPort: socksPort,
           info: proxyInfo,
@@ -128,7 +128,7 @@ final class ServiceProxyDaemon: NSObject, ProtocolProxyDaemon, NSXPCListenerDele
 
   nonisolated func getCurrentProxySetting(reply: @escaping @Sendable ([String: Any]) -> Void) {
     Task { @MainActor in
-      let settings = SettingProxyDaemon.shared.getCurrentProxySettings()
+      let settings = SystemProxyDaemon.shared.getCurrentProxySettings()
       reply(settings)
     }
   }
@@ -141,7 +141,7 @@ final class ServiceProxyDaemon: NSObject, ProtocolProxyDaemon, NSXPCListenerDele
     log.info("Starting Mihomo core process")
     Task { @MainActor in
       do {
-        try TaskProxyDaemon.shared.start(
+        try MihomoProxyDaemon.shared.start(
           executablePath: path,
           configPath: confPath,
           configFilePath: confFilePath,
@@ -159,14 +159,14 @@ final class ServiceProxyDaemon: NSObject, ProtocolProxyDaemon, NSXPCListenerDele
     let log = logger
     log.info("Stopping Mihomo core process")
     Task { @MainActor in
-      TaskProxyDaemon.shared.stop()
+      MihomoProxyDaemon.shared.stop()
       reply(nil)
     }
   }
 
   nonisolated func getUsedPorts(reply: @escaping @Sendable (String?) -> Void) {
     Task { @MainActor in
-      let ports = TaskProxyDaemon.shared.getUsedPorts()
+      let ports = MihomoProxyDaemon.shared.getUsedPorts()
       reply(ports)
     }
   }
