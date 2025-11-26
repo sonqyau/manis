@@ -384,6 +384,12 @@ log_info "mode=${BUILD_MODE} config=${BUILD_PROFILE} bundle=${BUILD_BUNDLE} exte
 
 prepare_resources
 
+if [ -d "$KERNEL_SOURCE_DIR" ] && [ -f "${KERNEL_DIR}/toolchain/build.sh" ]; then
+    log_info "Building FFI library from kernel source"
+    chmod +x "${KERNEL_DIR}/toolchain/build.sh"
+    "${KERNEL_DIR}/toolchain/build.sh" || fatal "FFI library build failed"
+fi
+
 if [ "$BUILD_MODE" = "spm" ]; then
     build_spm
     if [ "$BUILD_BUNDLE" = true ]; then

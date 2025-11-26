@@ -77,7 +77,7 @@ final class DaemonDomain {
       throw DaemonError.registrationFailed(error)
     }
   }
-  
+
   func unregister() async throws(DaemonError) {
     do {
       try await SMAppService.daemon(plistName: daemonPlistName).unregister()

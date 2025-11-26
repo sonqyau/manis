@@ -69,7 +69,7 @@ let package = Package(
       linkerSettings: [
         .unsafeFlags([
           "-Lmiho/Resources/Kernel/build",
-          "-lmihomo"
+          "-lmihomo",
         ], .when(platforms: [.macOS])),
       ],
     ),
