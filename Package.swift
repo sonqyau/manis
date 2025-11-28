@@ -31,7 +31,6 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-navigation", from: "2.6.0"),
     .package(url: "https://github.com/pointfreeco/swift-perception", from: "2.0.9"),
   ],
-
   targets: [
     .executableTarget(
       name: "miho",
@@ -64,12 +63,14 @@ let package = Package(
         .process("Sources/Daemons/LaunchDaemon"),
       ],
       swiftSettings: [
+        .swiftLanguageMode(.v6),
         .enableUpcomingFeature("StrictConcurrency"),
+        .enableUpcomingFeature("ApproachableConcurrency"),
       ],
       linkerSettings: [
         .unsafeFlags([
           "-Lmiho/Resources/Kernel/build",
-          "-lmihomo",
+          "-lmihomo_arm64",
         ], .when(platforms: [.macOS])),
       ],
     ),

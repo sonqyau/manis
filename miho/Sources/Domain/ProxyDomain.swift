@@ -494,8 +494,8 @@ final class ConfigDomain {
 
     logger.info("Config file changed")
 
-    Task(priority: .utility) { [onChange] in
-      await self.sendChangeNotification()
+    Task.detached(priority: .utility) { [onChange, weak self] in
+      await self?.sendChangeNotification()
       await onChange()
     }
   }

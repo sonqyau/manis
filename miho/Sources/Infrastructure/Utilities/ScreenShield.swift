@@ -1,5 +1,5 @@
 //
-//  Credits: https://github.com/Kyle-Ye/ScreenShieldKit (MIT)
+//  Credit: https://github.com/Kyle-Ye/ScreenShieldKit (MIT)
 //
 
 import AppKit

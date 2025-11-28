@@ -37,12 +37,15 @@ final class NetworkDomain {
 
     startPathMonitoring()
 
-    Task(priority: .utility) { [weak self] in
-      await self?.startProxyMonitoring()
-    }
-
-    Task(priority: .utility) { [weak self] in
-      await self?.startIPMonitoring()
+    Task {
+      await withTaskGroup(of: Void.self) { group in
+        group.addTask { [weak self] in
+          await self?.startProxyMonitoring()
+        }
+        group.addTask { [weak self] in
+          await self?.startIPMonitoring()
+        }
+      }
     }
 
     startSleepWakeMonitoring()

@@ -70,7 +70,7 @@ final class ServiceProxyDaemon: NSObject, ProtocolProxyDaemon, NSXPCListenerDele
   ) {
     let log = logger
     log.info("Enabling system proxy: HTTP(S)=\(port), SOCKS=\(socksPort)")
-    Task { @MainActor in
+    Task.detached { @MainActor in
       do {
         try SystemProxyDaemon.shared.enableProxy(
           httpPort: port,
@@ -92,7 +92,7 @@ final class ServiceProxyDaemon: NSObject, ProtocolProxyDaemon, NSXPCListenerDele
   ) {
     let log = logger
     log.info("Disabling system proxy")
-    Task { @MainActor in
+    Task.detached { @MainActor in
       do {
         try SystemProxyDaemon.shared.disableProxy(filterInterface: filterInterface)
         reply(nil)

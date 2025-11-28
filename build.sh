@@ -275,6 +275,16 @@ prepare_resources(){
 
 build_spm(){
     swift build -c "$BUILD_PROFILE"
+    
+    local executable_path="${SPM_BUILD_DIR}/arm64-apple-macosx/${BUILD_PROFILE}/${APP_NAME}"
+    if [ -f "$executable_path" ]; then
+        local dylib_path="${ROOT_PATH}/miho/Resources/Kernel/build/libmihomo_arm64.dylib"
+        if [ -f "$dylib_path" ]; then
+            install_name_tool -change libmihomo_arm64.dylib "$dylib_path" "$executable_path" 2>/dev/null || true
+            log_info "Fixed dylib path for runtime loading"
+        fi
+    fi
+    
     log_info "Swift Package Manager build completed"
 }
 
