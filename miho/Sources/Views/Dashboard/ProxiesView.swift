@@ -147,7 +147,7 @@ private struct ProxyGroupCard: View {
                   .foregroundStyle(.secondary)
                 Text(now)
                   .font(.caption)
-                  .foregroundStyle(.blue)
+                  .foregroundStyle(.primary)
               }
             }
           }
@@ -213,13 +213,13 @@ private struct ProxyNodeRow: View {
           )
 
         Text(proxyName)
-          .font(Font.body)
+          .font(.body)
 
         Spacer()
 
         if let delay = proxyInfo?.history.last?.delay {
           Text(formatDelay(delay))
-            .font(Font.system(.caption, design: .monospaced))
+            .font(.system(.caption, design: .monospaced))
             .padding(.horizontal, 12)
             .padding(.vertical, 4)
             .background(
@@ -232,7 +232,7 @@ private struct ProxyNodeRow: View {
                 : delay < 100 ? .green : delay < 300 ? .orange : .red))
         } else {
           Text("—")
-            .font(Font.caption)
+            .font(.caption)
             .foregroundStyle(.secondary)
         }
 

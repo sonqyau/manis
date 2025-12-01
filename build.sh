@@ -276,7 +276,7 @@ prepare_resources(){
 build_spm(){
     swift build -c "$BUILD_PROFILE"
     
-    local executable_path="${SPM_BUILD_DIR}/arm64-apple-macosx/${BUILD_PROFILE}/${APP_NAME}"
+    local executable_path="${SPM_BUILD_DIR}/${APP_NAME}"
     if [ -f "$executable_path" ]; then
         local dylib_path="${ROOT_PATH}/miho/Resources/Kernel/build/libmihomo_arm64.dylib"
         if [ -f "$dylib_path" ]; then

@@ -63,7 +63,7 @@ private struct DaemonContentView: View {
     Image(systemName: store.isRegistered
       ? "checkmark.shield.fill"
       : "exclamationmark.shield.fill")
-      .font(.system(size: 72))
+      .font(.largeTitle)
       .foregroundStyle(
         store.isRegistered
           ? AnyShapeStyle(.green.gradient)
@@ -78,10 +78,10 @@ private struct DaemonContentView: View {
   private var statusText: some View {
     VStack(spacing: 12) {
       Text("System Proxy Service")
-        .font(Font.title2.weight(.semibold))
+        .font(.title2)
 
       Text(statusDescription(for: store))
-        .font(Font.body)
+        .font(.body)
         .multilineTextAlignment(.center)
         .foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)

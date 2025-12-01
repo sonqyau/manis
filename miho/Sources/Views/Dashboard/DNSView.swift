@@ -158,17 +158,16 @@ private struct DNSAnswerCard: View {
     VStack(alignment: .leading, spacing: 12) {
       HStack {
         Text(answer.name)
-          .font(Font.system(.body, design: .monospaced))
-          .fontWeight(.medium)
+          .font(.system(.body, design: .monospaced))
         Spacer()
         Text("TTL: \(answer.ttl)s")
-          .font(Font.caption)
+          .font(.caption)
           .foregroundStyle(.secondary)
       }
 
       Text(answer.data)
-        .font(Font.system(.body, design: .monospaced))
-        .foregroundStyle(.blue)
+        .font(.system(.body, design: .monospaced))
+        .foregroundStyle(.primary)
         .textSelection(.enabled)
     }
     .padding(12)

@@ -241,7 +241,6 @@ struct RemoteConfigRow: View {
         if config.isActive {
           Text("Active")
             .font(.caption)
-            .fontWeight(.semibold)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
             .background {

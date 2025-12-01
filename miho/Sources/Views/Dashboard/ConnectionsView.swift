@@ -98,12 +98,12 @@ struct ConnectionsView: View {
 
           LabeledContent("Download") {
             Text(totalDownload)
-              .font(.system(.callout, design: .monospaced))
+              .font(.system(.body, design: .monospaced))
           }
 
           LabeledContent("Upload") {
             Text(totalUpload)
-              .font(.system(.callout, design: .monospaced))
+              .font(.system(.body, design: .monospaced))
           }
         }
       }

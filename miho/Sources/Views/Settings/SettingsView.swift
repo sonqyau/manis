@@ -82,7 +82,7 @@ struct SettingsView: View {
           Text(capture.isActive ? "Stop" : "Start")
           Spacer()
           Text(capture.mode.displayName)
-            .font(.subheadline.weight(.semibold))
+            .font(.subheadline)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
       }
@@ -123,7 +123,7 @@ struct SettingsView: View {
       ) {
         VStack(alignment: .leading, spacing: 4) {
           Text("Auto fallback")
-            .font(.body.weight(.medium))
+            .font(.body)
           Text("Try alternative drivers automatically when activation fails")
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -133,7 +133,7 @@ struct SettingsView: View {
 
       if let driverName = capture.activeDriverName, capture.isActive {
         LabeledContent("Active Driver") {
-          Text(driverName).font(.callout.weight(.semibold))
+          Text(driverName).font(.callout)
         }
       }
 
@@ -192,7 +192,7 @@ struct SettingsView: View {
       ) {
         VStack(alignment: .leading, spacing: 4) {
           Text("Activate System Proxy")
-            .font(.body.weight(.medium))
+            .font(.body)
           Text("Expose HTTP, HTTPS, and SOCKS5 proxy services on localhost")
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -229,7 +229,7 @@ struct SettingsView: View {
       ) {
         VStack(alignment: .leading, spacing: 4) {
           Text("Activate TUN Mode")
-            .font(.body.weight(.medium))
+            .font(.body)
           Text("Requires a privileged helper to be installed and approved")
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -364,7 +364,7 @@ struct SettingsView: View {
       ) {
         VStack(alignment: .leading, spacing: 4) {
           Text("Allow LAN Access")
-            .font(.body.weight(.medium))
+            .font(.body)
           Text("Allow devices on the local network to access the local core")
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -386,7 +386,7 @@ struct SettingsView: View {
     Section {
       LabeledContent("Version") {
         Text("1.0.0")
-          .font(.body.weight(.medium))
+          .font(.body)
       }
 
       Link(
@@ -419,7 +419,7 @@ struct SettingsView: View {
           ProgressView()
             .controlSize(.large)
           Text("Applying Changes")
-            .font(.body.weight(.medium))
+            .font(.body)
             .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 28)
@@ -482,7 +482,7 @@ struct SettingsView: View {
           .foregroundStyle(.secondary)
         Spacer()
         Text(value)
-          .font(.callout.weight(.medium))
+          .font(.callout)
       }
 
       Text(detail)

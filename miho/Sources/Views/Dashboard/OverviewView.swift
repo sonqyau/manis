@@ -151,7 +151,7 @@ private struct OverviewMetricRow: View {
 
       VStack(alignment: .leading, spacing: 4) {
         Text(value)
-          .font(.title3.weight(.semibold))
+          .font(.title3)
           .contentTransition(.numericText())
 
         Text(title)

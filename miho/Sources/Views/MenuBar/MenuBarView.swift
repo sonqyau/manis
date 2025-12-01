@@ -31,7 +31,7 @@ struct MenuBarIconView: View {
         speedRow(icon: "arrow.down", speed: bindableStore.downloadSpeed)
       }
     }
-    .font(.system(size: 9, weight: .regular, design: .monospaced))
+    .font(.system(.caption2, design: .monospaced))
     .foregroundStyle(statusColor)
     .contentTransition(.numericText())
     .task { bindableStore.send(.onAppear) }
@@ -41,7 +41,7 @@ struct MenuBarIconView: View {
   private func speedRow(icon: String, speed: String) -> some View {
     HStack(spacing: 4) {
       Image(systemName: icon)
-        .font(.system(size: 7))
+        .font(.caption2)
         .accessibilityHidden(true)
       Text(speed)
     }
@@ -161,7 +161,7 @@ struct MenuBarContentView: View {
               .foregroundStyle(.purple)
               .accessibilityHidden(true)
             Text("Traffic Capture")
-              .font(.subheadline.weight(.semibold))
+              .font(.subheadline)
             if bindableStore.isTrafficCaptureActivating {
               ProgressView().scaleEffect(0.6)
             }
@@ -195,7 +195,6 @@ struct MenuBarContentView: View {
             .accessibilityHidden(true)
           Text(bindableStore.currentMode.displayName)
             .font(.caption)
-            .fontWeight(.semibold)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 4)
@@ -214,7 +213,7 @@ struct MenuBarContentView: View {
             .font(.caption)
             .foregroundStyle(.secondary)
           Text(ipAddress)
-            .font(.system(size: 11, weight: .medium, design: .monospaced))
+            .font(.system(.caption2, design: .monospaced))
         }
       }
     }
@@ -230,7 +229,7 @@ struct MenuBarContentView: View {
         .font(.caption)
         .accessibilityHidden(true)
       Text(value)
-        .font(.system(size: 11, weight: .medium, design: .monospaced))
+        .font(.system(.caption2, design: .monospaced))
         .contentTransition(.numericText())
     }
     .frame(maxWidth: .infinity)
@@ -336,7 +335,7 @@ struct MenuBarContentView: View {
       ) {
         VStack(alignment: .leading, spacing: 4) {
           Text("Auto fallback")
-            .font(.body.weight(.medium))
+            .font(.body)
           Text("Automatically try a different driver if activation fails")
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -374,7 +373,7 @@ struct MenuBarContentView: View {
           .foregroundStyle(isActive ? activeColor : .secondary)
           .accessibilityHidden(true)
         Text(title)
-          .font(.body.weight(.medium))
+          .font(.body)
         Spacer()
       }
       .padding(.vertical, 10)
@@ -459,7 +458,6 @@ struct MenuBarStatusBadge: View {
   var body: some View {
     Text(text)
       .font(.caption2)
-      .fontWeight(.semibold)
       .padding(.horizontal, 8)
       .padding(.vertical, 3)
       .foregroundColor(color)
@@ -545,7 +543,7 @@ private struct MenuBarProxyGroupRow: View {
 
           if let active = group.info.now {
             Text(active)
-              .font(.caption.weight(.semibold))
+              .font(.caption)
               .padding(.horizontal, 8)
               .padding(.vertical, 4)
               .background(Color.accentColor.opacity(0.12), in: Capsule())
@@ -599,12 +597,11 @@ private struct MenuBarProxyNodeRow: View {
 
         Text(proxyName)
           .font(.body)
-          .fontWeight(isSelected ? .semibold : .regular)
 
         Spacer()
 
         Text(delayDisplay)
-          .font(.system(size: 11, weight: .medium, design: .monospaced))
+          .font(.system(.caption2, design: .monospaced))
           .foregroundStyle(delayColor)
       }
       .padding(.vertical, 6)

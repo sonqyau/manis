@@ -195,13 +195,12 @@ private struct LogRow: View {
         .accessibilityHidden(true)
 
       Text(log.type.uppercased())
-        .font(Font.caption)
-        .fontWeight(.semibold)
+        .font(.caption)
         .foregroundStyle(logColor)
         .frame(width: 70, alignment: .leading)
 
       Text(log.payload)
-        .font(Font.system(.body, design: .monospaced))
+        .font(.system(.body, design: .monospaced))
         .textSelection(.enabled)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
