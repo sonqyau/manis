@@ -2,14 +2,14 @@
 # SwiftLint Documentation: https://realm.github.io/SwiftLint/rule-directory.html
 
 included:
-  - miho
+  - manis
 
 excluded:
   - .build
   - .swiftpm
-  - miho.xcodeproj
-  - miho/Resources
-  - miho/Sources/Daemons
+  - manis.xcodeproj
+  - manis/Resources
+  - manis/Sources/Daemons
   - "**/*.generated.swift"
 
 # line_length:

@@ -11,29 +11,29 @@ FORCE_KERNEL_DOWNLOAD=false
 FORCE_GEO_DOWNLOAD=false
 CLEAN_BUILD=false
 
-XCODE_PROJECT="miho.xcodeproj"
-XCODE_SCHEME="miho"
-APP_NAME="miho"
+XCODE_PROJECT="manis.xcodeproj"
+XCODE_SCHEME="manis"
+APP_NAME="manis"
 DAEMON_NAME="ProxyDaemon"
-APP_BUNDLE_ID="com.sonqyau.miho"
+APP_BUNDLE_ID="com.sonqyau.manis"
 
 ROOT_DIR_PATH="${BASH_SOURCE[0]%/*}"
 [ "$ROOT_DIR_PATH" = "${BASH_SOURCE[0]}" ] && ROOT_DIR_PATH=.
 ROOT_PATH="$(cd "$ROOT_DIR_PATH" && pwd -P)"
 SPM_BUILD_DIR=".build/release"
 XCODE_BUILD_DIR="build"
-KERNEL_DIR="${ROOT_PATH}/miho/Resources/Kernel"
+KERNEL_DIR="${ROOT_PATH}/manis/Resources/Kernel"
 KERNEL_REPOSITORY_URL="https://github.com/MetaCubeX/mihomo.git"
 KERNEL_BRANCH_NAME="Alpha"
 KERNEL_SOURCE_DIR="${KERNEL_DIR}/source"
 CONFIG_SOURCE_URL="https://raw.githubusercontent.com/MetaCubeX/mihomo/refs/heads/Meta/docs/config.yaml"
-CONFIG_FILE_PATH="${ROOT_PATH}/miho/Resources/config.yaml"
+CONFIG_FILE_PATH="${ROOT_PATH}/manis/Resources/config.yaml"
 
 log_info(){ printf '%s\n' "$*"; }
 log_error(){ printf 'ERR: %s\n' "$*" >&2; }
 fatal(){ log_error "$*"; exit 1; }
 
-TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/miho.XXXXXX")"
+TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/manis.XXXXXX")"
 trap 'rm -rf -- "${TMPDIR}"' EXIT
 
 http_fetch(){ local url="$1"; local out="$2";
@@ -150,7 +150,7 @@ prepare_kernel_binary(){
         fi
     fi
 
-    local tmp_binary_path="${TMPDIR}/miho.bin"
+    local tmp_binary_path="${TMPDIR}/manis.bin"
     if ! gunzip -c "$tmp_asset_gz_path" > "$tmp_binary_path"; then
         fatal "Kernel extraction failed"
     fi
@@ -220,7 +220,7 @@ prepare_reference_config(){
 }
 
 prepare_geo_datasets(){
-    local RESOURCES_DIR="${ROOT_PATH}/miho/Resources"
+    local RESOURCES_DIR="${ROOT_PATH}/manis/Resources"
     mkdir -p "$RESOURCES_DIR"
     if [ ! -f "$RESOURCES_DIR/Country.mmdb.lzfse" ] || [ "$FORCE_GEO_DOWNLOAD" = true ]; then
         local src="https://github.com/MetaCubeX/meta-rules-dat/raw/release/country.mmdb"
@@ -253,7 +253,7 @@ prepare_geo_datasets(){
 }
 
 prepare_resources(){
-    local RESOURCES_DIR="${ROOT_PATH}/miho/Resources"
+    local RESOURCES_DIR="${ROOT_PATH}/manis/Resources"
     local jobs=() rc=0 pid
     if [ ! -f "${KERNEL_DIR}/binary" ] || [ "$FORCE_KERNEL_DOWNLOAD" = true ]; then
         prepare_kernel_binary & jobs+=("$!")
@@ -278,9 +278,16 @@ build_spm(){
     
     local executable_path="${SPM_BUILD_DIR}/${APP_NAME}"
     if [ -f "$executable_path" ]; then
-        local dylib_path="${ROOT_PATH}/miho/Resources/Kernel/build/libmihomo_arm64.dylib"
+        local dylib_path="${ROOT_PATH}/manis/Resources/Kernel/build/libmihomo_arm64.dylib"
         if [ -f "$dylib_path" ]; then
-            install_name_tool -change libmihomo_arm64.dylib "$dylib_path" "$executable_path" 2>/dev/null || true
+            local rpath_dylib="@rpath/libmihomo_arm64.dylib"
+            install_name_tool -change libmihomo_arm64.dylib "$rpath_dylib" "$executable_path" 2>/dev/null || true
+            
+            local kernel_build_dir="${ROOT_PATH}/manis/Resources/Kernel/build"
+            install_name_tool -add_rpath "$kernel_build_dir" "$executable_path" 2>/dev/null || true
+            
+            install_name_tool -add_rpath "@executable_path/../Resources/Kernel/build" "$executable_path" 2>/dev/null || true
+            
             log_info "Fixed dylib path for runtime loading"
         fi
     fi
@@ -318,8 +325,8 @@ package_app_bundle(){
         cp -a -- "${KERNEL_DIR}/binary" "${bundle_path}/Contents/Resources/" 2>/dev/null || true
     fi
     
-    if [ -f "miho/Supporting Files/Info.plist" ]; then
-        cp -a -- "miho/Supporting Files/Info.plist" "${bundle_path}/Contents/Info.plist"
+    if [ -f "manis/Supporting Files/Info.plist" ]; then
+        cp -a -- "manis/Supporting Files/Info.plist" "${bundle_path}/Contents/Info.plist"
     else
         fatal "Info.plist not found"
     fi
@@ -327,12 +334,12 @@ package_app_bundle(){
     /usr/libexec/PlistBuddy -c "Set :CFBundleExecutable ${APP_NAME}" "${bundle_path}/Contents/Info.plist" 2>/dev/null || true
     /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${APP_BUNDLE_ID}" "${bundle_path}/Contents/Info.plist"
     
-    if [ -f "miho/Sources/Daemons/LaunchDaemon/com.sonqyau.miho.daemon.plist" ]; then
+    if [ -f "manis/Sources/Daemons/LaunchDaemon/com.sonqyau.manis.daemon.plist" ]; then
         mkdir -p "${bundle_path}/Contents/Library/LaunchDaemons"
-        cp -a -- "miho/Sources/Daemons/LaunchDaemon/com.sonqyau.miho.daemon.plist" \
+        cp -a -- "manis/Sources/Daemons/LaunchDaemon/com.sonqyau.manis.daemon.plist" \
             "${bundle_path}/Contents/Library/LaunchDaemons/"
-        # cp -a -- "miho/Sources/Daemons/LaunchDaemon/com.sonqyau.miho.daemon.plist" \
-        #     "${bundle_path}/Contents/Resources/com.sonqyau.miho.daemon.plist"
+        # cp -a -- "manis/Sources/Daemons/LaunchDaemon/com.sonqyau.manis.daemon.plist" \
+        #     "${bundle_path}/Contents/Resources/com.sonqyau.manis.daemon.plist"
     fi
     
     log_info "Application bundle prepared at ${bundle_path}"
@@ -343,9 +350,9 @@ codesign_app_bundle(){
     local bundle_path="${SPM_BUILD_DIR}/${APP_NAME}.app"
 
     if [ -f "${bundle_path}/Contents/Helpers/${DAEMON_NAME}" ]; then
-        codesign --force --sign "$CODESIGN_IDENTITY" --entitlements "miho/Sources/Daemons/ProxyDaemon/ProxyDaemon.entitlements" --options runtime --timestamp "${bundle_path}/Contents/Helpers/${DAEMON_NAME}" || fatal "Helper code signing failed"
+        codesign --force --sign "$CODESIGN_IDENTITY" --entitlements "manis/Sources/Daemons/ProxyDaemon/ProxyDaemon.entitlements" --options runtime --timestamp "${bundle_path}/Contents/Helpers/${DAEMON_NAME}" || fatal "Helper code signing failed"
     fi
-    codesign --force --sign "$CODESIGN_IDENTITY" --entitlements "miho/miho.entitlements" --options runtime --timestamp --deep "$bundle_path" || fatal "Bundle code signing failed"
+    codesign --force --sign "$CODESIGN_IDENTITY" --entitlements "manis/manis.entitlements" --options runtime --timestamp --deep "$bundle_path" || fatal "Bundle code signing failed"
     codesign --verify --deep --strict "$bundle_path" || fatal "Code signing verification failed"
     log_info "Bundle signed: ${bundle_path}"
 }

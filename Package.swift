@@ -4,13 +4,13 @@ import Foundation
 import PackageDescription
 
 let package = Package(
-  name: "miho",
+  name: "manis",
   defaultLocalization: "en",
   platforms: [
     .macOS("26.0"),
   ],
   products: [
-    .executable(name: "miho", targets: ["miho"]),
+    .executable(name: "manis", targets: ["manis"]),
     .executable(name: "ProxyDaemon", targets: ["ProxyDaemon"]),
   ],
   dependencies: [
@@ -33,7 +33,7 @@ let package = Package(
   ],
   targets: [
     .executableTarget(
-      name: "miho",
+      name: "manis",
       dependencies: [
         .product(name: "Yams", package: "Yams"),
         .product(name: "Factory", package: "Factory"),
@@ -52,7 +52,7 @@ let package = Package(
         .product(name: "ConcurrencyExtras", package: "swift-concurrency-extras"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ],
-      path: "miho",
+      path: "manis",
       exclude: [
         "Sources/Daemons/ProxyDaemon",
         "Resources/Kernel/source",
@@ -69,7 +69,7 @@ let package = Package(
       ],
       linkerSettings: [
         .unsafeFlags([
-          "-Lmiho/Resources/Kernel/build",
+          "-Lmanis/Resources/Kernel/build",
           "-lmihomo_arm64",
         ], .when(platforms: [.macOS])),
       ],
@@ -77,7 +77,7 @@ let package = Package(
     .executableTarget(
       name: "ProxyDaemon",
       dependencies: [],
-      path: "miho/Sources/Daemons/ProxyDaemon",
+      path: "manis/Sources/Daemons/ProxyDaemon",
       swiftSettings: [
         .enableUpcomingFeature("StrictConcurrency"),
       ],

@@ -1,4 +1,4 @@
-# miho
+# manis
 
 > [!WARNING]
 > This project is in an early experimental stage and is not guaranteed to be suitable for production use. Use with discretion.

@@ -1,7 +1,7 @@
 # Google Swift Style Guide: https://google.github.io/swift/
 # SwiftFormat Documentation: https://raw.githubusercontent.com/nicklockwood/SwiftFormat/refs/heads/main/Rules.md
 
---exclude .build,.swiftpm,miho.xcodeproj,miho/Resources,miho/Sources/Daemons
+--exclude .build,.swiftpm,manis.xcodeproj,manis/Resources,manis/Sources/Daemons
 
 --indent 2
 --tabwidth 2

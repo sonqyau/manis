@@ -81,9 +81,9 @@ jobs:
           chmod +x build.sh
           ./build.sh --mode spm --config release --bundle --kernel --geo
 
-      - name: Upload miho.app bundle
+      - name: Upload manis.app bundle
         uses: actions/upload-artifact@v5
         with:
-          name: miho-app
-          path: .build/release/miho.app
+          name: manis-app
+          path: .build/release/manis.app
           if-no-files-found: error

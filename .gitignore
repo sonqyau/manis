@@ -28,15 +28,15 @@ Package.resolved
 
 # Others
 
-miho/Resources/config.yaml
-miho/Resources/Country.mmdb
-miho/Resources/Country.mmdb.lzfse
-miho/Resources/geosite.dat
-miho/Resources/geosite.dat.lzfse
-miho/Resources/Kernel/*
-!miho/Resources/Kernel/toolchain/
-!miho/Resources/Kernel/toolchain/**
-miho/Resources/Kernel/toolchain/build/
-miho/Resources/Kernel/toolchain/build/**
-miho/Resources/Kernel/toolchain/source/
-miho/Resources/Kernel/toolchain/source/**
+manis/Resources/config.yaml
+manis/Resources/Country.mmdb
+manis/Resources/Country.mmdb.lzfse
+manis/Resources/geosite.dat
+manis/Resources/geosite.dat.lzfse
+manis/Resources/Kernel/*
+!manis/Resources/Kernel/toolchain/
+!manis/Resources/Kernel/toolchain/**
+manis/Resources/Kernel/toolchain/build/
+manis/Resources/Kernel/toolchain/build/**
+manis/Resources/Kernel/toolchain/source/
+manis/Resources/Kernel/toolchain/source/**
