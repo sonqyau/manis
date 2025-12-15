@@ -92,7 +92,6 @@ struct MenuBarFeature: @preconcurrency Reducer {
         Reduce(reduce(into:action:))
     }
 
-    // swiftlint:disable cyclomatic_complexity
     func reduce(into state: inout State, action: Action) -> Effect<Action> {
         switch action {
         case .onAppear:
@@ -174,8 +173,6 @@ struct MenuBarFeature: @preconcurrency Reducer {
             return .none
         }
     }
-
-    // swiftlint:enable cyclomatic_complexity
 
     private func onAppearEffect(state: inout State) -> Effect<Action> {
         let mihomo = mihomoService
@@ -383,7 +380,7 @@ struct MenuBarFeature: @preconcurrency Reducer {
         }
         return captureState.availableDrivers.values
             .flatMap(\.self)
-            .first(where: { $0.id == id })?.name
+            .first { $0.id == id }?.name
     }
 
     private static func makeMenuSubtitle(systemProxy: Bool, tunMode: Bool) -> String {

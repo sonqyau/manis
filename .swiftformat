@@ -1,1 +1,2 @@
---exclude .build,.swiftpm,manis.xcodeproj,manis/Resources,manis/Sources/Daemons
+--exclude .build,.swiftpm,manis/Resources,manis/Daemons
+--disable redundantSelf,redundantStaticSelf

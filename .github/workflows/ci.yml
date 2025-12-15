@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v6
 
       - name: Install SwiftFormat and SwiftLint
@@ -33,28 +33,20 @@ jobs:
         run: swiftformat . && swiftformat . --lint
         continue-on-error: true
 
-      - name: Show Swift version
+      - name: Get Swift version
         run: swift --version
 
-      - name: Setup Go toolchain
+      - name: Setup Go
         uses: actions/setup-go@v6
         with:
           go-version: "1.25"
 
-      - name: Build (Debug)
+      - name: Build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           chmod +x build.sh
           ./build.sh --mode spm --config debug --kernel
-        continue-on-error: true
-
-      - name: Build (Release)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          chmod +x build.sh
-          ./build.sh --mode spm --config release --kernel
         continue-on-error: true
 
       - name: Run tests
@@ -67,23 +59,23 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup Go toolchain
+      - name: Setup Go
         uses: actions/setup-go@v6
         with:
           go-version: "1.25"
 
-      - name: Generate application bundle
+      - name: Build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           chmod +x build.sh
           ./build.sh --mode spm --config release --bundle --kernel --geo
 
-      - name: Upload manis.app bundle
-        uses: actions/upload-artifact@v5
+      - name: Upload
+        uses: actions/upload-artifact@v6
         with:
           name: manis-app
           path: .build/release/manis.app

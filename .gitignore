@@ -1,6 +1,9 @@
 # macOS
 
 .DS_Store
+__MACOSX/
+.AppleDouble
+.LSOverride
 
 # Xcode
 
@@ -15,16 +18,35 @@ xcuserdata/
 *.dSYM.zip
 *.dSYM
 
+## Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
 # Swift Package Manager
 
 Packages/
 Package.pins
 Package.resolved
 *.xcodeproj
-
 .swiftpm
-
 .build/
+
+# CocoaPods
+
+Pods/
+*.xcworkspace
+
+# Carthage
+
+Carthage/Checkouts
+Carthage/Build/
+
+# fastlane
+
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
 
 # Others
 
@@ -33,10 +55,5 @@ manis/Resources/Country.mmdb
 manis/Resources/Country.mmdb.lzfse
 manis/Resources/geosite.dat
 manis/Resources/geosite.dat.lzfse
-manis/Resources/Kernel/*
-!manis/Resources/Kernel/toolchain/
-!manis/Resources/Kernel/toolchain/**
-manis/Resources/Kernel/toolchain/build/
-manis/Resources/Kernel/toolchain/build/**
-manis/Resources/Kernel/toolchain/source/
-manis/Resources/Kernel/toolchain/source/**
+manis/Resources/Kernel/
+!manis/Resources/Kernel/bridge/

@@ -54,13 +54,15 @@ let package = Package(
             ],
             path: "manis",
             exclude: [
-                "Sources/Daemons/ProxyDaemon",
+                "Daemons/ProxyDaemon",
                 "Resources/Kernel/source",
-                "Resources/Kernel/toolchain",
+                "Resources/Kernel/bridge",
+                "Supporting Files/Info.plist",
+                "manis.entitlements",
             ],
             resources: [
                 .process("Resources"),
-                .process("Sources/Daemons/LaunchDaemon"),
+                .process("Daemons/LaunchDaemon"),
             ],
             swiftSettings: [
                 .swiftLanguageMode(.v6),
@@ -71,13 +73,19 @@ let package = Package(
                 .unsafeFlags([
                     "-Lmanis/Resources/Kernel/build",
                     "-lmihomo_arm64",
+                    "-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Resources/Kernel/build",
+                    "-Xlinker", "-rpath", "-Xlinker", "manis/Resources/Kernel/build",
                 ], .when(platforms: [.macOS])),
             ],
         ),
         .executableTarget(
             name: "ProxyDaemon",
             dependencies: [],
-            path: "manis/Sources/Daemons/ProxyDaemon",
+            path: "manis/Daemons/ProxyDaemon",
+            exclude: [
+                "ProxyDaemon.entitlements",
+                "Info.plist",
+            ],
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),
             ],
