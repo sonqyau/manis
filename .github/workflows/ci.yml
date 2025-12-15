@@ -83,7 +83,7 @@ jobs:
           ./build.sh --mode spm --config release --bundle --kernel --geo
 
       - name: Upload manis.app bundle
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: manis-app
           path: .build/release/manis.app
