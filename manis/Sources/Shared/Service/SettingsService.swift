@@ -4,7 +4,6 @@ import Foundation
 protocol SettingsService: AnyObject {
     func initialize() throws
 
-    var allowLAN: Bool { get set }
     var launchAtLogin: Bool { get set }
 }
 
@@ -18,11 +17,6 @@ final class SettingsManagerServiceAdapter: SettingsService {
 
     func initialize() throws {
         try manager.initialize()
-    }
-
-    var allowLAN: Bool {
-        get { manager.allowLAN }
-        set { manager.allowLAN = newValue }
     }
 
     var launchAtLogin: Bool {

@@ -5,6 +5,7 @@ import Foundation
 protocol MihomoService {
     var statePublisher: AnyPublisher<MihomoDomain.State, Never> { get }
 
+    func configure(baseURL: String, secret: String?)
     func connect()
     func disconnect()
     func currentState() -> MihomoDomain.State
@@ -33,6 +34,10 @@ struct APIDomainMihomoServiceAdapter: MihomoService {
 
     var statePublisher: AnyPublisher<MihomoDomain.State, Never> {
         domain.statePublisher()
+    }
+
+    func configure(baseURL: String, secret: String?) {
+        domain.configure(baseURL: baseURL, secret: secret)
     }
 
     func connect() {

@@ -11,7 +11,8 @@ let package = Package(
     ],
     products: [
         .executable(name: "manis", targets: ["manis"]),
-        .executable(name: "ProxyDaemon", targets: ["ProxyDaemon"]),
+        .executable(name: "MainXPC", targets: ["MainXPC"]),
+        .executable(name: "MainDaemon", targets: ["MainDaemon"]),
     ],
     dependencies: [
         .package(url: "https://github.com/jpsim/Yams", from: "6.2.0"),
@@ -54,40 +55,54 @@ let package = Package(
             ],
             path: "manis",
             exclude: [
-                "Daemons/ProxyDaemon",
-                "Resources/Kernel/src",
-                "Resources/Kernel/bridge",
+                "XPC",
+                "Daemon",
                 "Supporting Files/Info.plist",
                 "manis.entitlements",
             ],
             resources: [
                 .process("Resources"),
-                .process("Daemons/LaunchDaemon"),
             ],
             swiftSettings: [
                 .swiftLanguageMode(.v6),
                 .enableUpcomingFeature("StrictConcurrency"),
                 .enableUpcomingFeature("ApproachableConcurrency"),
             ],
-            linkerSettings: [
-                .unsafeFlags([
-                    "-Lmanis/Resources/Kernel/lib",
-                    "-lmihomo_arm64",
-                    "-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Resources/Kernel/lib",
-                    "-Xlinker", "-rpath", "-Xlinker", "manis/Resources/Kernel/lib",
-                ], .when(platforms: [.macOS])),
+
+        ),
+        .executableTarget(
+            name: "MainXPC",
+            dependencies: [
+                .product(name: "Factory", package: "Factory"),
+                .product(name: "Dependencies", package: "swift-dependencies"),
+            ],
+            path: "manis/XPC",
+            exclude: [
+                "com.manis.XPC.plist",
+            ],
+            swiftSettings: [
+                .swiftLanguageMode(.v6),
+                .enableUpcomingFeature("StrictConcurrency"),
+                .enableUpcomingFeature("ApproachableConcurrency"),
             ],
         ),
         .executableTarget(
-            name: "ProxyDaemon",
-            dependencies: [],
-            path: "manis/Daemons/ProxyDaemon",
+            name: "MainDaemon",
+            dependencies: [
+                .product(name: "Yams", package: "Yams"),
+                .product(name: "Factory", package: "Factory"),
+                .product(name: "Dependencies", package: "swift-dependencies"),
+            ],
+            path: "manis/Daemon",
             exclude: [
-                "ProxyDaemon.entitlements",
+                "MainDaemon.entitlements",
                 "Info.plist",
+                "Launchd.plist",
             ],
             swiftSettings: [
+                .swiftLanguageMode(.v6),
                 .enableUpcomingFeature("StrictConcurrency"),
+                .enableUpcomingFeature("ApproachableConcurrency"),
             ],
         ),
     ],

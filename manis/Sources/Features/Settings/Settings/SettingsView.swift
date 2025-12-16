@@ -11,17 +11,83 @@ struct SettingsView: View {
         self.persistenceStore = persistenceStore
     }
 
+    private var daemonSection: some View {
+        Section {
+            HStack(spacing: 12) {
+                Button {
+                    store.send(.installDaemon)
+                } label: {
+                    Label("Install", systemImage: "arrow.down.circle")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(store.state.isProcessing)
+
+                Button {
+                    store.send(.uninstallDaemon)
+                } label: {
+                    Label("Uninstall", systemImage: "trash")
+                }
+                .buttonStyle(.bordered)
+                .disabled(store.state.isProcessing)
+
+                Button {
+                    store.send(.refreshDaemonStatus)
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(.bordered)
+                .disabled(store.state.isProcessing)
+            }
+
+            HStack {
+                Text("Status")
+                Spacer()
+                Text(store.state.daemonStatus)
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            Label("Privileged Helper", systemImage: "lock.shield")
+        } footer: {
+            Text("This is required to start/stop the kernel.")
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var kernelSection: some View {
+        Section {
+            HStack(spacing: 12) {
+                Button {
+                    store.send(store.state.kernelIsRunning ? .stopKernel : .startKernel)
+                } label: {
+                    Label(store.state.kernelIsRunning ? "Stop Kernel" : "Start Kernel", systemImage: store.state.kernelIsRunning ? "stop.circle" : "play.circle")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(store.state.isProcessing)
+
+                Button {
+                    store.send(.refreshKernelStatus)
+                } label: {
+                    Label("Refresh Status", systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(.bordered)
+                .disabled(store.state.isProcessing)
+            }
+        } header: {
+            Label("Kernel", systemImage: "cpu")
+        } footer: {
+            Text("The manis never talks to the privileged helper directly.")
+                .foregroundStyle(.secondary)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             Form {
                 statusSection
-                systemProxySection
-                trafficCaptureSection
-                tunModeSection
-                proxyModeSection
                 launchAtLoginSection
+                daemonSection
+                kernelSection
                 configurationSection
-                advancedSection
                 aboutSection
             }
             .formStyle(.grouped)
@@ -53,102 +119,6 @@ struct SettingsView: View {
         }
     }
 
-    private var trafficCaptureSection: some View {
-        let capture = store.state.trafficCapture
-        let drivers = capture.driversByMode[capture.mode] ?? []
-
-        return Section {
-            Picker(
-                "Capture Mode",
-                selection: Binding(
-                    get: { capture.mode },
-                    set: { mode in store.send(.selectTrafficCaptureMode(mode)) },
-                ),
-            ) {
-                ForEach(TrafficCaptureMode.allCases, id: \.self) { mode in
-                    Text(mode.displayName).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-
-            Button {
-                store.send(.toggleTrafficCaptureActivation)
-            } label: {
-                HStack {
-                    if capture.isActivating {
-                        ProgressView().scaleEffect(0.7)
-                    }
-                    Text(capture.isActive ? "Stop" : "Start")
-                    Spacer()
-                    Text(capture.mode.displayName)
-                        .font(.subheadline)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(capture.isActivating)
-
-            if !drivers.isEmpty {
-                Menu {
-                    Button("Auto Select") {
-                        store.send(.setTrafficCapturePreferredDriver(capture.mode, nil))
-                    }
-                    ForEach(drivers, id: \.id) { driver in
-                        Button {
-                            store.send(.setTrafficCapturePreferredDriver(capture.mode, driver.id))
-                        } label: {
-                            Label(
-                                driver.name,
-                                systemImage: driver.id == capture.preferredDriverID ? "checkmark" : "",
-                            )
-                        }
-                    }
-                } label: {
-                    LabeledContent("Driver") {
-                        Text(capture.preferredDriverID.flatMap { id in
-                            drivers.first { $0.id == id }?.name
-                        } ?? "Auto")
-                            .font(.subheadline)
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-
-            Toggle(
-                isOn: Binding(
-                    get: { capture.autoFallbackEnabled },
-                    set: { value in store.send(.toggleTrafficCaptureFallback(value)) },
-                ),
-            ) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Auto fallback")
-                        .font(.body)
-                    Text("Try alternative drivers automatically when activation fails")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .toggleStyle(.switch)
-
-            if let driverName = capture.activeDriverName, capture.isActive {
-                LabeledContent("Active Driver") {
-                    Text(driverName).font(.callout)
-                }
-            }
-
-            if let error = capture.lastErrorDescription {
-                Text(error)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-            }
-        } header: {
-            Label("Traffic Capture", systemImage: "shield.checkered")
-        } footer: {
-            Text("Select how macOS traffic is redirected into Mihomo and choose fallback drivers.")
-                .foregroundStyle(.secondary)
-        }
-    }
-
     private var statusSection: some View {
         let status = store.state.statusOverview
 
@@ -174,114 +144,6 @@ struct SettingsView: View {
             }
         } header: {
             Label("Status", systemImage: "info.circle")
-        }
-    }
-
-    private var systemProxySection: some View {
-        let proxy = store.state.systemProxy
-
-        return Section {
-            Toggle(
-                isOn: Binding(
-                    get: { proxy.isEnabled },
-                    set: { _ in store.send(.toggleSystemProxy) },
-                ),
-            ) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Activate System Proxy")
-                        .font(.body)
-                    Text("Expose HTTP, HTTPS, and SOCKS5 proxy services on localhost")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .toggleStyle(.switch)
-            .disabled(store.state.isProcessing)
-
-            if proxy.isEnabled {
-                if let mixedPort = proxy.mixedPort {
-                    portInfoRow(title: "Mixed Port", value: "\(mixedPort)", detail: "HTTP(S) + SOCKS5")
-                } else {
-                    portInfoRow(title: "HTTP Port", value: "\(proxy.httpPort)", detail: "HTTP/HTTPS")
-                    portInfoRow(title: "SOCKS Port", value: "\(proxy.socksPort)", detail: "SOCKS5")
-                }
-            }
-        } header: {
-            Label("System Proxy", systemImage: "globe")
-        } footer: {
-            Text("Adjust macOS network settings to route traffic through Mihomo.")
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private var tunModeSection: some View {
-        let tun = store.state.tunMode
-
-        return Section {
-            Toggle(
-                isOn: Binding(
-                    get: { tun.isEnabled },
-                    set: { _ in store.send(.toggleTunMode) },
-                ),
-            ) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Activate TUN Mode")
-                        .font(.body)
-                    Text("Requires a privileged helper to be installed and approved")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .toggleStyle(.switch)
-            .disabled(store.state.isProcessing)
-
-            if tun.requiresHelperApproval {
-                helperApprovalNotice()
-                helperApprovalActions()
-            } else if !tun.isHelperRegistered {
-                Button {
-                    store.send(.installHelper)
-                } label: {
-                    Label("Install Privileged Helper", systemImage: "arrow.down.circle.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .disabled(store.state.isProcessing)
-            }
-        } header: {
-            Label("TUN Mode", systemImage: "shield.lefthalf.filled")
-        } footer: {
-            Text("TUN mode routes system traffic without manual proxy configuration.")
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private var proxyModeSection: some View {
-        Section {
-            Picker(
-                "Mode",
-                selection: Binding(
-                    get: { store.state.proxyMode.selection },
-                    set: { mode in store.send(.selectProxyMode(mode)) },
-                ),
-            ) {
-                ForEach(ProxyMode.allCases, id: \.self) { mode in
-                    Text(mode.displayName).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .disabled(store.state.isProcessing)
-
-            Text(store.state.proxyMode.description)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        } header: {
-            Label("Proxy Mode", systemImage: "arrow.triangle.branch")
-        } footer: {
-            Text("Choose how Mihomo routes system traffic across proxies.")
-                .foregroundStyle(.secondary)
         }
     }
 
@@ -330,51 +192,6 @@ struct SettingsView: View {
             Label("Configuration", systemImage: "gear")
         } footer: {
             Text("Manage local and remote Mihomo configuration profiles.")
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private var advancedSection: some View {
-        Section {
-            Button {
-                store.send(.reloadConfig)
-            } label: {
-                Label("Reload Configuration", systemImage: "arrow.clockwise")
-            }
-            .buttonStyle(.plain)
-            .disabled(store.state.isProcessing)
-
-            Button {
-                store.send(.flushDNS)
-            } label: {
-                Label("Flush DNS Cache", systemImage: "trash")
-            }
-            .buttonStyle(.plain)
-            .tint(.pink)
-            .disabled(!store.state.tunMode.isHelperRegistered || store.state.isProcessing)
-
-            Toggle(
-                isOn: Binding(
-                    get: { store.state.allowLan },
-                    set: { value in store.send(.toggleAllowLAN(value)) },
-                ),
-            ) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Allow LAN Access")
-                        .font(.body)
-                    Text("Allow devices on the local network to access the local core")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .toggleStyle(.switch)
-            .tint(.blue)
-            .disabled(store.state.isProcessing)
-        } header: {
-            Label("Advanced", systemImage: "gearshape.2")
-        } footer: {
-            Text("Control access to the local core from the local network.")
-                .font(.caption)
                 .foregroundStyle(.secondary)
         }
     }
@@ -458,8 +275,6 @@ struct SettingsView: View {
             Button {
                 if needsStatusRefresh {
                     store.send(.confirmBootstrap)
-                } else {
-                    store.send(.checkHelperStatus)
                 }
             } label: {
                 Label(

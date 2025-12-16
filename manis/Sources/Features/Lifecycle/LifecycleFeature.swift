@@ -31,9 +31,6 @@ struct LifecycleFeature: @preconcurrency Reducer {
     @Dependency(\.networkService)
     var networkService
 
-    @Dependency(\.proxyService)
-    var proxyService
-
     init() {}
 
     func reduce(into _: inout State, action: Action) -> Effect<Action> {
@@ -52,12 +49,10 @@ struct LifecycleFeature: @preconcurrency Reducer {
             }
 
         case .shutdown:
-            let proxyService = proxyService
             let networkService = networkService
             let mihomoService = mihomoService
 
             return .run { @MainActor _ in
-                try? await proxyService.disableSystemProxy()
                 networkService.stopMonitoring()
                 mihomoService.disconnect()
             }
@@ -114,7 +109,6 @@ struct LifecycleFeature: @preconcurrency Reducer {
             try context.resourceService.ensureDefaultConfig()
         }
 
-        context.mihomoService.connect()
         context.networkService.startMonitoring()
 
         await presentInitializationWarnings(initializationWarnings)

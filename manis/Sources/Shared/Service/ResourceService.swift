@@ -15,6 +15,7 @@ protocol ResourceService: AnyObject {
     func ensureDefaultConfig() throws
 
     var configDirectory: URL { get }
+    var configFilePath: URL { get }
 }
 
 @MainActor
@@ -55,6 +56,10 @@ final class ResourceDomainServiceAdapter: ResourceService {
 
     var configDirectory: URL {
         domain.configDirectory
+    }
+
+    var configFilePath: URL {
+        domain.configFilePath
     }
 
     private func publish() {

@@ -6,40 +6,17 @@ import Perception
 struct SettingsFeature: @preconcurrency Reducer {
     @ObservableState
     struct State: Equatable {
+        struct KernelStatusSnapshot: Equatable {
+            var isRunning: Bool
+            var processId: Int32
+            var externalController: String?
+            var secret: String?
+        }
+
         struct StatusOverview: Equatable {
             var indicatorIsActive: Bool = false
             var summary: String = "Disabled"
-            var hint: String? = "Select and enable a traffic capture mode to start routing traffic."
-        }
-
-        struct SystemProxy: Equatable {
-            var isEnabled: Bool = false
-            var httpPort: Int = 7890
-            var socksPort: Int = 7891
-            var mixedPort: Int?
-        }
-
-        struct TunMode: Equatable {
-            var isEnabled: Bool = false
-            var requiresHelperApproval: Bool = false
-            var isHelperRegistered: Bool = false
-        }
-
-        struct TrafficCapture: Equatable {
-            var mode: TrafficCaptureMode
-            var isActive: Bool
-            var isActivating: Bool
-            var autoFallbackEnabled: Bool
-            var activeDriverID: TrafficCaptureDriverID?
-            var activeDriverName: String?
-            var preferredDriverID: TrafficCaptureDriverID?
-            var driversByMode: [TrafficCaptureMode: [TrafficCaptureDriverDescriptor]]
-            var lastErrorDescription: String?
-        }
-
-        struct ProxyModeState: Equatable {
-            var selection: ProxyMode
-            var description: String
+            var hint: String?
         }
 
         struct Bootstrap: Equatable {
@@ -52,22 +29,14 @@ struct SettingsFeature: @preconcurrency Reducer {
         }
 
         var statusOverview: StatusOverview = .init()
-        var systemProxy: SystemProxy = .init()
-        var tunMode: TunMode = .init()
-        var trafficCapture: TrafficCapture = .init(
-            mode: .manual,
-            isActive: false,
-            isActivating: false,
-            autoFallbackEnabled: true,
-            activeDriverID: nil,
-            activeDriverName: nil,
-            preferredDriverID: nil,
-            driversByMode: [:],
-            lastErrorDescription: nil,
-        )
-        var proxyMode: ProxyModeState = .init(selection: .rule, description: "")
         var launchAtLogin: Bootstrap = .init()
-        var allowLan: Bool = false
+
+        var kernelIsRunning: Bool = false
+        var kernelController: String?
+        var kernelSecret: String?
+
+        var daemonStatus: String = "Unknown"
+
         var alerts: Alerts = .init()
         var isProcessing: Bool = false
     }
@@ -75,32 +44,23 @@ struct SettingsFeature: @preconcurrency Reducer {
     enum Action: Equatable {
         case onAppear
         case dismissError
-        case toggleSystemProxy
-        case toggleTunMode
-        case installHelper
         case openSystemSettings
-        case checkHelperStatus
         case confirmBootstrap
         case toggleBootstrap
-        case selectTrafficCaptureMode(TrafficCaptureMode)
-        case toggleTrafficCaptureActivation
-        case setTrafficCapturePreferredDriver(TrafficCaptureMode, TrafficCaptureDriverID?)
-        case toggleTrafficCaptureFallback(Bool)
-        case selectProxyMode(ProxyMode)
-        case reloadConfig
-        case flushDNS
-        case toggleAllowLAN(Bool)
+
+        case refreshDaemonStatus
+        case installDaemon
+        case uninstallDaemon
+
+        case refreshKernelStatus
+        case startKernel
+        case stopKernel
+
+        case kernelStatusUpdated(State.KernelStatusSnapshot)
+        case kernelStatusFailed(String)
+
         case operationFinished(String?)
     }
-
-    @Dependency(\.proxyService)
-    var proxyService
-
-    @Dependency(\.trafficCaptureService)
-    var trafficCaptureService
-
-    @Dependency(\.daemonService)
-    var daemonService
 
     @Dependency(\.launchService)
     var launchService
@@ -110,6 +70,9 @@ struct SettingsFeature: @preconcurrency Reducer {
 
     @Dependency(\.resourceService)
     var resourceService
+
+    @Dependency(\.mihomoService)
+    var mihomoService
 
     init() {}
 
@@ -123,92 +86,146 @@ struct SettingsFeature: @preconcurrency Reducer {
                 state.alerts.errorMessage = nil
                 return .none
 
-            case .reloadConfig:
-                return reloadConfigEffect(state: &state)
-
             case let .operationFinished(errorMessage):
                 return operationFinishedEffect(state: &state, errorMessage: errorMessage)
-
-            case .checkHelperStatus:
-                daemonService.checkStatus()
-                return .none
 
             case .confirmBootstrap:
                 launchService.updateStatus()
                 return .none
 
-            case let .setTrafficCapturePreferredDriver(mode, driverID):
-                trafficCaptureService.setPreferredDriver(driverID, for: mode)
-                return .none
-
-            case let .toggleTrafficCaptureFallback(isEnabled):
-                trafficCaptureService.autoFallbackEnabled = isEnabled
-                return .none
-
-            case .toggleSystemProxy:
-                return toggleSystemProxyEffect(state: &state)
-
-            case .toggleTunMode:
-                return toggleTunModeEffect(state: &state)
-
-            case let .toggleAllowLAN(isEnabled):
-                return toggleAllowLANEffect(state: &state, isEnabled: isEnabled)
-
-            case let .selectProxyMode(mode):
-                return selectProxyModeEffect(state: &state, mode: mode)
-
-            case let .selectTrafficCaptureMode(mode):
-                return selectTrafficCaptureModeEffect(state: &state, mode: mode)
-
-            case .toggleTrafficCaptureActivation:
-                return toggleTrafficCaptureActivationEffect(state: &state)
-
-            case .flushDNS:
-                return flushDNSEffect(state: &state)
-
-            case .installHelper:
-                return installHelperEffect(state: &state)
-
             case .toggleBootstrap:
                 return toggleBootstrapEffect(state: &state)
 
             case .openSystemSettings:
-                daemonService.openSystemSettings()
                 launchService.openSystemSettings()
                 return .none
+
+            case .refreshDaemonStatus:
+                return refreshDaemonStatusEffect(state: &state)
+
+            case .installDaemon:
+                return installDaemonEffect(state: &state)
+
+            case .uninstallDaemon:
+                return uninstallDaemonEffect(state: &state)
+
+            case .refreshKernelStatus:
+                return refreshKernelStatusEffect(state: &state)
+
+            case let .kernelStatusUpdated(snapshot):
+                let previousController = state.kernelController
+                let previousSecret = state.kernelSecret
+
+                state.kernelIsRunning = snapshot.isRunning
+                state.kernelController = snapshot.externalController
+                state.kernelSecret = snapshot.secret
+
+                applyKernelStatusToMihomoService(
+                    statusIsRunning: snapshot.isRunning,
+                    externalController: snapshot.externalController,
+                    secret: snapshot.secret,
+                    previousController: previousController,
+                    previousSecret: previousSecret,
+                    state: &state,
+                )
+
+                state.statusOverview = .init(
+                    indicatorIsActive: snapshot.isRunning,
+                    summary: snapshot.isRunning ? "Kernel Running" : "Kernel Stopped",
+                    hint: snapshot.externalController,
+                )
+
+                state.isProcessing = false
+                return .none
+
+            case let .kernelStatusFailed(message):
+                state.isProcessing = false
+                state.alerts.errorMessage = message
+                return .none
+
+            case .startKernel:
+                return startKernelEffect(state: &state)
+
+            case .stopKernel:
+                return stopKernelEffect(state: &state)
             }
         }
     }
 
     private func onAppearEffect(state: inout State) -> Effect<Action> {
-        let snapshots = SettingsSnapshots(
-            proxy: ProxySnapshot(proxyService.currentState()),
-            capture: TrafficCaptureSnapshot(trafficCaptureService.currentState()),
-            daemon: DaemonSnapshot(daemonService.currentState()),
-            launch: LaunchSnapshot(launchService.currentState()),
+        let launchState = LaunchSnapshot(launchService.currentState())
+
+        state.statusOverview = .init(
+            indicatorIsActive: false,
+            summary: "Ready",
+            hint: nil,
         )
-        Self.mapState(from: snapshots, into: &state)
+
+        state.launchAtLogin = .init(
+            isEnabled: launchState.isEnabled,
+            requiresApproval: launchState.requiresApproval,
+        )
+
+        state.daemonStatus = describeDaemonStatus()
+
         return .none
     }
 
-    private func reloadConfigEffect(state: inout State) -> Effect<Action> {
+    private func refreshDaemonStatusEffect(state: inout State) -> Effect<Action> {
+        state.daemonStatus = describeDaemonStatus()
+        return .none
+    }
+
+    private func installDaemonEffect(state: inout State) -> Effect<Action> {
         guard !state.isProcessing else {
             return .none
         }
-
         state.isProcessing = true
         state.alerts.errorMessage = nil
 
-        let proxyContainer = ProxyServiceDependency(service: proxyService)
+        return .run { @MainActor send in
+            do {
+                try DaemonManager.shared.register()
+                send(.refreshDaemonStatus)
+                send(.operationFinished(nil))
+            } catch {
+                send(.refreshDaemonStatus)
+                send(.operationFinished((error as NSError).localizedDescription))
+            }
+        }
+    }
+
+    private func uninstallDaemonEffect(state: inout State) -> Effect<Action> {
+        guard !state.isProcessing else {
+            return .none
+        }
+        state.isProcessing = true
+        state.alerts.errorMessage = nil
 
         return .run { @MainActor send in
             do {
-                try await proxyContainer.service.reloadConfig()
+                try DaemonManager.shared.unregister()
+                send(.refreshDaemonStatus)
                 send(.operationFinished(nil))
             } catch {
-                let message = (error as NSError).localizedDescription
-                send(.operationFinished(message))
+                send(.refreshDaemonStatus)
+                send(.operationFinished((error as NSError).localizedDescription))
             }
+        }
+    }
+
+    private func describeDaemonStatus() -> String {
+        switch DaemonManager.shared.status {
+        case .enabled:
+            return "Installed"
+        case .requiresApproval:
+            return "Requires Approval"
+        case .notRegistered:
+            return "Not Installed"
+        case .notFound:
+            return "Not Found"
+        @unknown default:
+            return "Unknown"
         }
     }
 
@@ -219,212 +236,14 @@ struct SettingsFeature: @preconcurrency Reducer {
         state.isProcessing = false
         state.alerts.errorMessage = errorMessage
 
-        let snapshots = SettingsSnapshots(
-            proxy: ProxySnapshot(proxyService.currentState()),
-            capture: TrafficCaptureSnapshot(trafficCaptureService.currentState()),
-            daemon: DaemonSnapshot(daemonService.currentState()),
-            launch: LaunchSnapshot(launchService.currentState()),
+        state.daemonStatus = describeDaemonStatus()
+
+        let launchState = LaunchSnapshot(launchService.currentState())
+        state.launchAtLogin = .init(
+            isEnabled: launchState.isEnabled,
+            requiresApproval: launchState.requiresApproval,
         )
-        Self.mapState(from: snapshots, into: &state)
         return .none
-    }
-
-    private func toggleSystemProxyEffect(state: inout State) -> Effect<Action> {
-        guard !state.isProcessing else {
-            return .none
-        }
-        state.isProcessing = true
-        state.alerts.errorMessage = nil
-
-        let proxyContainer = ProxyServiceDependency(service: proxyService)
-
-        return .run { @MainActor send in
-            do {
-                try await proxyContainer.service.toggleSystemProxy()
-                send(.operationFinished(nil))
-            } catch {
-                let message = (error as NSError).localizedDescription
-                send(.operationFinished(message))
-            }
-        }
-    }
-
-    private func toggleTunModeEffect(state: inout State) -> Effect<Action> {
-        guard !state.isProcessing else {
-            return .none
-        }
-        state.isProcessing = true
-        state.alerts.errorMessage = nil
-
-        let proxyContainer = ProxyServiceDependency(service: proxyService)
-
-        return .run { @MainActor send in
-            do {
-                try await proxyContainer.service.toggleTunMode()
-                send(.operationFinished(nil))
-            } catch {
-                let message = (error as NSError).localizedDescription
-                send(.operationFinished(message))
-            }
-        }
-    }
-
-    private func toggleAllowLANEffect(
-        state: inout State,
-        isEnabled: Bool,
-    ) -> Effect<Action> {
-        guard !state.isProcessing else {
-            return .none
-        }
-        state.isProcessing = true
-        state.alerts.errorMessage = nil
-
-        let proxyContainer = ProxyServiceDependency(service: proxyService)
-        let settingsContainer = SettingsServiceDependency(service: settingsService)
-
-        return .run { @MainActor send in
-            do {
-                try await proxyContainer.service.setAllowLAN(isEnabled)
-                settingsContainer.service.allowLAN = isEnabled
-                send(.operationFinished(nil))
-            } catch {
-                let message = (error as NSError).localizedDescription
-                send(.operationFinished(message))
-            }
-        }
-    }
-
-    private func selectProxyModeEffect(
-        state: inout State,
-        mode: ProxyMode,
-    ) -> Effect<Action> {
-        guard state.proxyMode.selection != mode else {
-            return .none
-        }
-        guard !state.isProcessing else {
-            return .none
-        }
-        state.isProcessing = true
-        state.alerts.errorMessage = nil
-
-        let proxyContainer = ProxyServiceDependency(service: proxyService)
-
-        return .run { @MainActor send in
-            do {
-                try await proxyContainer.service.switchMode(mode)
-                send(.operationFinished(nil))
-            } catch {
-                let message = (error as NSError).localizedDescription
-                send(.operationFinished(message))
-            }
-        }
-    }
-
-    private func selectTrafficCaptureModeEffect(
-        state: inout State,
-        mode: TrafficCaptureMode,
-    ) -> Effect<Action> {
-        let captureSnapshot = TrafficCaptureSnapshot(trafficCaptureService.currentState())
-        guard captureSnapshot.selectedMode != mode else {
-            return .none
-        }
-        guard !state.isProcessing else {
-            return .none
-        }
-        state.isProcessing = true
-        state.alerts.errorMessage = nil
-
-        let captureContainer = TrafficCaptureServiceDependency(service: trafficCaptureService)
-        let proxySnapshot = ProxySnapshot(proxyService.currentState())
-        let context = Self.makeCaptureContext(
-            mode: mode,
-            proxy: proxySnapshot,
-            resourceService: resourceService,
-        )
-
-        return .run { @MainActor send in
-            do {
-                try await captureContainer.service.activate(mode: mode, context: context)
-                send(.operationFinished(nil))
-            } catch {
-                let message = (error as NSError).localizedDescription
-                send(.operationFinished(message))
-            }
-        }
-    }
-
-    private func toggleTrafficCaptureActivationEffect(
-        state: inout State,
-    ) -> Effect<Action> {
-        let captureSnapshot = TrafficCaptureSnapshot(trafficCaptureService.currentState())
-        guard !state.isProcessing else {
-            return .none
-        }
-        state.isProcessing = true
-        state.alerts.errorMessage = nil
-
-        let captureContainer = TrafficCaptureServiceDependency(service: trafficCaptureService)
-        let proxySnapshot = ProxySnapshot(proxyService.currentState())
-        let mode = captureSnapshot.selectedMode
-        let context = Self.makeCaptureContext(
-            mode: mode,
-            proxy: proxySnapshot,
-            resourceService: resourceService,
-        )
-
-        return .run { @MainActor send in
-            do {
-                if captureSnapshot.isActive {
-                    await captureContainer.service.deactivateCurrentMode()
-                } else {
-                    try await captureContainer.service.activate(mode: mode, context: context)
-                }
-                send(.operationFinished(nil))
-            } catch {
-                let message = (error as NSError).localizedDescription
-                send(.operationFinished(message))
-            }
-        }
-    }
-
-    private func flushDNSEffect(state: inout State) -> Effect<Action> {
-        guard !state.isProcessing else {
-            return .none
-        }
-        state.isProcessing = true
-        state.alerts.errorMessage = nil
-
-        let daemonContainer = DaemonServiceDependency(service: daemonService)
-
-        return .run { @MainActor send in
-            do {
-                try await daemonContainer.service.flushDNSCache()
-                send(.operationFinished(nil))
-            } catch {
-                let message = (error as NSError).localizedDescription
-                send(.operationFinished(message))
-            }
-        }
-    }
-
-    private func installHelperEffect(state: inout State) -> Effect<Action> {
-        guard !state.isProcessing else {
-            return .none
-        }
-        state.isProcessing = true
-        state.alerts.errorMessage = nil
-
-        let daemonContainer = DaemonServiceDependency(service: daemonService)
-
-        return .run { @MainActor send in
-            do {
-                try await daemonContainer.service.register()
-                send(.operationFinished(nil))
-            } catch {
-                let message = (error as NSError).localizedDescription
-                send(.operationFinished(message))
-            }
-        }
     }
 
     private func toggleBootstrapEffect(state: inout State) -> Effect<Action> {
@@ -449,125 +268,123 @@ struct SettingsFeature: @preconcurrency Reducer {
             }
         }
     }
-}
 
-extension SettingsFeature {
-    static func mapState(from snapshots: SettingsSnapshots, into state: inout State) {
-        let proxyState = snapshots.proxy
-        let captureState = snapshots.capture
-        let daemonState = snapshots.daemon
-        let launchState = snapshots.launch
-
-        state.statusOverview = .init(
-            indicatorIsActive: proxyState.isSystemProxyEnabled
-                || proxyState.isTunModeEnabled
-                || captureState.isActive,
-            summary: composeStatusSummary(proxyState: proxyState, captureState: captureState),
-            hint: captureState.isActive
-                || proxyState.isSystemProxyEnabled
-                || proxyState.isTunModeEnabled
-                ? nil
-                : "Select and enable a traffic capture mode to start routing traffic.",
-        )
-
-        state.systemProxy = .init(
-            isEnabled: proxyState.isSystemProxyEnabled,
-            httpPort: proxyState.httpPort,
-            socksPort: proxyState.socksPort,
-            mixedPort: proxyState.mixedPort,
-        )
-
-        state.tunMode = .init(
-            isEnabled: proxyState.isTunModeEnabled,
-            requiresHelperApproval: daemonState.requiresApproval,
-            isHelperRegistered: daemonState.isRegistered,
-        )
-
-        state.trafficCapture = .init(
-            mode: captureState.selectedMode,
-            isActive: captureState.isActive,
-            isActivating: captureState.isActivating,
-            autoFallbackEnabled: captureState.autoFallbackEnabled,
-            activeDriverID: captureState.activeDriver,
-            activeDriverName: driverName(from: captureState),
-            preferredDriverID: captureState.preferredDrivers[captureState.selectedMode],
-            driversByMode: captureState.availableDrivers,
-            lastErrorDescription: captureState.lastErrorDescription,
-        )
-
-        state.proxyMode = .init(
-            selection: proxyState.currentMode,
-            description: describeProxyMode(proxyState.currentMode),
-        )
-
-        state.launchAtLogin = .init(
-            isEnabled: launchState.isEnabled,
-            requiresApproval: launchState.requiresApproval,
-        )
-
-        state.allowLan = proxyState.allowLAN
-    }
-
-    private static func composeStatusSummary(
-        proxyState: ProxySnapshot,
-        captureState: TrafficCaptureSnapshot,
-    ) -> String {
-        if captureState.isActive {
-            return "Traffic capture enabled"
+    private func refreshKernelStatusEffect(state: inout State) -> Effect<Action> {
+        guard !state.isProcessing else {
+            return .none
         }
-        if proxyState.isSystemProxyEnabled || proxyState.isTunModeEnabled {
-            return "Proxy routing enabled"
-        }
-        return "Disabled"
-    }
 
-    private static func describeProxyMode(_ mode: ProxyMode) -> String {
-        switch mode {
-        case .rule:
-            "Rule-based routing"
+        state.isProcessing = true
+        state.alerts.errorMessage = nil
 
-        case .global:
-            "Global proxy"
-
-        case .direct:
-            "Direct connection"
+        return .run { @MainActor send in
+            do {
+                let status = try await XPCClient().getKernelStatus()
+                send(
+                    .kernelStatusUpdated(
+                        .init(
+                            isRunning: status.isRunning,
+                            processId: status.processId,
+                            externalController: status.externalController,
+                            secret: status.secret,
+                        ),
+                    ),
+                )
+            } catch {
+                let message = (error as NSError).localizedDescription
+                send(.kernelStatusFailed(message))
+            }
         }
     }
 
-    private static func driverName(from captureState: TrafficCaptureSnapshot) -> String? {
-        let descriptors = captureState.availableDrivers
-        let flattened = descriptors.flatMap(\.value)
-        guard let activeID = captureState.activeDriver else {
-            return nil
+    private func startKernelEffect(state: inout State) -> Effect<Action> {
+        guard !state.isProcessing else {
+            return .none
         }
-        return flattened.first { $0.id == activeID }?.name
+
+        state.isProcessing = true
+        state.alerts.errorMessage = nil
+
+        let configURL = resourceService.configFilePath
+        let configDir = resourceService.configDirectory
+
+        return .run { @MainActor send in
+            do {
+                let configContent = try String(contentsOf: configURL, encoding: .utf8)
+                let executablePath = try findMihomoExecutablePath()
+                try await XPCClient().startKernel(
+                    executablePath: executablePath,
+                    configPath: configDir.path,
+                    configContent: configContent,
+                )
+                send(.refreshKernelStatus)
+            } catch {
+                let message = (error as NSError).localizedDescription
+                send(.operationFinished(message))
+            }
+        }
     }
 
-    @MainActor
-    static func makeCaptureContext(
-        mode: TrafficCaptureMode,
-        proxy: ProxySnapshot,
-        resourceService: ResourceService,
-    ) -> TrafficCaptureActivationContext {
-        var context = TrafficCaptureActivationContext(
-            httpPort: proxy.httpPort,
-            socksPort: proxy.socksPort,
-            pacURL: nil,
-            configurationDirectory: resourceService.configDirectory,
-            environment: [:],
-        )
-
-        switch mode {
-        case .pac:
-            context.pacURL = resourceService.configDirectory.appendingPathComponent("auto.pac")
-
-        case .manual:
-            context.environment = ProcessInfo.processInfo.environment
-
-        case .global, .tun:
-            break
+    private func stopKernelEffect(state: inout State) -> Effect<Action> {
+        guard !state.isProcessing else {
+            return .none
         }
 
-        return context
+        state.isProcessing = true
+        state.alerts.errorMessage = nil
+
+        return .run { @MainActor send in
+            do {
+                try await XPCClient().stopKernel()
+                send(.refreshKernelStatus)
+            } catch {
+                let message = (error as NSError).localizedDescription
+                send(.operationFinished(message))
+            }
+        }
+    }
+
+    private func findMihomoExecutablePath() throws -> String {
+        if let resourceURL = Bundle.main.resourceURL {
+            let candidate = resourceURL
+                .appendingPathComponent("Kernel", isDirectory: true)
+                .appendingPathComponent("binary")
+            if FileManager.default.isExecutableFile(atPath: candidate.path) {
+                return candidate.path
+            }
+        }
+
+        throw NSError(domain: "com.manis", code: -100, userInfo: [NSLocalizedDescriptionKey: "kernel binary not found in app bundle (Resources/Kernel/binary)"])
+    }
+
+    private func applyKernelStatusToMihomoService(
+        statusIsRunning: Bool,
+        externalController: String?,
+        secret: String?,
+        previousController: String?,
+        previousSecret: String?,
+        state: inout State,
+    ) {
+        if !statusIsRunning {
+            if state.statusOverview.indicatorIsActive {
+                mihomoService.disconnect()
+            }
+            return
+        }
+
+        guard let externalController, !externalController.isEmpty else {
+            return
+        }
+
+        let baseURL = "http://\(externalController)"
+        let didChange = previousController != externalController || previousSecret != secret
+
+        guard didChange else {
+            return
+        }
+
+        mihomoService.disconnect()
+        mihomoService.configure(baseURL: baseURL, secret: secret)
+        mihomoService.connect()
     }
 }

@@ -8,7 +8,6 @@ final class PreferencesManager {
         static let lastSelectedDashboardTab = "lastSelectedDashboardTab"
 
         static let selectedProxies = "selectedProxies"
-        static let lastProxyMode = "lastProxyMode"
 
         static let benchmarkURL = "benchmarkURL"
         static let benchmarkTimeout = "benchmarkTimeout"
@@ -34,7 +33,6 @@ final class PreferencesManager {
             Keys.benchmarkURL: "https://www.apple.com/library/test/success.html",
             Keys.benchmarkTimeout: 5000,
             Keys.logLevel: "info",
-            Keys.lastProxyMode: "rule",
         ])
     }
 
@@ -65,11 +63,6 @@ final class PreferencesManager {
                 defaults.set(encoded, forKey: Keys.selectedProxies)
             }
         }
-    }
-
-    var lastProxyMode: String {
-        get { defaults.string(forKey: Keys.lastProxyMode) ?? "rule" }
-        set { defaults.set(newValue, forKey: Keys.lastProxyMode) }
     }
 
     var benchmarkURL: String {
@@ -128,7 +121,6 @@ final class PreferencesManager {
             "showSpeedInMenuBar": showSpeedInMenuBar,
             "showNetworkSpeed": showNetworkSpeed,
             "selectedProxies": selectedProxies,
-            "lastProxyMode": lastProxyMode,
             "benchmarkURL": benchmarkURL,
             "benchmarkTimeout": benchmarkTimeout,
             "logLevel": logLevel,

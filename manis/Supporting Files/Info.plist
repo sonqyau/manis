@@ -42,7 +42,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.sonqyau.manis</string>
+			<string>com.manis.app</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>manis</string>
@@ -66,5 +66,10 @@
 	<false/>
 	<key>NSSupportsSuddenTermination</key>
 	<false/>
+	<key>SMPrivilegedExecutables</key>
+	<dict>
+		<key>com.manis.Daemon</key>
+		<string>identifier "com.manis.Daemon" and anchor apple generic and certificate leaf[subject.CN] = "Apple Development: * (*)" and certificate 1[field.1.2.840.113635.100.6.2.1] /* exists */</string>
+	</dict>
 </dict>
 </plist>

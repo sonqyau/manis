@@ -16,21 +16,38 @@
 	<true/>
 	<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
 	<array>
-		<string>com.sonqyau.manis.daemon</string>
+		<string>com.manis.Daemon</string>
 	</array>
 	<key>com.apple.security.temporary-exception.shared-preference.read-write</key>
 	<array>
 		<string>com.apple.networksetup</string>
 	</array>
 	<key>com.apple.application-identifier</key>
-	<string>com.sonqyau.manis</string>
+	<string>com.manis.app</string>
 	<key>com.apple.developer.associated-domains</key>
 	<array/>
 	<key>com.apple.security.temporary-exception.mach-register.global-name</key>
-	<string>com.sonqyau.manis.daemon</string>
+	<string>com.manis.Daemon</string>
 	<key>com.apple.security.cs.allow-dyld-environment-variables</key>
 	<true/>
 	<key>com.apple.security.cs.disable-library-validation</key>
 	<true/>
+	<key>com.apple.security.temporary-exception.sbpl</key>
+	<array>
+		<string>(allow mach-lookup (global-name "com.manis.Daemon"))</string>
+	</array>
+	<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
+	<array>
+		<string>com.manis.Daemon</string>
+	</array>
+	<key>SMPrivilegedExecutables</key>
+	<dict>
+		<key>com.manis.Daemon</key>
+		<string>identifier "com.manis.Daemon" and anchor apple generic and certificate leaf[subject.CN] = "Apple Development: * (*)" and certificate 1[field.1.2.840.113635.100.6.2.1] /* exists */</string>
+	</dict>
+	<key>com.apple.security.temporary-exception.apple-events</key>
+	<array>
+		<string>com.apple.systemevents</string>
+	</array>
 </dict>
 </plist>

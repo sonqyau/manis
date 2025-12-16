@@ -73,11 +73,8 @@ public extension MihoErrorCategory {
         case is SettingsError:
             return .state
 
-        case is DaemonError, is BootstrapError, is KeychainError:
+        case is BootstrapError, is KeychainError:
             return .permission
-
-        case is TrafficCaptureDomainError, is TrafficCaptureDriverError:
-            return .operation
 
         case is YAMLDecoder.YAMLDecodingError, is ByteProcessor.ByteProcessingError, is DecodingError:
             return .parsing

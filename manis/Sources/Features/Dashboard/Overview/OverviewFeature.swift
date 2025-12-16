@@ -41,7 +41,6 @@ struct OverviewFeature: @preconcurrency Reducer {
             case .onAppear:
                 let service = mihomoService
                 return .run { @MainActor send in
-                    service.connect()
                     for await domainState in service.statePublisher.values {
                         let snapshot = MihomoSnapshot(domainState)
                         send(.mihomoSnapshotUpdated(snapshot))

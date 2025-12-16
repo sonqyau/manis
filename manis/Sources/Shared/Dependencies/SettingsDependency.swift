@@ -3,19 +3,6 @@ import Factory
 
 struct SettingsDependency {}
 
-enum ProxyServiceKey: DependencyKey {
-    static let liveValue = ProxyServiceDependency(service: Container.shared.proxyService())
-}
-
-enum TrafficCaptureServiceKey: DependencyKey {
-    static let liveValue = TrafficCaptureServiceDependency(service: Container.shared
-        .trafficCaptureService())
-}
-
-enum DaemonServiceKey: DependencyKey {
-    static let liveValue = DaemonServiceDependency(service: Container.shared.daemonService())
-}
-
 enum BootstrapServiceKey: DependencyKey {
     static let liveValue = BootstrapServiceDependency(service: Container.shared
         .launchAtLoginService())
@@ -43,21 +30,6 @@ enum MihomoServiceKey: DependencyKey {
 }
 
 extension DependencyValues {
-    var proxyService: ProxyService {
-        get { self[ProxyServiceKey.self].service }
-        set { self[ProxyServiceKey.self] = ProxyServiceDependency(service: newValue) }
-    }
-
-    var trafficCaptureService: TrafficService {
-        get { self[TrafficCaptureServiceKey.self].service }
-        set { self[TrafficCaptureServiceKey.self] = TrafficCaptureServiceDependency(service: newValue) }
-    }
-
-    var daemonService: DaemonService {
-        get { self[DaemonServiceKey.self].service }
-        set { self[DaemonServiceKey.self] = DaemonServiceDependency(service: newValue) }
-    }
-
     var launchService: BootstrapService {
         get { self[BootstrapServiceKey.self].service }
         set { self[BootstrapServiceKey.self] = BootstrapServiceDependency(service: newValue) }
@@ -87,18 +59,6 @@ extension DependencyValues {
         get { self[MihomoServiceKey.self].service }
         set { self[MihomoServiceKey.self] = MihomoServiceDependency(service: newValue) }
     }
-}
-
-struct ProxyServiceDependency: @unchecked Sendable {
-    let service: ProxyService
-}
-
-struct TrafficCaptureServiceDependency: @unchecked Sendable {
-    let service: TrafficService
-}
-
-struct DaemonServiceDependency: @unchecked Sendable {
-    let service: DaemonService
 }
 
 struct BootstrapServiceDependency: @unchecked Sendable {

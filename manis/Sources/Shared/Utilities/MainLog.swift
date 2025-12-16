@@ -171,9 +171,9 @@ struct CategoryLogger: @unchecked Sendable {
 }
 
 final class MainLog: Sendable {
-    private static let mainSubsystem = "com.sonqyau.manis"
-    private static let daemonSubsystem = "com.sonqyau.manis.daemon"
-    private static let networkExtensionSubsystem = "com.sonqyau.manis.networkextension"
+    private static let mainSubsystem = "com.manis.app"
+    private static let daemonSubsystem = "com.manis.Daemon"
+    private static let networkExtensionSubsystem = "com.manis.networkextension"
 
     static let shared = MainLog()
 

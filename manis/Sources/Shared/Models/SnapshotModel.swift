@@ -34,60 +34,6 @@ struct MihomoSnapshot {
     }
 }
 
-struct ProxySnapshot {
-    var isSystemProxyEnabled: Bool
-    var isTunModeEnabled: Bool
-    var currentMode: ProxyMode
-    var allowLAN: Bool
-    var httpPort: Int
-    var socksPort: Int
-    var mixedPort: Int?
-    var statusSummary: String
-
-    init(_ state: ProxyDomain.State) {
-        isSystemProxyEnabled = state.isSystemProxyEnabled
-        isTunModeEnabled = state.isTunModeEnabled
-        currentMode = state.currentMode
-        allowLAN = state.allowLAN
-        httpPort = state.httpPort
-        socksPort = state.socksPort
-        mixedPort = state.mixedPort
-        statusSummary = state.statusSummary
-    }
-}
-
-struct TrafficCaptureSnapshot {
-    var selectedMode: TrafficCaptureMode
-    var activeDriver: TrafficCaptureDriverID?
-    var preferredDrivers: [TrafficCaptureMode: TrafficCaptureDriverID]
-    var autoFallbackEnabled: Bool
-    var isActivating: Bool
-    var isActive: Bool
-    var availableDrivers: [TrafficCaptureMode: [TrafficCaptureDriverDescriptor]]
-    var lastErrorDescription: String?
-
-    init(_ state: TrafficDomain.State) {
-        selectedMode = state.selectedMode
-        activeDriver = state.activeDriver
-        preferredDrivers = state.preferredDrivers
-        autoFallbackEnabled = state.autoFallbackEnabled
-        isActivating = state.isActivating
-        isActive = state.isActive
-        availableDrivers = state.availableDrivers
-        lastErrorDescription = state.lastErrorDescription
-    }
-}
-
-struct DaemonSnapshot: Equatable {
-    var isRegistered: Bool
-    var requiresApproval: Bool
-
-    init(_ state: DaemonDomain.State) {
-        isRegistered = state.isRegistered
-        requiresApproval = state.requiresApproval
-    }
-}
-
 struct LaunchSnapshot {
     var isEnabled: Bool
     var requiresApproval: Bool

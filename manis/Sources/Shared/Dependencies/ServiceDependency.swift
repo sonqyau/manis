@@ -7,18 +7,6 @@ extension Container {
         self { @MainActor in APIDomainMihomoServiceAdapter() }.shared
     }
 
-    var proxyService: Factory<ProxyService> {
-        self { @MainActor in ProxyConfigDomainServiceAdapter() }.shared
-    }
-
-    var trafficCaptureService: Factory<TrafficService> {
-        self { @MainActor in TrafficCaptureDomainServiceAdapter() }.shared
-    }
-
-    var daemonService: Factory<DaemonService> {
-        self { @MainActor in DaemonDomainServiceAdapter() }.shared
-    }
-
     var launchAtLoginService: Factory<BootstrapService> {
         self { @MainActor in BootstrapManagerServiceAdapter() }.shared
     }

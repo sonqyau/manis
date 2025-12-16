@@ -4,10 +4,6 @@ import SwiftData
 
 @Model
 final class SettingsModel {
-    var proxyMode = "rule"
-    var allowLAN = false
-    var systemProxyEnabled = false
-    var tunModeEnabled = false
     var apiPort = 9090
     var apiSecret = ""
     var externalControllerURL: String?
@@ -26,10 +22,6 @@ final class SettingsModel {
     var autoUpdateInterval: TimeInterval = 86400
     var lastSelectedTab = "overview"
     var dashboardRefreshInterval: TimeInterval = 5.0
-
-    var trafficCaptureMode = TrafficCaptureMode.manual.rawValue
-    var trafficCapturePreferredDrivers: [String: String] = [:]
-    var trafficCaptureAutoFallbackEnabled = true
 
     var createdAt = Date()
     var updatedAt = Date()
@@ -93,38 +85,6 @@ final class SettingsManager {
         try container.mainContext.save()
     }
 
-    var proxyMode: String {
-        get { settings?.proxyMode ?? "rule" }
-        set {
-            settings?.proxyMode = newValue
-            try? save()
-        }
-    }
-
-    var allowLAN: Bool {
-        get { settings?.allowLAN ?? false }
-        set {
-            settings?.allowLAN = newValue
-            try? save()
-        }
-    }
-
-    var systemProxyEnabled: Bool {
-        get { settings?.systemProxyEnabled ?? false }
-        set {
-            settings?.systemProxyEnabled = newValue
-            try? save()
-        }
-    }
-
-    var tunModeEnabled: Bool {
-        get { settings?.tunModeEnabled ?? false }
-        set {
-            settings?.tunModeEnabled = newValue
-            try? save()
-        }
-    }
-
     var showNetworkSpeed: Bool {
         get { settings?.showNetworkSpeed ?? true }
         set {
@@ -164,48 +124,6 @@ final class SettingsManager {
             try? save()
         }
     }
-
-    var trafficCaptureMode: TrafficCaptureMode {
-        get {
-            TrafficCaptureMode(rawValue: settings?.trafficCaptureMode ?? TrafficCaptureMode.manual
-                .rawValue) ?? .manual
-        }
-        set {
-            settings?.trafficCaptureMode = newValue.rawValue
-            try? save()
-        }
-    }
-
-    var trafficCapturePreferredDrivers: [TrafficCaptureMode: TrafficCaptureDriverID] {
-        get {
-            guard let stored = settings?.trafficCapturePreferredDrivers else {
-                return [:]
-            }
-            var mapping: [TrafficCaptureMode: TrafficCaptureDriverID] = [:]
-            for (modeRaw, driverRaw) in stored {
-                guard let mode = TrafficCaptureMode(rawValue: modeRaw) else {
-                    continue
-                }
-                mapping[mode] = TrafficCaptureDriverID(rawValue: driverRaw)
-            }
-            return mapping
-        }
-        set {
-            let stored = Dictionary(uniqueKeysWithValues: newValue.map { pair in
-                (pair.key.rawValue, pair.value.rawValue)
-            })
-            settings?.trafficCapturePreferredDrivers = stored
-            try? save()
-        }
-    }
-
-    var trafficCaptureAutoFallbackEnabled: Bool {
-        get { settings?.trafficCaptureAutoFallbackEnabled ?? true }
-        set {
-            settings?.trafficCaptureAutoFallbackEnabled = newValue
-            try? save()
-        }
-    }
 }
 
 enum SettingsError: LocalizedError, Throwable {
@@ -225,11 +143,4 @@ enum SettingsError: LocalizedError, Throwable {
             "Unable to initialize settings: \(error.localizedDescription)"
         }
     }
-}
-
-struct SettingsSnapshots {
-    let proxy: ProxySnapshot
-    let capture: TrafficCaptureSnapshot
-    let daemon: DaemonSnapshot
-    let launch: LaunchSnapshot
 }

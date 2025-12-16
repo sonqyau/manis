@@ -7,7 +7,7 @@ struct MenuBarIconView: View {
     @Bindable private var bindableStore: StoreOf<MenuBarFeature>
 
     private var isActive: Bool {
-        bindableStore.isSystemProxyEnabled || bindableStore.isTunModeEnabled
+        bindableStore.statusDescription == "Connected"
     }
 
     private var statusColor: Color {
@@ -55,7 +55,7 @@ struct MenuBarContentView: View {
     private var openWindow
 
     private var isActive: Bool {
-        bindableStore.isSystemProxyEnabled || bindableStore.isTunModeEnabled
+        bindableStore.statusDescription == "Connected"
     }
 
     private var statusColor: Color {
@@ -70,7 +70,6 @@ struct MenuBarContentView: View {
     var body: some View {
         Form {
             statusSection
-            quickActionsSection
 
             if !bindableStore.selectorGroups.isEmpty {
                 proxyGroupsSection
@@ -80,7 +79,7 @@ struct MenuBarContentView: View {
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
-        .frame(width: 360)
+        .frame(width: 420)
         .fixedSize(horizontal: false, vertical: true)
         .task { bindableStore.send(.onAppear) }
         .onDisappear { bindableStore.send(.onDisappear) }
@@ -130,47 +129,19 @@ struct MenuBarContentView: View {
                 }
 
                 Spacer()
-            }
 
-            if bindableStore.activeFeatures.systemProxy || bindableStore.activeFeatures.tunMode {
-                HStack(spacing: 8) {
-                    if bindableStore.activeFeatures.systemProxy {
-                        MenuBarStatusBadge(text: "System Proxy", color: .blue)
-                    }
-                    if bindableStore.activeFeatures.tunMode {
-                        MenuBarStatusBadge(text: "TUN", color: .green)
-                    }
-                    if bindableStore.isTrafficCaptureActive {
-                        MenuBarStatusBadge(
-                            text: bindableStore.captureMode.displayName,
-                            color: .purple,
-                        )
-                    } else if bindableStore.isTrafficCaptureActivating {
-                        MenuBarStatusBadge(text: "Activating", color: .orange)
+                if let interface = bindableStore.networkInterface,
+                   let ipAddress = bindableStore.ipAddress
+                {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(interface)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text(ipAddress)
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundStyle(.primary)
                     }
                 }
-            }
-
-            if bindableStore.isTrafficCaptureActive ||
-                bindableStore.isTrafficCaptureActivating
-            {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "shield.checkered")
-                            .foregroundStyle(.purple)
-                            .accessibilityHidden(true)
-                        Text("Traffic Capture")
-                            .font(.subheadline)
-                        if bindableStore.isTrafficCaptureActivating {
-                            ProgressView().scaleEffect(0.6)
-                        }
-                    }
-
-                    Text(bindableStore.activeTrafficDriverName ?? "Auto driver")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 4)
             }
 
             VStack(spacing: 12) {
@@ -186,33 +157,6 @@ struct MenuBarContentView: View {
                         value: bindableStore.uploadSpeed,
                         color: .green,
                     )
-                }
-
-                HStack(spacing: 8) {
-                    Image(systemName: modeIcon(for: bindableStore.currentMode))
-                        .font(.caption)
-                        .accessibilityHidden(true)
-                    Text(bindableStore.currentMode.displayName)
-                        .font(.caption)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(Color.accentColor.opacity(0.12), in: Capsule())
-            }
-
-            if let interface = bindableStore.networkInterface,
-               let ipAddress = bindableStore.ipAddress
-            {
-                HStack(spacing: 8) {
-                    Image(systemName: "network")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
-                    Text("\(interface):")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(ipAddress)
-                        .font(.system(.caption2, design: .monospaced))
                 }
             }
         }
@@ -232,155 +176,34 @@ struct MenuBarContentView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private var quickActionsSection: some View {
-        Section {
-            quickActionsContent
-        } header: {
-            Label("Quick actions", systemImage: "bolt.fill")
-        }
-    }
-
-    @ViewBuilder private var quickActionsContent: some View {
-        VStack(spacing: 12) {
-            actionButton(
-                title: bindableStore
-                    .isSystemProxyEnabled ? "Disable System Proxy" : "Enable System Proxy",
-                icon: bindableStore.isSystemProxyEnabled ? "wifi.slash" : "wifi",
-                isActive: bindableStore.isSystemProxyEnabled,
-                activeColor: .blue,
-            ) {
-                bindableStore.send(.toggleSystemProxy)
-            }
-
-            actionButton(
-                title: bindableStore.isTunModeEnabled ? "Disable TUN Mode" : "Enable TUN Mode",
-                icon: bindableStore.isTunModeEnabled ? "lock.open" : "shield.fill",
-                isActive: bindableStore.isTunModeEnabled,
-                activeColor: .green,
-            ) {
-                bindableStore.send(.toggleTunMode)
-            }
-
-            actionButton(
-                title: bindableStore.isTrafficCaptureActive
-                    ? "Stop traffic capture"
-                    : "Start traffic capture",
-                icon: bindableStore.isTrafficCaptureActive ? "pause.circle.fill" : "play.circle.fill",
-                isActive: bindableStore.isTrafficCaptureActive,
-                activeColor: .purple,
-            ) {
-                bindableStore.send(.toggleTrafficCapture)
-            }
-
-            HStack(spacing: 8) {
-                if !bindableStore.availableTrafficDrivers.isEmpty {
-                    Menu {
-                        Button("Auto Select") { bindableStore.send(.setPreferredTrafficDriver(nil)) }
-                            .labelStyle(.titleAndIcon)
-                            .tag(UUID())
-                            .buttonStyle(.plain)
-                        ForEach(bindableStore.availableTrafficDrivers, id: \.id) { driver in
-                            Button {
-                                bindableStore.send(.setPreferredTrafficDriver(driver.id))
-                            } label: {
-                                Label(
-                                    driver.name,
-                                    systemImage: driver.name == bindableStore.activeTrafficDriverName
-                                        ? "checkmark"
-                                        : "",
-                                )
-                            }
-                        }
-                    } label: {
-                        filterTile(title: "Driver", icon: "gearshape")
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                Menu {
-                    ForEach(TrafficCaptureMode.allCases, id: \.self) { mode in
-                        Button { bindableStore.send(.selectTrafficCaptureMode(mode)) } label: {
-                            Label(
-                                mode.displayName,
-                                systemImage: bindableStore.captureMode == mode ? "checkmark" : "",
-                            )
-                        }
-                    }
-                } label: {
-                    filterTile(title: bindableStore.captureMode.displayName, icon: "shield")
-                }
-                .buttonStyle(.plain)
-
-                Menu {
-                    ForEach(ProxyMode.allCases, id: \.self) { mode in
-                        Button { bindableStore.send(.switchMode(mode)) } label: {
-                            Label(mode.displayName, systemImage: modeIcon(for: mode))
-                        }
-                    }
-                } label: {
-                    filterTile(title: "Mode", icon: "arrow.triangle.branch")
-                }
-                .buttonStyle(.plain)
-
-                Button { bindableStore.send(.reloadConfig) } label: {
-                    filterTile(title: "Reload", icon: "arrow.clockwise")
-                }
-                .buttonStyle(.plain)
-            }
-
-            if let error = bindableStore.trafficCaptureError {
-                Text(error)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .padding(.vertical, 4)
-    }
-
-    private func actionButton(
+    private func filterTile(
         title: String,
         icon: String,
-        isActive: Bool,
-        activeColor: Color,
-        action: @escaping () -> Void,
+        isActive: Bool = false,
+        activeColor: Color = .blue,
     ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                Image(systemName: icon)
-                    .foregroundStyle(isActive ? activeColor : .secondary)
-                    .accessibilityHidden(true)
-                Text(title)
-                    .font(.body)
-                Spacer()
-            }
-            .padding(.vertical, 10)
-            .padding(.horizontal, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(isActive ? activeColor.opacity(0.15) : Color.secondary.opacity(0.08)),
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func filterTile(title: String, icon: String) -> some View {
-        VStack(spacing: 4) {
+        HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.title3)
+                .font(.body)
+                .foregroundStyle(isActive ? activeColor : .primary)
                 .accessibilityHidden(true)
             Text(title)
                 .font(.caption)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+                .foregroundStyle(isActive ? activeColor : .primary)
+            Spacer()
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
         .frame(maxWidth: .infinity)
+        .background(
+            isActive ? activeColor.opacity(0.15) : Color.secondary.opacity(0.08),
+            in: RoundedRectangle(cornerRadius: 10),
+        )
     }
 
     private var proxyGroupsSection: some View {
         Section {
-            ForEach(bindableStore.selectorGroups) { proxyGroup in
+            ForEach(store.selectorGroups) { proxyGroup in
                 MenuBarProxyGroupRow(
                     group: proxyGroup,
                     proxies: bindableStore.proxies,
@@ -395,51 +218,31 @@ struct MenuBarContentView: View {
 
     private var navigationSection: some View {
         Section {
-            VStack(spacing: 6) {
-                MenuBarNavigationButton(title: "Open dashboard", icon: "square.grid.2x2.fill") {
+            HStack(spacing: 8) {
+                Button {
                     openWindow(id: "dashboardWindow")
+                } label: {
+                    filterTile(title: "Dashboard", icon: "square.grid.2x2.fill")
                 }
+                .buttonStyle(.plain)
 
-                MenuBarNavigationButton(title: "Open settings", icon: "gear") {
+                Button {
                     openWindow(id: "settingsWindow")
+                } label: {
+                    filterTile(title: "Settings", icon: "gear")
                 }
+                .buttonStyle(.plain)
 
-                MenuBarNavigationButton(
-                    title: "Quit Mihomo",
-                    icon: "power",
-                    tint: .red,
-                    showsChevron: false,
-                    role: .destructive,
-                ) {
+                Button {
                     NSApplication.shared.terminate(nil)
+                } label: {
+                    filterTile(title: "Quit", icon: "power")
                 }
+                .buttonStyle(.plain)
             }
         } header: {
             Label("Shortcuts", systemImage: "arrowshape.turn.up.right.circle")
         }
-    }
-
-    private func modeIcon(for mode: ProxyMode) -> String {
-        switch mode {
-        case .rule: "list.bullet.circle"
-        case .global: "globe"
-        case .direct: "arrow.right.circle"
-        }
-    }
-}
-
-struct MenuBarStatusBadge: View {
-    let text: String
-    let color: Color
-
-    var body: some View {
-        Text(text)
-            .font(.caption2)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .foregroundColor(color)
-            .background(color.opacity(0.15))
-            .clipShape(Capsule())
     }
 }
 
