@@ -25,7 +25,7 @@ XCODE_BUILD_DIR="build"
 KERNEL_DIR="${ROOT_PATH}/manis/Resources/Kernel"
 KERNEL_REPOSITORY_URL="https://github.com/MetaCubeX/mihomo.git"
 KERNEL_BRANCH_NAME="Alpha"
-KERNEL_SOURCE_DIR="${KERNEL_DIR}/source"
+KERNEL_SOURCE_DIR="${KERNEL_DIR}/src"
 CONFIG_SOURCE_URL="https://raw.githubusercontent.com/MetaCubeX/mihomo/refs/heads/Meta/docs/config.yaml"
 CONFIG_FILE_PATH="${ROOT_PATH}/manis/Resources/config.yaml"
 
@@ -109,7 +109,7 @@ prepare_kernel_source(){
         fi
 
         if [ -d "$KERNEL_SOURCE_DIR/.git" ]; then
-            log_info "Synchronizing source tree: ${KERNEL_BRANCH_NAME}"
+            log_info "Source tree: ${KERNEL_BRANCH_NAME}"
             if ! git -C "$KERNEL_SOURCE_DIR" fetch --depth 1 origin "$KERNEL_BRANCH_NAME" >/dev/null 2>&1; then
                 log_info "Git synchronization failed; reverting to tarball transport"
                 use_git_transport=false
@@ -200,11 +200,11 @@ build_spm(){
     local exe="${SPM_BUILD_DIR}/${APP_NAME}"
     local arch
     arch="$(get_arch)"
-    local dylib="${ROOT_PATH}/manis/Resources/Kernel/build/libmihomo_${arch}.dylib"
+    local dylib="${ROOT_PATH}/manis/Resources/Kernel/lib/libmihomo_${arch}.dylib"
     if [ -f "$exe" ] && [ -f "$dylib" ]; then
         install_name_tool -change "libmihomo_${arch}.dylib" "@rpath/libmihomo_${arch}.dylib" "$exe" 2>/dev/null
-        install_name_tool -add_rpath "${ROOT_PATH}/manis/Resources/Kernel/build" "$exe" 2>/dev/null
-        install_name_tool -add_rpath "@executable_path/../Resources/Kernel/build" "$exe" 2>/dev/null
+        install_name_tool -add_rpath "${ROOT_PATH}/manis/Resources/Kernel/lib" "$exe" 2>/dev/null
+        install_name_tool -add_rpath "@executable_path/../Resources/Kernel/lib" "$exe" 2>/dev/null
     fi
     log_info "Swift Package Manager compilation complete"
 }
@@ -245,10 +245,11 @@ package_app_bundle(){
             cp -a -- "${KERNEL_DIR}/binary" "${bundle_path}/Contents/Resources/"
         fi
 
-        if [ -f "${KERNEL_DIR}/build/libmihomo_arm64.dylib" ]; then
-            mkdir -p "${bundle_path}/Contents/Resources/Kernel/build"
-            cp -a -- "${KERNEL_DIR}/build/libmihomo_arm64.dylib" "${bundle_path}/Contents/Resources/Kernel/build/"
-            cp -a -- "${KERNEL_DIR}/build/libmihomo.h" "${bundle_path}/Contents/Resources/Kernel/build/" 2>/dev/null || true
+        if [ -f "${KERNEL_DIR}/lib/libmihomo_arm64.dylib" ]; then
+            mkdir -p "${bundle_path}/Contents/Resources/Kernel/lib"
+            mkdir -p "${bundle_path}/Contents/Resources/Kernel/include"
+            cp -a -- "${KERNEL_DIR}/lib/libmihomo_arm64.dylib" "${bundle_path}/Contents/Resources/Kernel/lib/"
+            cp -a -- "${KERNEL_DIR}/include/libmihomo.h" "${bundle_path}/Contents/Resources/Kernel/include/" 2>/dev/null || true
         fi
     fi
 

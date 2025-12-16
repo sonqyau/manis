@@ -272,17 +272,30 @@ struct MenuBarContentView: View {
                 bindableStore.send(.toggleTrafficCapture)
             }
 
-            HStack(spacing: 12) {
-                Menu {
-                    ForEach(ProxyMode.allCases, id: \.self) { mode in
-                        Button { bindableStore.send(.switchMode(mode)) } label: {
-                            Label(mode.displayName, systemImage: modeIcon(for: mode))
+            HStack(spacing: 8) {
+                if !bindableStore.availableTrafficDrivers.isEmpty {
+                    Menu {
+                        Button("Auto Select") { bindableStore.send(.setPreferredTrafficDriver(nil)) }
+                            .labelStyle(.titleAndIcon)
+                            .tag(UUID())
+                            .buttonStyle(.plain)
+                        ForEach(bindableStore.availableTrafficDrivers, id: \.id) { driver in
+                            Button {
+                                bindableStore.send(.setPreferredTrafficDriver(driver.id))
+                            } label: {
+                                Label(
+                                    driver.name,
+                                    systemImage: driver.name == bindableStore.activeTrafficDriverName
+                                        ? "checkmark"
+                                        : "",
+                                )
+                            }
                         }
+                    } label: {
+                        filterTile(title: "Driver", icon: "gearshape")
                     }
-                } label: {
-                    filterTile(title: "Mode", icon: "arrow.triangle.branch")
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
 
                 Menu {
                     ForEach(TrafficCaptureMode.allCases, id: \.self) { mode in
@@ -297,47 +310,23 @@ struct MenuBarContentView: View {
                     filterTile(title: bindableStore.captureMode.displayName, icon: "shield")
                 }
                 .buttonStyle(.plain)
-            }
 
-            if !bindableStore.availableTrafficDrivers.isEmpty {
                 Menu {
-                    Button("Auto Select") { bindableStore.send(.setPreferredTrafficDriver(nil)) }
-                        .labelStyle(.titleAndIcon)
-                        .tag(UUID())
-                        .buttonStyle(.plain)
-                    ForEach(bindableStore.availableTrafficDrivers, id: \.id) { driver in
-                        Button {
-                            bindableStore.send(.setPreferredTrafficDriver(driver.id))
-                        } label: {
-                            Label(
-                                driver.name,
-                                systemImage: driver.name == bindableStore.activeTrafficDriverName
-                                    ? "checkmark"
-                                    : "",
-                            )
+                    ForEach(ProxyMode.allCases, id: \.self) { mode in
+                        Button { bindableStore.send(.switchMode(mode)) } label: {
+                            Label(mode.displayName, systemImage: modeIcon(for: mode))
                         }
                     }
                 } label: {
-                    filterTile(title: "Driver", icon: "gearshape")
+                    filterTile(title: "Mode", icon: "arrow.triangle.branch")
+                }
+                .buttonStyle(.plain)
+
+                Button { bindableStore.send(.reloadConfig) } label: {
+                    filterTile(title: "Reload", icon: "arrow.clockwise")
                 }
                 .buttonStyle(.plain)
             }
-
-            Toggle(
-                isOn: Binding(
-                    get: { bindableStore.autoFallbackEnabled },
-                    set: { bindableStore.send(.toggleTrafficFallback($0)) },
-                ),
-            ) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Auto fallback")
-                        .font(.body)
-                    Text("Automatically try a different driver if activation fails")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .toggleStyle(.switch)
 
             if let error = bindableStore.trafficCaptureError {
                 Text(error)
@@ -345,11 +334,6 @@ struct MenuBarContentView: View {
                     .foregroundStyle(.red)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
-
-            Button { bindableStore.send(.reloadConfig) } label: {
-                filterTile(title: "Reload Configuration", icon: "arrow.clockwise")
-            }
-            .buttonStyle(.plain)
         }
         .padding(.vertical, 4)
     }

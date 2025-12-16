@@ -55,7 +55,7 @@ let package = Package(
             path: "manis",
             exclude: [
                 "Daemons/ProxyDaemon",
-                "Resources/Kernel/source",
+                "Resources/Kernel/src",
                 "Resources/Kernel/bridge",
                 "Supporting Files/Info.plist",
                 "manis.entitlements",
@@ -71,10 +71,10 @@ let package = Package(
             ],
             linkerSettings: [
                 .unsafeFlags([
-                    "-Lmanis/Resources/Kernel/build",
+                    "-Lmanis/Resources/Kernel/lib",
                     "-lmihomo_arm64",
-                    "-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Resources/Kernel/build",
-                    "-Xlinker", "-rpath", "-Xlinker", "manis/Resources/Kernel/build",
+                    "-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Resources/Kernel/lib",
+                    "-Xlinker", "-rpath", "-Xlinker", "manis/Resources/Kernel/lib",
                 ], .when(platforms: [.macOS])),
             ],
         ),

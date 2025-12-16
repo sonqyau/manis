@@ -52,10 +52,10 @@ final class Bridge: ObservableObject {
 
         let bundlePath = Bundle.main.bundlePath
         libraryPaths = [
-            "\(bundlePath)/Contents/Resources/Kernel/build/libmihomo.dylib",
-            "\(bundlePath)/Contents/Resources/Kernel/build/libmihomo_arm64.dylib",
-            "./manis/Resources/Kernel/build/libmihomo.dylib",
-            "./manis/Resources/Kernel/build/libmihomo_arm64.dylib",
+            "\(bundlePath)/Contents/Resources/Kernel/lib/libmihomo.dylib",
+            "\(bundlePath)/Contents/Resources/Kernel/lib/libmihomo_arm64.dylib",
+            "./manis/Resources/Kernel/lib/libmihomo.dylib",
+            "./manis/Resources/Kernel/lib/libmihomo_arm64.dylib",
         ]
 
         for path in libraryPaths where FileManager.default.fileExists(atPath: path) {
