@@ -1,4 +1,3 @@
-import ErrorKit
 import Foundation
 import Security
 
@@ -9,8 +8,8 @@ final class Keychain: @unchecked Sendable {
 
     private init() {}
 
-    private func performKeychain<T>(_ operation: () throws -> T) throws(GenericError) -> T {
-        try GenericError.catch(operation)
+    private func performKeychain<T>(_ operation: () throws -> T) throws -> T {
+        try operation()
     }
 
     func setSecret(_ secret: String, for key: String) throws {
@@ -104,12 +103,28 @@ final class Keychain: @unchecked Sendable {
     }
 }
 
-enum KeychainError: LocalizedError, Throwable {
+enum KeychainError: MainError {
     case unexpectedStatus(OSStatus)
     case stringEncodingFailure
 
+    var category: ErrorCategory { .permission }
+
+    var errorCode: Int {
+        switch self {
+        case let .unexpectedStatus(status): Int(status)
+        case .stringEncodingFailure: 8001
+        }
+    }
+
+    var errorDomain: String { NSError.applicationErrorDomain }
+
     var userFriendlyMessage: String {
-        errorDescription ?? "Keychain operation failed"
+        switch self {
+        case .unexpectedStatus:
+            "Unable to access secure storage. Please check your system permissions."
+        case .stringEncodingFailure:
+            "Unable to process the secret for secure storage."
+        }
     }
 
     var errorDescription: String? {
@@ -123,5 +138,36 @@ enum KeychainError: LocalizedError, Throwable {
         case .stringEncodingFailure:
             return "Unable to encode secret for secure storage"
         }
+    }
+
+    var failureReason: String? {
+        switch self {
+        case .unexpectedStatus:
+            "The keychain operation returned an unexpected status"
+        case .stringEncodingFailure:
+            "The secret could not be encoded to UTF-8 format"
+        }
+    }
+
+    var recoverySuggestion: String? {
+        switch self {
+        case .unexpectedStatus:
+            "Check system permissions and keychain access settings"
+        case .stringEncodingFailure:
+            "Ensure the secret contains valid text characters"
+        }
+    }
+
+    var recoveryOptions: [String]? {
+        switch self {
+        case .unexpectedStatus:
+            ["Retry", "Check Permissions", "Cancel"]
+        case .stringEncodingFailure:
+            ["Try Different Text", "Cancel"]
+        }
+    }
+
+    var helpAnchor: String? {
+        "keychain-errors"
     }
 }

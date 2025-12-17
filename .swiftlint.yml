@@ -18,10 +18,10 @@ disabled_rules:
   - function_parameter_count
   - large_tuple
   - type_name
+  - attributes
 
 opt_in_rules:
   - array_init
-  - attributes
   - block_based_kvo
   - class_delegate_protocol
   - closing_brace
@@ -155,8 +155,7 @@ opt_in_rules:
   - untyped_error_in_catch
   - xct_specific_matcher
 
-attributes:
-  always_on_same_line: ["@IBAction", "@IBSegueAction", "@NSManaged", "@escaping", "@objc", "@frozen"]
+
 
 identifier_name:
   min_length: 1

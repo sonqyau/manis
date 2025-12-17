@@ -1,12 +1,29 @@
-import ErrorKit
 import Foundation
 
-enum InputValidationError: LocalizedError, Throwable {
+enum InputValidationError: MainError {
     case emptyField(String)
     case invalidCharacters(String)
     case invalidURL
     case disallowedScheme
     case invalidSecret
+
+    static var errorDomain: String { NSError.applicationErrorDomain }
+
+    var category: ErrorCategory { .validation }
+
+    var errorCode: Int {
+        switch self {
+        case .emptyField: 9001
+        case .invalidCharacters: 9002
+        case .invalidURL: 9003
+        case .disallowedScheme: 9004
+        case .invalidSecret: 9005
+        }
+    }
+
+    var recoverySuggestion: String? { "Check the input format and try again" }
+    var recoveryOptions: [String]? { ["Edit", "Cancel"] }
+    var helpAnchor: String? { "input-validation-errors" }
 
     var userFriendlyMessage: String {
         errorDescription ?? "Input validation failed"
@@ -28,6 +45,21 @@ enum InputValidationError: LocalizedError, Throwable {
 
         case .invalidSecret:
             "The provided secret is not valid"
+        }
+    }
+
+    var failureReason: String? {
+        switch self {
+        case .emptyField:
+            "Required field was left empty"
+        case .invalidCharacters:
+            "Field contains prohibited characters"
+        case .invalidURL:
+            "URL format is not recognized"
+        case .disallowedScheme:
+            "URL uses an unsupported protocol"
+        case .invalidSecret:
+            "Secret format is invalid"
         }
     }
 }

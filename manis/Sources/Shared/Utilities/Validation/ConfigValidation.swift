@@ -1,11 +1,21 @@
-import ErrorKit
 import Foundation
 import OSLog
 import Yams
 
-enum ConfigValidationError: LocalizedError, Throwable {
+enum ConfigValidationError: MainError {
     case executableNotFound
     case executionFailed(any Error)
+
+    var category: ErrorCategory { .validation }
+
+    static var errorDomain: String { NSError.applicationErrorDomain }
+
+    var errorCode: Int {
+        switch self {
+        case .executableNotFound: 7001
+        case .executionFailed: 7002
+        }
+    }
 
     var userFriendlyMessage: String {
         errorDescription ?? "Configuration validation failed"
@@ -21,6 +31,15 @@ enum ConfigValidationError: LocalizedError, Throwable {
         }
     }
 
+    var failureReason: String? {
+        switch self {
+        case .executableNotFound:
+            "The required executable file is not present in the application bundle"
+        case .executionFailed:
+            "The validation process encountered an error during execution"
+        }
+    }
+
     var recoverySuggestion: String? {
         switch self {
         case .executableNotFound:
@@ -29,6 +48,36 @@ enum ConfigValidationError: LocalizedError, Throwable {
         case .executionFailed:
             "Verify file permissions and configuration path, then run validation again."
         }
+    }
+
+    var recoveryOptions: [String]? {
+        switch self {
+        case .executableNotFound:
+            ["Reinstall App", "Download Manually", "Cancel"]
+        case .executionFailed:
+            ["Retry", "Check Permissions", "Cancel"]
+        }
+    }
+
+    var helpAnchor: String? {
+        "config-validation-errors"
+    }
+
+    var errorUserInfo: [String: Any] {
+        var userInfo: [String: Any] = [:]
+        userInfo[NSLocalizedDescriptionKey] = errorDescription
+        userInfo[NSLocalizedFailureReasonErrorKey] = failureReason
+        userInfo[NSLocalizedRecoverySuggestionErrorKey] = recoverySuggestion
+        userInfo[NSLocalizedRecoveryOptionsErrorKey] = recoveryOptions
+        userInfo[NSHelpAnchorErrorKey] = helpAnchor
+        userInfo[NSError.errorCategoryKey] = category.stringValue
+        userInfo[NSError.userFriendlyMessageKey] = userFriendlyMessage
+
+        if case let .executionFailed(error) = self {
+            userInfo[NSUnderlyingErrorKey] = error
+        }
+
+        return userInfo
     }
 }
 

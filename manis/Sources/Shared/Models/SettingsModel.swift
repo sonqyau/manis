@@ -1,4 +1,3 @@
-import ErrorKit
 import Foundation
 import SwiftData
 
@@ -126,9 +125,24 @@ final class SettingsManager {
     }
 }
 
-enum SettingsError: LocalizedError, Throwable {
+enum SettingsError: MainError {
     case notInitialized
     case initializationFailed(any Error)
+
+    static var errorDomain: String { NSError.applicationErrorDomain }
+
+    var category: ErrorCategory { .state }
+
+    var errorCode: Int {
+        switch self {
+        case .notInitialized: 8001
+        case .initializationFailed: 8002
+        }
+    }
+
+    var recoverySuggestion: String? { "Restart the application or check configuration" }
+    var recoveryOptions: [String]? { ["Retry", "Reset", "Cancel"] }
+    var helpAnchor: String? { "settings-errors" }
 
     var userFriendlyMessage: String {
         errorDescription ?? "Settings configuration error"
@@ -141,6 +155,15 @@ enum SettingsError: LocalizedError, Throwable {
 
         case let .initializationFailed(error):
             "Unable to initialize settings: \(error.localizedDescription)"
+        }
+    }
+
+    var failureReason: String? {
+        switch self {
+        case .notInitialized:
+            "The settings system has not been properly initialized"
+        case .initializationFailed:
+            "Settings initialization process encountered an error"
         }
     }
 }

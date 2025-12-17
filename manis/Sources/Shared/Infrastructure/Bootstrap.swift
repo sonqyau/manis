@@ -1,6 +1,6 @@
 import AppKit
 @preconcurrency import Combine
-import ErrorKit
+
 import Foundation
 import OSLog
 import ServiceManagement
@@ -129,9 +129,20 @@ final class BootstrapManager {
     }
 }
 
-enum BootstrapError: LocalizedError, Throwable {
+enum BootstrapError: MainError {
     case registrationFailed(any Error)
     case unregistrationFailed(any Error)
+
+    static var errorDomain: String { NSError.applicationErrorDomain }
+
+    var category: ErrorCategory { .operation }
+
+    var errorCode: Int {
+        switch self {
+        case .registrationFailed: 7001
+        case .unregistrationFailed: 7002
+        }
+    }
 
     var userFriendlyMessage: String {
         errorDescription ?? "Launch at login operation failed"
@@ -147,12 +158,30 @@ enum BootstrapError: LocalizedError, Throwable {
         }
     }
 
+    var failureReason: String? {
+        switch self {
+        case .registrationFailed:
+            "The system could not register the application for launch at login"
+        case .unregistrationFailed:
+            "The system could not unregister the application from launch at login"
+        }
+    }
+
     var recoverySuggestion: String? {
         switch self {
         case .registrationFailed, .unregistrationFailed:
             "Grant permission in System Settings > General > Login Items, then try again."
         }
     }
+
+    var recoveryOptions: [String]? {
+        switch self {
+        case .registrationFailed, .unregistrationFailed:
+            ["Retry", "Open System Settings", "Cancel"]
+        }
+    }
+
+    var helpAnchor: String? { "bootstrap-errors" }
 }
 
 enum Bootstrap {}

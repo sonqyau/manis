@@ -17,11 +17,10 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/jpsim/Yams", from: "6.2.0"),
         .package(url: "https://github.com/hmlongco/Factory", from: "2.5.3"),
-        .package(url: "https://github.com/apple/swift-collections", from: "1.3.0"),
-        .package(url: "https://github.com/FlineDev/ErrorKit", from: "1.2.1"),
+
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture", from: "1.23.1"),
         .package(url: "https://github.com/pointfreeco/swift-concurrency-extras", from: "1.3.2"),
-        .package(url: "https://github.com/swiftlang/swift-syntax", from: "602.0.0"),
+
         .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.7.4"),
         .package(url: "https://github.com/pointfreeco/combine-schedulers", from: "1.1.0"),
         .package(url: "https://github.com/pointfreeco/swift-case-paths", from: "1.7.2"),
@@ -38,8 +37,6 @@ let package = Package(
             dependencies: [
                 .product(name: "Yams", package: "Yams"),
                 .product(name: "Factory", package: "Factory"),
-                .product(name: "Collections", package: "swift-collections"),
-                .product(name: "ErrorKit", package: "ErrorKit"),
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
                 .product(name: "Dependencies", package: "swift-dependencies"),
                 .product(name: "Perception", package: "swift-perception"),
@@ -51,7 +48,7 @@ let package = Package(
                 .product(name: "Sharing", package: "swift-sharing"),
                 .product(name: "SwiftNavigation", package: "swift-navigation"),
                 .product(name: "ConcurrencyExtras", package: "swift-concurrency-extras"),
-                .product(name: "SwiftSyntax", package: "swift-syntax"),
+
             ],
             path: "manis",
             exclude: [
@@ -72,10 +69,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "MainXPC",
-            dependencies: [
-                .product(name: "Factory", package: "Factory"),
-                .product(name: "Dependencies", package: "swift-dependencies"),
-            ],
+            dependencies: [],
             path: "manis/XPC",
             exclude: [
                 "com.manis.XPC.plist",
@@ -90,8 +84,6 @@ let package = Package(
             name: "MainDaemon",
             dependencies: [
                 .product(name: "Yams", package: "Yams"),
-                .product(name: "Factory", package: "Factory"),
-                .product(name: "Dependencies", package: "swift-dependencies"),
             ],
             path: "manis/Daemon",
             exclude: [

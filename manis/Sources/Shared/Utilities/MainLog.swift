@@ -81,7 +81,7 @@ struct CategoryLogger: @unchecked Sendable {
 
         if let error {
             var enriched = resolvedMetadata ?? LogMetadata()
-            enriched["error"] = error.mihoMessage
+            enriched["error"] = error.applicationMessage
             resolvedMetadata = enriched
         }
 

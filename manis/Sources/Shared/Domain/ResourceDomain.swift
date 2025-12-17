@@ -1,5 +1,5 @@
 import Compression
-import ErrorKit
+
 import Foundation
 import OSLog
 
@@ -44,7 +44,7 @@ final class ResourceDomain {
         } catch {
             isInitialized = false
             initializationError = error
-            let chain = ErrorKit.errorChainDescription(for: error)
+            let chain = error.errorChainDescription
             logger.error("Resource initialization failed\n\(chain)", error: error)
             throw error
         }
@@ -169,8 +169,8 @@ final class ResourceDomain {
         configDirectory.appendingPathComponent("\(name).yaml")
     }
 
-    private func performFile<T>(_ operation: () throws -> T) throws(FileError) -> T {
-        try FileError.catch(operation)
+    private func performFile<T>(_ operation: () throws -> T) throws -> T {
+        try operation()
     }
 
     private func decompressLZFSE(_ data: Data) throws -> Data {
@@ -180,7 +180,7 @@ final class ResourceDomain {
     }
 }
 
-enum ResourceError: LocalizedError, Throwable {
+enum ResourceError: MainError {
     case configDirectoryIsFile
     case cannotCreateConfigDirectory(any Error)
     case bundledGeoIPNotFound
@@ -189,6 +189,23 @@ enum ResourceError: LocalizedError, Throwable {
     case cannotCreateConfig(any Error)
     case decompressionFailed
     case updateFailed(any Error)
+
+    var category: ErrorCategory { .file }
+
+    static var errorDomain: String { NSError.applicationErrorDomain }
+
+    var errorCode: Int {
+        switch self {
+        case .configDirectoryIsFile: 6001
+        case .cannotCreateConfigDirectory: 6002
+        case .bundledGeoIPNotFound: 6003
+        case .cannotExtractGeoIP: 6004
+        case .bundledConfigNotFound: 6005
+        case .cannotCreateConfig: 6006
+        case .decompressionFailed: 6007
+        case .updateFailed: 6008
+        }
+    }
 
     var userFriendlyMessage: String {
         errorDescription ?? "Resource error"
@@ -248,5 +265,68 @@ enum ResourceError: LocalizedError, Throwable {
         case .updateFailed:
             "Check your network connection and try again."
         }
+    }
+
+    var failureReason: String? {
+        switch self {
+        case .configDirectoryIsFile:
+            "A file exists where a directory is expected"
+        case .cannotCreateConfigDirectory:
+            "Directory creation failed due to file system constraints"
+        case .bundledGeoIPNotFound:
+            "Required GeoIP database is missing from application bundle"
+        case .cannotExtractGeoIP:
+            "GeoIP database extraction process failed"
+        case .bundledConfigNotFound:
+            "Required configuration file is missing from application bundle"
+        case .cannotCreateConfig:
+            "Configuration file creation failed"
+        case .decompressionFailed:
+            "Data decompression operation failed"
+        case .updateFailed:
+            "Resource update operation failed"
+        }
+    }
+
+    var recoveryOptions: [String]? {
+        switch self {
+        case .configDirectoryIsFile:
+            ["Remove File", "Choose Different Location", "Cancel"]
+        case .cannotCreateConfigDirectory:
+            ["Retry", "Check Permissions", "Cancel"]
+        case .bundledGeoIPNotFound, .bundledConfigNotFound:
+            ["Reinstall App", "Download Manually", "Cancel"]
+        case .cannotExtractGeoIP, .cannotCreateConfig:
+            ["Retry", "Check Disk Space", "Cancel"]
+        case .decompressionFailed:
+            ["Retry", "Reinstall App", "Cancel"]
+        case .updateFailed:
+            ["Retry", "Check Connection", "Cancel"]
+        }
+    }
+
+    var helpAnchor: String? {
+        "resource-errors"
+    }
+
+    var errorUserInfo: [String: Any] {
+        var userInfo: [String: Any] = [:]
+        userInfo[NSLocalizedDescriptionKey] = errorDescription
+        userInfo[NSLocalizedFailureReasonErrorKey] = failureReason
+        userInfo[NSLocalizedRecoverySuggestionErrorKey] = recoverySuggestion
+        userInfo[NSLocalizedRecoveryOptionsErrorKey] = recoveryOptions
+        userInfo[NSHelpAnchorErrorKey] = helpAnchor
+        userInfo[NSError.errorCategoryKey] = category.stringValue
+        userInfo[NSError.userFriendlyMessageKey] = userFriendlyMessage
+
+        switch self {
+        case let .cannotCreateConfigDirectory(error), let .cannotExtractGeoIP(error),
+             let .cannotCreateConfig(error), let .updateFailed(error):
+            userInfo[NSUnderlyingErrorKey] = error
+        default:
+            break
+        }
+
+        return userInfo
     }
 }

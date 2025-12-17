@@ -75,7 +75,7 @@ final class ResourceDomainServiceAdapter: ResourceService {
             return nil
         }
 
-        let manis = MainError(error: error)
+        let manis = AppError(error: error)
         let prefix = "[\(manis.category.displayName)] "
 
         if let resource = error as? ResourceError {

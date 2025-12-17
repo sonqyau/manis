@@ -1,5 +1,5 @@
 @preconcurrency import Combine
-import ErrorKit
+
 import Foundation
 import OSLog
 import SwiftData
@@ -77,11 +77,11 @@ final class PersistenceDomain {
         if let remoteError = error as? PersistenceError {
             return remoteError
         }
-        return .validationFailed(error.mihoMessage)
+        return .validationFailed(error.applicationMessage)
     }
 
-    private func performDatabase<T>(_ operation: () throws -> T) throws(DatabaseError) -> T {
-        try DatabaseError.catch(operation)
+    private func performDatabase<T>(_ operation: () throws -> T) throws -> T {
+        try operation()
     }
 
     func initialize(container: ModelContainer) throws(PersistenceError) {
@@ -182,12 +182,7 @@ final class PersistenceDomain {
 
         let capturedRequest = req
         do {
-            let (data, resp) = try await NetworkError.catch { @Sendable () async throws -> (
-                Data,
-                URLResponse
-            ) in
-                try await URLSession.shared.data(for: capturedRequest)
-            }
+            let (data, resp) = try await URLSession.shared.data(for: capturedRequest)
 
             guard let http = resp as? HTTPURLResponse, (200 ... 299).contains(http.statusCode) else {
                 throw PersistenceError.downloadFailed
@@ -203,7 +198,7 @@ final class PersistenceDomain {
             }
 
             let path = resourceManager.configDirectory.appendingPathComponent("\(config.name).yaml")
-            try content.write(to: path, atomically: true, encoding: .utf8)
+            try content.write(to: path, atomically: true, encoding: String.Encoding.utf8)
             try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: path.path)
 
             config.lastUpdated = Date()
@@ -340,7 +335,7 @@ final class PersistenceDomain {
                     )
                 }
             } catch {
-                let chain = ErrorKit.errorChainDescription(for: error)
+                let chain = error.errorChainDescription
                 logger.error(
                     "Failed to update configuration \(cfg.name): \(error.localizedDescription)\n\(chain)",
                 )
@@ -359,7 +354,7 @@ final class PersistenceDomain {
             do {
                 try await updateConfig(config)
             } catch {
-                let chain = ErrorKit.errorChainDescription(for: error)
+                let chain = error.errorChainDescription
                 logger.error(
                     "Failed to update configuration \(config.name): \(error.localizedDescription)\n\(chain)",
                 )
@@ -383,7 +378,7 @@ final class PersistenceDomain {
             sanitizedURL = try InputValidation.sanitizedURLString(apiURL)
             sanitizedSecret = try InputValidation.sanitizedSecret(secret)
         } catch {
-            throw PersistenceError.validationFailed(error.mihoMessage)
+            throw PersistenceError.validationFailed(error.applicationMessage)
         }
 
         let instance = RemoteInstance(name: sanitizedName, apiURL: sanitizedURL)
@@ -394,7 +389,7 @@ final class PersistenceDomain {
             try instance.updateSecret(sanitizedSecret)
         } catch {
             context.delete(instance)
-            throw PersistenceError.secretStorageFailed(error.mihoMessage)
+            throw PersistenceError.secretStorageFailed(error.applicationMessage)
         }
 
         do {
@@ -488,7 +483,7 @@ final class PersistenceDomain {
     }
 }
 
-enum PersistenceError: LocalizedError, Throwable {
+enum PersistenceError: MainError {
     case notInitialized
     case invalidURL
     case duplicateURL
@@ -496,6 +491,22 @@ enum PersistenceError: LocalizedError, Throwable {
     case invalidEncoding
     case validationFailed(String)
     case secretStorageFailed(String)
+
+    var category: ErrorCategory { .state }
+
+    static var errorDomain: String { NSError.applicationErrorDomain }
+
+    var errorCode: Int {
+        switch self {
+        case .notInitialized: 5001
+        case .invalidURL: 5002
+        case .duplicateURL: 5003
+        case .downloadFailed: 5004
+        case .invalidEncoding: 5005
+        case .validationFailed: 5006
+        case .secretStorageFailed: 5007
+        }
+    }
 
     var userFriendlyMessage: String {
         errorDescription ?? "Remote configuration error"
@@ -524,5 +535,78 @@ enum PersistenceError: LocalizedError, Throwable {
         case let .secretStorageFailed(reason):
             "Failed to store the secret securely: \(reason)"
         }
+    }
+
+    var failureReason: String? {
+        switch self {
+        case .notInitialized:
+            "The persistence system has not been properly initialized"
+        case .invalidURL:
+            "The provided URL format is not valid"
+        case .duplicateURL:
+            "A configuration with the same URL is already registered"
+        case .downloadFailed:
+            "The remote configuration could not be downloaded"
+        case .invalidEncoding:
+            "The configuration file encoding is not supported"
+        case .validationFailed:
+            "The configuration content failed validation checks"
+        case .secretStorageFailed:
+            "The secret could not be stored in the keychain"
+        }
+    }
+
+    var recoverySuggestion: String? {
+        switch self {
+        case .notInitialized:
+            "Initialize the persistence system before use"
+        case .invalidURL:
+            "Check the URL format and try again"
+        case .duplicateURL:
+            "Use a different URL or update the existing configuration"
+        case .downloadFailed:
+            "Check your network connection and try again"
+        case .invalidEncoding:
+            "Ensure the configuration file uses UTF-8 encoding"
+        case .validationFailed:
+            "Check the configuration format and content"
+        case .secretStorageFailed:
+            "Check keychain access permissions"
+        }
+    }
+
+    var recoveryOptions: [String]? {
+        switch self {
+        case .notInitialized:
+            ["Initialize", "Cancel"]
+        case .invalidURL:
+            ["Edit URL", "Cancel"]
+        case .duplicateURL:
+            ["Update Existing", "Use Different URL", "Cancel"]
+        case .downloadFailed:
+            ["Retry", "Check Connection", "Cancel"]
+        case .invalidEncoding:
+            ["Try Different Encoding", "Cancel"]
+        case .validationFailed:
+            ["Edit Configuration", "Skip Validation", "Cancel"]
+        case .secretStorageFailed:
+            ["Retry", "Skip Secret", "Cancel"]
+        }
+    }
+
+    var helpAnchor: String? {
+        "persistence-errors"
+    }
+
+    var errorUserInfo: [String: Any] {
+        var userInfo: [String: Any] = [:]
+        userInfo[NSLocalizedDescriptionKey] = errorDescription
+        userInfo[NSLocalizedFailureReasonErrorKey] = failureReason
+        userInfo[NSLocalizedRecoverySuggestionErrorKey] = recoverySuggestion
+        userInfo[NSLocalizedRecoveryOptionsErrorKey] = recoveryOptions
+        userInfo[NSHelpAnchorErrorKey] = helpAnchor
+        userInfo[NSError.errorCategoryKey] = category.stringValue
+        userInfo[NSError.userFriendlyMessageKey] = userFriendlyMessage
+        return userInfo
     }
 }

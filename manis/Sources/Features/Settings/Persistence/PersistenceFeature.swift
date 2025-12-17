@@ -181,7 +181,7 @@ struct PersistenceFeature: @preconcurrency Reducer {
     }
 
     private static func describe(_ error: any Error) -> String {
-        let manis = MainError(error: error)
+        let manis = AppError(error: error)
         let prefix = "[\(manis.category.displayName)] "
 
         if let remote = error as? PersistenceError {

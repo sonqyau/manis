@@ -1,5 +1,5 @@
 @preconcurrency import Combine
-import ErrorKit
+
 import Foundation
 import Observation
 import OSLog
@@ -429,12 +429,7 @@ final class MihomoDomain {
         }
 
         let capturedRequest = request
-        let (data, response) = try await NetworkError.catch { @Sendable () async throws -> (
-            Data,
-            URLResponse
-        ) in
-            try await URLSession.shared.data(for: capturedRequest)
-        }
+        let (data, response) = try await URLSession.shared.data(for: capturedRequest)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
@@ -505,7 +500,7 @@ final class MihomoDomain {
             let (data, _) = try await makeRequest(path: "/configs")
             config = try JSONDecoder().decode(ClashConfig.self, from: data)
         } catch {
-            let chain = ErrorKit.errorChainDescription(for: error)
+            let chain = error.errorChainDescription
             logger.error("Failed to fetch configuration.\n\(chain)", error: error)
         }
     }

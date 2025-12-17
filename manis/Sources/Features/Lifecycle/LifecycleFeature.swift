@@ -145,11 +145,11 @@ struct LifecycleFeature: @preconcurrency Reducer {
     private static func showInitializationError(_ error: any Error) async {
         let alert = NSAlert()
         alert.messageText = "Initialization Failed"
-        alert.informativeText = error.mihoMessage
+        alert.informativeText = error.applicationMessage
         alert.alertStyle = .critical
         alert.addButton(withTitle: "Exit")
 
-        if let suggestion = error.mihoRecoverySuggestion {
+        if let suggestion = error.applicationRecoverySuggestion {
             alert.informativeText += "\n\n\(suggestion)"
         }
 
@@ -181,7 +181,7 @@ struct LifecycleFeature: @preconcurrency Reducer {
         error: any Error,
         initializationWarnings: inout [String],
     ) {
-        initializationWarnings.append("\(message) (Reason: \(error.mihoMessage))")
+        initializationWarnings.append("\(message) (Reason: \(error.applicationMessage))")
     }
 
     @MainActor
