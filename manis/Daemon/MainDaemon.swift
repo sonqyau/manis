@@ -1,19 +1,18 @@
 import Cocoa
-import os.log
+import ConcurrencyExtras
+import OSLog
 
 class MainDaemon: NSObject, NSXPCListenerDelegate, @unchecked Sendable {
     private var listener: NSXPCListener
     private var connections = [NSXPCConnection]()
+    private let shouldQuit = LockIsolated(false)
     private var shouldQuitCheckInterval = 2.0
-    private var shouldQuit = false
-    private let stateLock = NSLock()
 
     private let mihomoManager = MihomoDaemon()
     private let systemProxyManager = SystemProxyDaemon()
     private let dnsManager = DNSDaemon()
 
     override init() {
-        shouldQuit = false
         listener = NSXPCListener(machServiceName: "com.manis.Daemon")
         super.init()
         listener.delegate = self
@@ -23,10 +22,7 @@ class MainDaemon: NSObject, NSXPCListenerDelegate, @unchecked Sendable {
         listener.resume()
         os_log("MainDaemon running")
         while true {
-            stateLock.lock()
-            let shouldQuitLocal = shouldQuit
-            stateLock.unlock()
-            if shouldQuitLocal { break }
+            if shouldQuit.value { break }
             RunLoop.current.run(until: Date(timeIntervalSinceNow: shouldQuitCheckInterval))
         }
     }
@@ -42,21 +38,19 @@ class MainDaemon: NSObject, NSXPCListenerDelegate, @unchecked Sendable {
         newConnection.exportedObject = self
         newConnection.invalidationHandler = { [weak self] in
             guard let self else { return }
-            self.stateLock.lock()
-            self.connections.removeAll { ObjectIdentifier($0) == connectionID }
-            let isEmpty = self.connections.isEmpty
-            if isEmpty {
-                self.shouldQuit = true
-            }
-            self.stateLock.unlock()
-            if isEmpty {
-                os_log("MainDaemon shouldQuit")
+            Task { @MainActor in
+                self.connections.removeAll { ObjectIdentifier($0) == connectionID }
+                let isEmpty = self.connections.isEmpty
+                if isEmpty {
+                    self.shouldQuit.setValue(true)
+                }
+                if isEmpty {
+                    os_log("MainDaemon shouldQuit")
+                }
             }
         }
 
-        stateLock.lock()
         connections.append(newConnection)
-        stateLock.unlock()
         newConnection.resume()
 
         return true
@@ -105,14 +99,14 @@ extension MainDaemon: MainDaemonProtocol {
         configPath: String,
         configContent: String,
         reply: @escaping (String?, String?) -> Void,
-    ) {
+        ) {
         let wrappedReply = SendableReplyWrapper(reply)
 
         mihomoManager.start(
             executablePath: executablePath,
             configPath: configPath,
             configContent: configContent,
-        ) { result in
+            ) { result in
             Task { @MainActor in
                 switch result {
                 case let .success(message):
@@ -149,7 +143,7 @@ extension MainDaemon: MainDaemonProtocol {
             externalController: status.externalController,
             secret: status.secret,
             logs: status.logs,
-        )
+            )
         reply(objcStatus)
     }
 
@@ -174,7 +168,7 @@ extension MainDaemon: MainDaemonProtocol {
         pacURL: String?,
         bypassList: [String],
         reply: @escaping (String?) -> Void,
-    ) {
+        ) {
         let wrappedReply = SendableReplyWrapper(reply)
 
         Task { @MainActor in
@@ -183,7 +177,7 @@ extension MainDaemon: MainDaemonProtocol {
                 socksPort: socksPort,
                 pacURL: pacURL,
                 bypassList: bypassList,
-            ) { result in
+                ) { result in
                 Task { @MainActor in
                     switch result {
                     case .success:
@@ -225,7 +219,7 @@ extension MainDaemon: MainDaemonProtocol {
                 socksProxy: status.socksProxy.map { SystemProxyInfo(host: $0.host, port: $0.port) },
                 pacURL: status.pacURL,
                 bypassList: status.bypassList,
-            )
+                )
             wrappedReply(objcStatus)
         }
     }
@@ -234,14 +228,14 @@ extension MainDaemon: MainDaemonProtocol {
         servers: [String],
         hijackEnabled: Bool,
         reply: @escaping (String?) -> Void,
-    ) {
+        ) {
         let wrappedReply = SendableReplyWrapper(reply)
 
         Task { @MainActor in
             self.dnsManager.configure(
                 servers: servers,
                 hijackEnabled: hijackEnabled,
-            ) { result in
+                ) { result in
                 Task { @MainActor in
                     switch result {
                     case .success:
@@ -285,14 +279,14 @@ extension MainDaemon: MainDaemonProtocol {
         port: Int,
         timeout: TimeInterval,
         reply: @escaping (Bool) -> Void,
-    ) {
+        ) {
         let wrappedReply = SendableReplyWrapper(reply)
 
         NetworkDaemon.testConnectivity(
             host: host,
             port: port,
             timeout: timeout,
-        ) { isReachable in
+            ) { isReachable in
             Task { @MainActor in
                 wrappedReply(isReachable)
             }
@@ -303,7 +297,7 @@ extension MainDaemon: MainDaemonProtocol {
         enabled: Bool,
         dnsServer: String,
         reply: @escaping (String?) -> Void,
-    ) {
+        ) {
         let wrappedReply = SendableReplyWrapper(reply)
 
         let status = mihomoManager.getStatus()

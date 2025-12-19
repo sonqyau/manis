@@ -19,9 +19,6 @@ struct LifecycleFeature: @preconcurrency Reducer {
     @Dependency(\.persistenceService)
     var persistenceService
 
-    @Dependency(\.launchService)
-    var launchService
-
     @Dependency(\.resourceService)
     var resourceService
 
@@ -40,11 +37,10 @@ struct LifecycleFeature: @preconcurrency Reducer {
                 let context = InitializationContext(
                     settingsService: settingsService,
                     persistenceService: persistenceService,
-                    launchService: launchService,
                     resourceService: resourceService,
                     mihomoService: mihomoService,
                     networkService: networkService,
-                )
+                    )
                 await Self.initializeApplication(context)
             }
 
@@ -62,7 +58,6 @@ struct LifecycleFeature: @preconcurrency Reducer {
     struct InitializationContext {
         let settingsService: SettingsService
         let persistenceService: PersistenceService
-        let launchService: BootstrapService
         let resourceService: ResourceService
         let mihomoService: MihomoService
         let networkService: NetworkService
@@ -86,18 +81,16 @@ struct LifecycleFeature: @preconcurrency Reducer {
                 "Remote configuration setup",
                 warning: "Remote configuration unavailable. Local mode is enabled.",
                 initializationWarnings: &initializationWarnings,
-            ) {
+                ) {
                 try context.persistenceService.initialize(container: container)
             }
         }
-
-        context.launchService.updateStatus()
 
         await performRecoverableStep(
             "Resource initialization",
             warning: "Resource directory incomplete. Geo data or configuration synchronization may be limited.",
             initializationWarnings: &initializationWarnings,
-        ) {
+            ) {
             try await context.resourceService.initialize()
         }
 
@@ -105,7 +98,7 @@ struct LifecycleFeature: @preconcurrency Reducer {
             "Default configuration initialization",
             warning: "Failed to generate the default configuration. Verify write permissions.",
             initializationWarnings: &initializationWarnings,
-        ) {
+            ) {
             try context.resourceService.ensureDefaultConfig()
         }
 
@@ -130,12 +123,12 @@ struct LifecycleFeature: @preconcurrency Reducer {
                     identifier: "RELOAD_CONFIG",
                     title: "Reload",
                     options: [.foreground],
-                )
+                    )
                 let category = UNNotificationCategory(
                     identifier: "CONFIG_CHANGE",
                     actions: [action],
                     intentIdentifiers: [],
-                )
+                    )
                 center.setNotificationCategories([category])
             }
         } catch {}
@@ -163,7 +156,7 @@ struct LifecycleFeature: @preconcurrency Reducer {
         warning: String,
         initializationWarnings: inout [String],
         operation: () async throws -> Void,
-    ) async {
+        ) async {
         do {
             try await operation()
         } catch {
@@ -171,7 +164,7 @@ struct LifecycleFeature: @preconcurrency Reducer {
                 warning,
                 error: error,
                 initializationWarnings: &initializationWarnings,
-            )
+                )
         }
     }
 
@@ -180,7 +173,7 @@ struct LifecycleFeature: @preconcurrency Reducer {
         _ message: String,
         error: any Error,
         initializationWarnings: inout [String],
-    ) {
+        ) {
         initializationWarnings.append("\(message) (Reason: \(error.applicationMessage))")
     }
 

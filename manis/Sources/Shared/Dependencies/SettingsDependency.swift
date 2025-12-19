@@ -1,12 +1,8 @@
+import Clocks
 import ComposableArchitecture
 import Factory
 
 struct SettingsDependency {}
-
-enum BootstrapServiceKey: DependencyKey {
-    static let liveValue = BootstrapServiceDependency(service: Container.shared
-        .launchAtLoginService())
-}
 
 enum SettingsServiceKey: DependencyKey {
     static let liveValue = SettingsServiceDependency(service: Container.shared.settingsService())
@@ -14,7 +10,7 @@ enum SettingsServiceKey: DependencyKey {
 
 enum PersistenceServiceKey: DependencyKey {
     static let liveValue = PersistenceServiceDependency(service: Container.shared
-        .persistenceService())
+                                                            .persistenceService())
 }
 
 enum NetworkServiceKey: DependencyKey {
@@ -29,12 +25,11 @@ enum MihomoServiceKey: DependencyKey {
     static let liveValue = MihomoServiceDependency(service: Container.shared.mihomoService())
 }
 
-extension DependencyValues {
-    var launchService: BootstrapService {
-        get { self[BootstrapServiceKey.self].service }
-        set { self[BootstrapServiceKey.self] = BootstrapServiceDependency(service: newValue) }
-    }
+enum ClockKey: DependencyKey {
+    static let liveValue = ClockDependency(clock: ContinuousClock())
+}
 
+extension DependencyValues {
     var settingsService: SettingsService {
         get { self[SettingsServiceKey.self].service }
         set { self[SettingsServiceKey.self] = SettingsServiceDependency(service: newValue) }
@@ -59,10 +54,11 @@ extension DependencyValues {
         get { self[MihomoServiceKey.self].service }
         set { self[MihomoServiceKey.self] = MihomoServiceDependency(service: newValue) }
     }
-}
 
-struct BootstrapServiceDependency: @unchecked Sendable {
-    let service: BootstrapService
+    var clock: any Clock<Duration> {
+        get { self[ClockKey.self].clock }
+        set { self[ClockKey.self] = ClockDependency(clock: newValue) }
+    }
 }
 
 struct SettingsServiceDependency: @unchecked Sendable {
@@ -83,4 +79,8 @@ struct ResourceServiceDependency: @unchecked Sendable {
 
 struct MihomoServiceDependency: @unchecked Sendable {
     let service: MihomoService
+}
+
+struct ClockDependency: @unchecked Sendable {
+    let clock: any Clock<Duration>
 }

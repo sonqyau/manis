@@ -17,19 +17,24 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/jpsim/Yams", from: "6.2.0"),
         .package(url: "https://github.com/hmlongco/Factory", from: "2.5.3"),
-
-        .package(url: "https://github.com/pointfreeco/swift-composable-architecture", from: "1.23.1"),
+        .package(url: "https://github.com/daltoniam/Starscream", from: "4.0.8"),
+        .package(url: "https://github.com/krzyzanowskim/STTextView", from: "2.2.6"),
+        .package(url: "https://github.com/siteline/swiftui-introspect", from: "26.0.0"),
+        .package(url: "https://github.com/pointfreeco/swift-clocks", from: "1.0.6"),
+        .package(url: "https://github.com/pointfreeco/swift-perception", from: "2.0.9"),
+        .package(url: "https://github.com/pointfreeco/swift-navigation", from: "2.6.0"),
         .package(url: "https://github.com/pointfreeco/swift-concurrency-extras", from: "1.3.2"),
+        .package(url: "https://github.com/pointfreeco/swift-identified-collections", from: "1.1.1"),
+        .package(url: "https://github.com/pointfreeco/swift-composable-architecture", from: "1.23.1"),
+
+        .package(url: "https://github.com/async-plus/async-plus", from: "1.1.1"),
+
+        .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.10.0"),
 
         .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.7.4"),
         .package(url: "https://github.com/pointfreeco/combine-schedulers", from: "1.1.0"),
         .package(url: "https://github.com/pointfreeco/swift-case-paths", from: "1.7.2"),
-        .package(url: "https://github.com/pointfreeco/swift-clocks", from: "1.0.6"),
         .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.3"),
-        .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.10.0"),
-        .package(url: "https://github.com/pointfreeco/swift-identified-collections", from: "1.1.1"),
-        .package(url: "https://github.com/pointfreeco/swift-navigation", from: "2.6.0"),
-        .package(url: "https://github.com/pointfreeco/swift-perception", from: "2.0.9"),
     ],
     targets: [
         .executableTarget(
@@ -38,6 +43,8 @@ let package = Package(
                 .product(name: "Yams", package: "Yams"),
                 .product(name: "Factory", package: "Factory"),
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+                .product(name: "AsyncPlus", package: "async-plus"),
+                .product(name: "SwiftUIIntrospect", package: "swiftui-introspect"),
                 .product(name: "Dependencies", package: "swift-dependencies"),
                 .product(name: "Perception", package: "swift-perception"),
                 .product(name: "Clocks", package: "swift-clocks"),
@@ -48,7 +55,8 @@ let package = Package(
                 .product(name: "Sharing", package: "swift-sharing"),
                 .product(name: "SwiftNavigation", package: "swift-navigation"),
                 .product(name: "ConcurrencyExtras", package: "swift-concurrency-extras"),
-
+                .product(name: "Starscream", package: "Starscream"),
+                .product(name: "STTextView", package: "STTextView"),
             ],
             path: "manis",
             exclude: [
@@ -65,7 +73,6 @@ let package = Package(
                 .enableUpcomingFeature("StrictConcurrency"),
                 .enableUpcomingFeature("ApproachableConcurrency"),
             ],
-
         ),
         .executableTarget(
             name: "MainXPC",
@@ -84,6 +91,7 @@ let package = Package(
             name: "MainDaemon",
             dependencies: [
                 .product(name: "Yams", package: "Yams"),
+                .product(name: "ConcurrencyExtras", package: "swift-concurrency-extras"),
             ],
             path: "manis/Daemon",
             exclude: [

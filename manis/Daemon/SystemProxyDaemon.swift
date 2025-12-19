@@ -1,5 +1,5 @@
 import Foundation
-import os.log
+import OSLog
 import SystemConfiguration
 
 struct InternalSystemProxyStatus {
@@ -25,7 +25,7 @@ class SystemProxyDaemon {
         pacURL: String?,
         bypassList: [String],
         completion: @escaping (Result<Void, Error>) -> Void,
-    ) {
+        ) {
         do {
             let dynamicStore = SCDynamicStoreCreate(nil, "com.manis.Daemon" as CFString, nil, nil)
             guard let store = dynamicStore else {
@@ -117,7 +117,7 @@ class SystemProxyDaemon {
                 socksProxy: nil,
                 pacURL: nil,
                 bypassList: [],
-            )
+                )
         }
 
         let services = getNetworkServices()
@@ -129,7 +129,7 @@ class SystemProxyDaemon {
                 socksProxy: nil,
                 pacURL: nil,
                 bypassList: [],
-            )
+                )
         }
 
         let proxyKey = "State:/Network/Service/\(firstService)/Proxies" as CFString
@@ -141,7 +141,7 @@ class SystemProxyDaemon {
                 socksProxy: nil,
                 pacURL: nil,
                 bypassList: [],
-            )
+                )
         }
 
         let httpEnabled = (proxyDict[kCFNetworkProxiesHTTPEnable as String] as? Int) == 1
@@ -155,22 +155,19 @@ class SystemProxyDaemon {
 
         if httpEnabled,
            let host = proxyDict[kCFNetworkProxiesHTTPProxy as String] as? String,
-           let port = proxyDict[kCFNetworkProxiesHTTPPort as String] as? Int
-        {
+           let port = proxyDict[kCFNetworkProxiesHTTPPort as String] as? Int {
             httpProxy = InternalProxyInfo(host: host, port: port)
         }
 
         if httpsEnabled,
            let host = proxyDict[kCFNetworkProxiesHTTPSProxy as String] as? String,
-           let port = proxyDict[kCFNetworkProxiesHTTPSPort as String] as? Int
-        {
+           let port = proxyDict[kCFNetworkProxiesHTTPSPort as String] as? Int {
             httpsProxy = InternalProxyInfo(host: host, port: port)
         }
 
         if socksEnabled,
            let host = proxyDict[kCFNetworkProxiesSOCKSProxy as String] as? String,
-           let port = proxyDict[kCFNetworkProxiesSOCKSPort as String] as? Int
-        {
+           let port = proxyDict[kCFNetworkProxiesSOCKSPort as String] as? Int {
             socksProxy = InternalProxyInfo(host: host, port: port)
         }
 
@@ -184,7 +181,7 @@ class SystemProxyDaemon {
             socksProxy: socksProxy,
             pacURL: pacURL,
             bypassList: bypassList,
-        )
+            )
     }
 
     private func getNetworkServices() -> [String] {

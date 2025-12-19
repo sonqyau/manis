@@ -1,8 +1,9 @@
+import Clocks
 @preconcurrency import Combine
-
 import Foundation
 import Observation
 import OSLog
+import Perception
 
 @MainActor
 @Observable
@@ -26,6 +27,7 @@ final class MihomoDomain {
     static let shared = MihomoDomain()
 
     private let logger = MainLog.shared.logger(for: .api)
+    private let clock: any Clock<Duration>
 
     private let stateSubject: CurrentValueSubject<State, Never>
 
@@ -81,9 +83,9 @@ final class MihomoDomain {
         didSet { emitState() }
     }
 
-    private var trafficTask: URLSessionWebSocketTask?
-    private var memoryTask: URLSessionWebSocketTask?
-    private var logTask: URLSessionWebSocketTask?
+    private var trafficSocket: WebSocketStreamClient?
+    private var memorySocket: WebSocketStreamClient?
+    private var logSocket: WebSocketStreamClient?
     private var connectionTask: Task<Void, Never>?
     private var dataRefreshTask: Task<Void, Never>?
 
@@ -92,7 +94,8 @@ final class MihomoDomain {
     private static let maxTrafficPoints = 120
     private static let maxLogEntries = 500
 
-    private init() {
+    private init(clock: any Clock<Duration> = ContinuousClock()) {
+        self.clock = clock
         stateSubject = CurrentValueSubject(
             State(
                 trafficHistory: [],
@@ -108,8 +111,8 @@ final class MihomoDomain {
                 ruleProviders: [:],
                 config: nil,
                 isConnected: false,
-            ),
-        )
+                ),
+            )
         baseURL = "http://127.0.0.1:9090"
         secret = nil
     }
@@ -121,13 +124,13 @@ final class MihomoDomain {
         }
     }
 
-    func connect() {
+    func connect() async {
         guard !isConnected else {
             return
         }
 
-        startTrafficStream()
-        startMemoryStream()
+        await startTrafficStream()
+        await startMemoryStream()
         startConnectionPolling()
         startDataRefresh()
         fetchVersion()
@@ -136,15 +139,15 @@ final class MihomoDomain {
     }
 
     func disconnect() {
-        trafficTask?.cancel()
-        memoryTask?.cancel()
-        logTask?.cancel()
+        trafficSocket?.disconnect(closeCode: nil)
+        memorySocket?.disconnect(closeCode: nil)
+        logSocket?.disconnect(closeCode: nil)
         connectionTask?.cancel()
         dataRefreshTask?.cancel()
 
-        trafficTask = nil
-        memoryTask = nil
-        logTask = nil
+        trafficSocket = nil
+        memorySocket = nil
+        logSocket = nil
         connectionTask = nil
         dataRefreshTask = nil
         isConnected = false
@@ -185,7 +188,7 @@ final class MihomoDomain {
             ruleProviders: ruleProviders,
             config: config,
             isConnected: isConnected,
-        )
+            )
     }
 
     private func emitState() {
@@ -202,7 +205,7 @@ final class MihomoDomain {
             await refreshDashboardData()
 
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(5))
+                try? await clock.sleep(for: .seconds(5))
                 guard !Task.isCancelled else { break }
                 await refreshDashboardData()
             }
@@ -218,7 +221,7 @@ final class MihomoDomain {
         await fetchConfig()
     }
 
-    private func startTrafficStream() {
+    private func startTrafficStream() async {
         guard let url = URL(string: "\(baseURL)/traffic".replacingOccurrences(of: "http", with: "ws"))
         else {
             return
@@ -228,22 +231,16 @@ final class MihomoDomain {
             url: url,
             cachePolicy: .reloadIgnoringLocalCacheData,
             timeoutInterval: 30,
-        )
+            )
         if let secret {
             request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
         }
 
-        let task = URLSession.shared.webSocketTask(with: request)
-        trafficTask = task
-        task.resume()
+        let client = StarscreamWebSocketStreamClient(request: request, reconnectionConfig: .default)
+        trafficSocket = client
+        client.connect()
 
-        Task(priority: .high) { @MainActor in
-            await consumeTrafficStream(task: task)
-        }
-    }
-
-    private func consumeTrafficStream(task: URLSessionWebSocketTask) async {
-        let stream = TrafficDataStream(task: task)
+        let stream = TrafficDataStream(events: client.events)
 
         do {
             for try await traffic in stream {
@@ -253,7 +250,7 @@ final class MihomoDomain {
                     timestamp: Date(),
                     upload: Double(traffic.up),
                     download: Double(traffic.down),
-                )
+                    )
 
                 trafficHistory.append(point)
 
@@ -262,22 +259,11 @@ final class MihomoDomain {
                 }
             }
         } catch {
-            logger.notice("Traffic stream closed unexpectedly", error: error)
-            reconnectTrafficStream()
+            logger.notice("Traffic stream ended", error: error)
         }
     }
 
-    private func reconnectTrafficStream() {
-        trafficTask?.cancel()
-        trafficTask = nil
-
-        Task(priority: .utility) {
-            try? await Task.sleep(for: .seconds(2))
-            startTrafficStream()
-        }
-    }
-
-    private func startMemoryStream() {
+    private func startMemoryStream() async {
         guard let url = URL(string: "\(baseURL)/memory".replacingOccurrences(of: "http", with: "ws"))
         else {
             return
@@ -287,22 +273,16 @@ final class MihomoDomain {
             url: url,
             cachePolicy: .reloadIgnoringLocalCacheData,
             timeoutInterval: 30,
-        )
+            )
         if let secret {
             request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
         }
 
-        let task = URLSession.shared.webSocketTask(with: request)
-        memoryTask = task
-        task.resume()
+        let client = StarscreamWebSocketStreamClient(request: request, reconnectionConfig: .default)
+        memorySocket = client
+        client.connect()
 
-        Task(priority: .utility) { @MainActor in
-            await consumeMemoryStream(task: task)
-        }
-    }
-
-    private func consumeMemoryStream(task: URLSessionWebSocketTask) async {
-        let stream = WebSocketMessageStream(task: task)
+        let stream = WebSocketMessageStream(events: client.events)
 
         do {
             for try await text in stream {
@@ -315,18 +295,7 @@ final class MihomoDomain {
                 memoryUsage = memory.inuse
             }
         } catch {
-            logger.notice("Memory stream closed unexpectedly", error: error)
-            reconnectMemoryStream()
-        }
-    }
-
-    private func reconnectMemoryStream() {
-        memoryTask?.cancel()
-        memoryTask = nil
-
-        Task(priority: .utility) {
-            try? await Task.sleep(for: .seconds(2))
-            startMemoryStream()
+            logger.notice("Memory stream ended", error: error)
         }
     }
 
@@ -339,7 +308,7 @@ final class MihomoDomain {
 
             while !Task.isCancelled {
                 await fetchConnections()
-                try? await Task.sleep(for: .seconds(1))
+                try? await clock.sleep(for: .seconds(1))
             }
         }
     }
@@ -353,7 +322,7 @@ final class MihomoDomain {
             url: url,
             cachePolicy: .reloadIgnoringLocalCacheData,
             timeoutInterval: 5,
-        )
+            )
         if let secret {
             request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
         }
@@ -370,7 +339,7 @@ final class MihomoDomain {
                 throw DecodingError.dataCorruptedError(
                     in: container,
                     debugDescription: "Invalid date format.",
-                )
+                    )
             }
             let snapshot = try decoder.decode(ConnectionSnapshot.self, from: data)
             connections = snapshot.connections
@@ -408,7 +377,7 @@ final class MihomoDomain {
         method: String = "GET",
         body: Data? = nil,
         queryItems: [URLQueryItem] = [],
-    ) async throws -> (Data, HTTPURLResponse) {
+        ) async throws -> (Data, HTTPURLResponse) {
         var components = URLComponents(string: "\(baseURL)\(path)")
         components?.queryItems = queryItems.isEmpty ? nil : queryItems
 
@@ -505,7 +474,7 @@ final class MihomoDomain {
         }
     }
 
-    func startLogStream(level: String? = nil) {
+    func startLogStream(level: String? = nil) async {
         var path = "/logs"
         if let level {
             path += "?level=\(level)"
@@ -521,17 +490,11 @@ final class MihomoDomain {
             request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
         }
 
-        let task = URLSession.shared.webSocketTask(with: request)
-        logTask = task
-        task.resume()
+        let client = StarscreamWebSocketStreamClient(request: request, reconnectionConfig: .disabled)
+        logSocket = client
+        client.connect()
 
-        Task(name: "Log Stream Consumer") { @MainActor in
-            await consumeLogStream(task: task)
-        }
-    }
-
-    private func consumeLogStream(task: URLSessionWebSocketTask) async {
-        let stream = WebSocketMessageStream(task: task)
+        let stream = WebSocketMessageStream(events: client.events)
 
         do {
             for try await text in stream {
@@ -553,8 +516,8 @@ final class MihomoDomain {
     }
 
     func stopLogStream() {
-        logTask?.cancel()
-        logTask = nil
+        logSocket?.disconnect(closeCode: nil)
+        logSocket = nil
     }
 
     func getConfig() async throws -> ClashConfig {
@@ -570,7 +533,7 @@ final class MihomoDomain {
             method: "PUT",
             body: body,
             queryItems: [URLQueryItem(name: "force", value: "true")],
-        )
+            )
         logger.info("Reloaded Config")
         await fetchConfig()
     }
@@ -638,7 +601,7 @@ final class MihomoDomain {
         name: String,
         url: String = "https://www.apple.com/library/test/success.html",
         timeout: Int = 5000,
-    ) async throws -> ProxyDelayTest {
+        ) async throws -> ProxyDelayTest {
         let encodedName = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
         let queryItems = [
             URLQueryItem(name: "url", value: url),
@@ -647,7 +610,7 @@ final class MihomoDomain {
         let (data, _) = try await makeRequest(
             path: "/proxies/\(encodedName)/delay",
             queryItems: queryItems,
-        )
+            )
         return try JSONDecoder().decode(ProxyDelayTest.self, from: data)
     }
 
@@ -655,7 +618,7 @@ final class MihomoDomain {
         name: String,
         url: String = "https://www.apple.com/library/test/success.html",
         timeout: Int = 5000,
-    ) async throws {
+        ) async throws {
         let encodedName = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
         let queryItems = [
             URLQueryItem(name: "url", value: url),
@@ -672,7 +635,7 @@ final class MihomoDomain {
             path: "/providers/proxies/\(encodedName)",
             method: "PUT",
             body: Data(),
-        )
+            )
         logger.info("Updated proxy provider: \(name)")
         await fetchProxyProviders()
     }

@@ -18,7 +18,7 @@ protocol PersistenceService {
     func updateAllConfigs() async
     func addRemoteInstance(name: String, apiURL: String, secret: String?) throws
     func removeRemoteInstance(_ instance: RemoteInstance) throws
-    func activateRemoteInstance(_ instance: RemoteInstance?)
+    func activateRemoteInstance(_ instance: RemoteInstance?) async
 }
 
 @MainActor
@@ -70,7 +70,7 @@ struct RemoteConfigPersistenceServiceAdapter: PersistenceService {
         try domain.removeRemoteInstance(instance)
     }
 
-    func activateRemoteInstance(_ instance: RemoteInstance?) {
-        domain.activateRemoteInstance(instance)
+    func activateRemoteInstance(_ instance: RemoteInstance?) async {
+        await domain.activateRemoteInstance(instance)
     }
 }

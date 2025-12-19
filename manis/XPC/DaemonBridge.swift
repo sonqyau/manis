@@ -16,7 +16,7 @@ private final class XPCConnectionBox: @unchecked Sendable {
         configPath: String,
         configContent: String,
         reply: @escaping (String?, String?) -> Void,
-    )
+        )
     func stopMihomo(reply: @escaping (String?) -> Void)
 }
 
@@ -39,7 +39,7 @@ private final class XPCConnectionBox: @unchecked Sendable {
         externalController: String?,
         secret: String?,
         logs: [String],
-    ) {
+        ) {
         self.isRunning = isRunning
         self.processId = processId
         self.startTime = startTime
@@ -101,7 +101,7 @@ final class DaemonBridge: @unchecked Sendable {
         configPath: String,
         configContent: String,
         reply: @escaping (Result<String, Error>) -> Void,
-    ) {
+        ) {
         do {
             let conn = try getOrCreateConnection()
             guard let proxy = conn.remoteObjectProxyWithErrorHandler({ error in

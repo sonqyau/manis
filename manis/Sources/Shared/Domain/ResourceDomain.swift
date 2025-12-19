@@ -1,5 +1,4 @@
 import Compression
-
 import Foundation
 import OSLog
 
@@ -23,8 +22,8 @@ final class ResourceDomain {
         let homeDirectory = FileManager.default.homeDirectoryForCurrentUser
         configDirectory =
             homeDirectory
-                .appendingPathComponent(".config", isDirectory: true)
-                .appendingPathComponent("clash", isDirectory: true)
+            .appendingPathComponent(".config", isDirectory: true)
+            .appendingPathComponent("clash", isDirectory: true)
 
         configFilePath = configDirectory.appendingPathComponent("config.yaml")
         geoIPDatabasePath = configDirectory.appendingPathComponent("Country.mmdb")
@@ -67,7 +66,7 @@ final class ResourceDomain {
                     at: configDirectory,
                     withIntermediateDirectories: true,
                     attributes: [.posixPermissions: 0o755],
-                )
+                    )
             }
         } catch {
             throw ResourceError.cannotCreateConfigDirectory(error)
@@ -90,8 +89,7 @@ final class ResourceDomain {
     private func getResourceURL(forResource name: String, withExtension ext: String?) -> URL? {
         if let bundleURL = Bundle.main.url(forResource: "miho_miho", withExtension: "bundle"),
            let bundle = Bundle(url: bundleURL),
-           let resourceURL = bundle.url(forResource: name, withExtension: ext)
-        {
+           let resourceURL = bundle.url(forResource: name, withExtension: ext) {
             return resourceURL
         }
         return Bundle.main.url(forResource: name, withExtension: ext)
@@ -159,7 +157,7 @@ final class ResourceDomain {
             at: configDirectory,
             includingPropertiesForKeys: nil,
             options: [.skipsHiddenFiles],
-        )
+            )
         .filter { $0.pathExtension == "yaml" || $0.pathExtension == "yml" }
         .map { $0.deletingPathExtension().lastPathComponent }
         .sorted()

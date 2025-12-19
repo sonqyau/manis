@@ -1,21 +1,22 @@
 @preconcurrency import Combine
 import ComposableArchitecture
 import Foundation
+import SwiftNavigation
 
 @MainActor
 struct ProxiesFeature: @preconcurrency Reducer {
     @ObservableState
     struct State {
-        struct Alerts: Equatable {
-            var errorMessage: String?
-        }
-
         var searchText: String = ""
         var groups: [String: GroupInfo] = [:]
         var proxies: [String: ProxyInfo] = [:]
         var selectingProxies: Set<String> = []
         var testingGroups: Set<String> = []
-        var alerts: Alerts = .init()
+        var alert: AlertState<AlertAction>?
+    }
+
+    enum AlertAction: Equatable {
+        case dismissError
     }
 
     @CasePathable
@@ -28,7 +29,7 @@ struct ProxiesFeature: @preconcurrency Reducer {
         case mihomoSnapshotUpdated(MihomoSnapshot)
         case selectProxyFinished(key: String, error: String?)
         case testGroupDelayFinished(group: String, error: String?)
-        case dismissError
+        case alert(AlertAction)
     }
 
     private enum CancelID {
@@ -69,19 +70,35 @@ struct ProxiesFeature: @preconcurrency Reducer {
             case let .selectProxyFinished(key, error):
                 state.selectingProxies.remove(key)
                 if let error {
-                    state.alerts.errorMessage = error
+                    state.alert = AlertState {
+                        TextState("Error")
+                    } actions: {
+                        ButtonState(action: .dismissError) {
+                            TextState("OK")
+                        }
+                    } message: {
+                        TextState(error)
+                    }
                 }
                 return .none
 
             case let .testGroupDelayFinished(group, error):
                 state.testingGroups.remove(group)
                 if let error {
-                    state.alerts.errorMessage = error
+                    state.alert = AlertState {
+                        TextState("Error")
+                    } actions: {
+                        ButtonState(action: .dismissError) {
+                            TextState("OK")
+                        }
+                    } message: {
+                        TextState(error)
+                    }
                 }
                 return .none
 
-            case .dismissError:
-                state.alerts.errorMessage = nil
+            case .alert(.dismissError):
+                state.alert = nil
                 return .none
             }
         }
@@ -103,7 +120,7 @@ struct ProxiesFeature: @preconcurrency Reducer {
         state: inout State,
         group: String,
         proxy: String,
-    ) -> Effect<Action> {
+        ) -> Effect<Action> {
         let key = Self.proxySelectionKey(group: group, proxy: proxy)
         guard !state.selectingProxies.contains(key) else {
             return .none
@@ -125,7 +142,7 @@ struct ProxiesFeature: @preconcurrency Reducer {
     private func testGroupDelayEffect(
         state: inout State,
         group: String,
-    ) -> Effect<Action> {
+        ) -> Effect<Action> {
         guard !state.testingGroups.contains(group) else {
             return .none
         }

@@ -1,187 +1,94 @@
 import AppKit
-@preconcurrency import Combine
-
-import Foundation
 import OSLog
 import ServiceManagement
+import SwiftUI
 
-@MainActor
-@Observable
-final class BootstrapManager {
-    struct State: Equatable {
-        var isEnabled: Bool
-        var requiresApproval: Bool
-    }
+public enum Bootstrap {
+    private static let logger = Logger(subsystem: "com.manis.Bootstrap", category: "main")
 
-    static let shared = BootstrapManager()
-
-    private let logger = MainLog.shared.logger(for: .service)
-    private let stateSubject = CurrentValueSubject<State, Never>(State(
-        isEnabled: false,
-        requiresApproval: false,
-    ))
-
-    private(set) var isEnabled = false {
-        didSet {
-            if isEnabled != oldValue {
-                emitState()
+    public static var isEnabled: Bool {
+        get {
+            SMAppService.mainApp.status == .enabled
+        }
+        set {
+            do {
+                if newValue {
+                    if SMAppService.mainApp.status == .enabled {
+                        try? SMAppService.mainApp.unregister()
+                    }
+                    try SMAppService.mainApp.register()
+                } else {
+                    try SMAppService.mainApp.unregister()
+                }
+            } catch {
+                logger.error("Failed to \(newValue ? "enable" : "disable") launch at login: \(error.localizedDescription)")
             }
         }
     }
 
-    private(set) var requiresApproval = false {
-        didSet {
-            if requiresApproval != oldValue {
-                emitState()
+    public static var requiresApproval: Bool {
+        SMAppService.mainApp.status == .requiresApproval
+    }
+
+    public static var wasLaunchedAtLogin: Bool {
+        let event = NSAppleEventManager.shared().currentAppleEvent
+        return event?.eventID == kAEOpenApplication
+            && event?.paramDescriptor(forKeyword: keyAEPropData)?.enumCodeValue == keyAELaunchedAsLogInItem
+    }
+
+    public static func openSystemSettings() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") else {
+            return
+        }
+        NSWorkspace.shared.open(url)
+    }
+}
+
+extension Bootstrap {
+    @MainActor
+    final class Observable: ObservableObject {
+        init() {}
+
+        var isEnabled: Bool {
+            get { Bootstrap.isEnabled }
+            set {
+                objectWillChange.send()
+                Bootstrap.isEnabled = newValue
             }
         }
-    }
 
-    var state: State {
-        State(isEnabled: isEnabled, requiresApproval: requiresApproval)
-    }
-
-    private init() {
-        updateStatus()
-    }
-
-    func updateStatus() {
-        let status = SMAppService.mainApp.status
-
-        switch status {
-        case .enabled:
-            isEnabled = true
-            requiresApproval = false
-            logger.info("Launch at login enabled")
-
-        case .requiresApproval:
-            isEnabled = false
-            requiresApproval = true
-            logger.notice("Launch at login requires authorization in System Settings")
-
-        case .notRegistered, .notFound:
-            isEnabled = false
-            requiresApproval = false
-            logger.info("Launch at login not registered")
-
-        @unknown default:
-            isEnabled = false
-            requiresApproval = false
-            logger.notice("Launch at login status is unknown")
+        var requiresApproval: Bool {
+            Bootstrap.requiresApproval
         }
-    }
-
-    func enable() throws {
-        guard !isEnabled else {
-            logger.info("Launch at login is already enabled")
-            return
-        }
-
-        do {
-            try SMAppService.mainApp.register()
-            logger.info("Launch at login enabled successfully")
-            updateStatus()
-        } catch {
-            logger.error("Unable to enable launch at login", error: error)
-            throw BootstrapError.registrationFailed(error)
-        }
-    }
-
-    func disable() throws {
-        guard isEnabled else {
-            logger.info("Launch at login is already disabled")
-            return
-        }
-
-        do {
-            try SMAppService.mainApp.unregister()
-            logger.info("Launch at login disabled successfully")
-            updateStatus()
-        } catch {
-            logger.error("Unable to disable launch at login", error: error)
-            throw BootstrapError.unregistrationFailed(error)
-        }
-    }
-
-    func toggle() throws {
-        if isEnabled {
-            try disable()
-        } else {
-            try enable()
-        }
-    }
-
-    func openSystemSettings() {
-        guard let url =
-            URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension")
-        else {
-            return
-        }
-        AppKit.NSWorkspace.shared.open(url)
-    }
-
-    func statePublisher() -> AnyPublisher<State, Never> {
-        stateSubject.receive(on: RunLoop.main).eraseToAnyPublisher()
-    }
-
-    private func emitState() {
-        stateSubject.send(state)
     }
 }
 
-enum BootstrapError: MainError {
-    case registrationFailed(any Error)
-    case unregistrationFailed(any Error)
+public extension Bootstrap {
+    struct Toggle<Label: View>: View {
+        @ObservedObject private var observable = Observable()
+        private let label: Label
 
-    static var errorDomain: String { NSError.applicationErrorDomain }
+        public init(@ViewBuilder label: () -> Label) {
+            self.label = label()
+        }
 
-    var category: ErrorCategory { .operation }
-
-    var errorCode: Int {
-        switch self {
-        case .registrationFailed: 7001
-        case .unregistrationFailed: 7002
+        public var body: some View {
+            SwiftUI.Toggle(isOn: $observable.isEnabled) { label }
+                .disabled(observable.requiresApproval)
         }
     }
-
-    var userFriendlyMessage: String {
-        errorDescription ?? "Launch at login operation failed"
-    }
-
-    var errorDescription: String? {
-        switch self {
-        case let .registrationFailed(error):
-            "Unable to enable launch at login: \(error.localizedDescription)"
-
-        case let .unregistrationFailed(error):
-            "Unable to disable launch at login: \(error.localizedDescription)"
-        }
-    }
-
-    var failureReason: String? {
-        switch self {
-        case .registrationFailed:
-            "The system could not register the application for launch at login"
-        case .unregistrationFailed:
-            "The system could not unregister the application from launch at login"
-        }
-    }
-
-    var recoverySuggestion: String? {
-        switch self {
-        case .registrationFailed, .unregistrationFailed:
-            "Grant permission in System Settings > General > Login Items, then try again."
-        }
-    }
-
-    var recoveryOptions: [String]? {
-        switch self {
-        case .registrationFailed, .unregistrationFailed:
-            ["Retry", "Open System Settings", "Cancel"]
-        }
-    }
-
-    var helpAnchor: String? { "bootstrap-errors" }
 }
 
-enum Bootstrap {}
+public extension Bootstrap.Toggle<Text> {
+    init(_ titleKey: LocalizedStringKey) {
+        self.init { Text(titleKey) }
+    }
+
+    init(_ title: some StringProtocol) {
+        self.init { Text(title) }
+    }
+
+    init() {
+        self.init("Launch at login")
+    }
+}

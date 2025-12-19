@@ -25,7 +25,7 @@ private struct RemoteInstanceDependencies {
 }
 
 @Model
-final class PersistenceModel {
+final class PersistenceModel: Identifiable {
     @Attribute(.unique)
     var id: UUID
 
@@ -63,7 +63,7 @@ final class PersistenceModel {
 }
 
 @Model
-final class RemoteInstance {
+final class RemoteInstance: Identifiable {
     private static let logger = MainLog.shared.logger(for: .service)
 
     @Attribute(.unique)
@@ -91,14 +91,14 @@ final class RemoteInstance {
             let dependencies = RemoteInstanceDependencies()
             if let keychainSecret = try dependencies.keychain.secret(
                 RemoteInstanceKeychain.key(for: id),
-            ) {
+                ) {
                 return keychainSecret
             }
         } catch {
             Self.logger.error(
                 "Unable to read secret from Keychain",
                 metadata: ["error": String(describing: error)],
-            )
+                )
         }
 
         return persistedSecret
@@ -110,11 +110,11 @@ final class RemoteInstance {
             try dependencies.keychain.setSecret(
                 secret,
                 RemoteInstanceKeychain.key(for: id),
-            )
+                )
         } else {
             try dependencies.keychain.deleteSecret(
                 RemoteInstanceKeychain.key(for: id),
-            )
+                )
         }
         persistedSecret = nil
     }

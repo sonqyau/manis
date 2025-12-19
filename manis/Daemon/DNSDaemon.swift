@@ -1,5 +1,5 @@
 import Foundation
-import os.log
+import OSLog
 import SystemConfiguration
 
 class DNSDaemon {
@@ -10,7 +10,7 @@ class DNSDaemon {
         servers: [String],
         hijackEnabled: Bool,
         completion: @escaping (Result<Void, Error>) -> Void,
-    ) {
+        ) {
         do {
             if hijackEnabled {
                 try hijackDNS(servers: servers)

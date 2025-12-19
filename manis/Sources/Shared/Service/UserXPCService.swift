@@ -1,3 +1,4 @@
+import ConcurrencyExtras
 import Foundation
 
 private final class XPCConnectionBox: @unchecked Sendable {
@@ -9,27 +10,26 @@ private final class XPCConnectionBox: @unchecked Sendable {
 }
 
 private final class ContinuationBox<T: Sendable>: @unchecked Sendable {
-    private let lock = NSLock()
-    private var continuation: CheckedContinuation<T, any Error>?
+    private let continuation = LockIsolated<CheckedContinuation<T, any Error>?>(nil)
 
     init(_ continuation: CheckedContinuation<T, any Error>) {
-        self.continuation = continuation
+        self.continuation.setValue(continuation)
     }
 
     func resume(returning value: T) {
-        lock.lock()
-        let cont = continuation
-        continuation = nil
-        lock.unlock()
-        cont?.resume(returning: value)
+        continuation.withValue { cont in
+            let captured = cont
+            cont = nil
+            captured?.resume(returning: value)
+        }
     }
 
     func resume(throwing error: any Error) {
-        lock.lock()
-        let cont = continuation
-        continuation = nil
-        lock.unlock()
-        cont?.resume(throwing: error)
+        continuation.withValue { cont in
+            let captured = cont
+            cont = nil
+            captured?.resume(throwing: error)
+        }
     }
 }
 
@@ -76,9 +76,9 @@ struct XPCClient: XPC {
         }
     }
 
-    private nonisolated func makeConnection(
+    nonisolated private func makeConnection(
         continuationBox: ContinuationBox<some Sendable>,
-    ) -> (MainXPCProtocol, NSXPCConnection) {
+        ) -> (MainXPCProtocol, NSXPCConnection) {
         let conn = NSXPCConnection(machServiceName: machServiceName)
         conn.remoteObjectInterface = NSXPCInterface(with: MainXPCProtocol.self)
 
@@ -112,7 +112,7 @@ struct XPCClient: XPC {
 
                 service.getVersion { version in
                     box.resume(returning: version)
-                    DispatchQueue.main.async {
+                    Task { @MainActor in
                         connBox.connection.invalidate()
                     }
                 }
@@ -129,7 +129,7 @@ struct XPCClient: XPC {
 
                 service.getKernelStatus { status in
                     box.resume(returning: status)
-                    DispatchQueue.main.async {
+                    Task { @MainActor in
                         connBox.connection.invalidate()
                     }
                 }
@@ -150,7 +150,7 @@ struct XPCClient: XPC {
                     } else {
                         box.resume(returning: ())
                     }
-                    DispatchQueue.main.async {
+                    Task { @MainActor in
                         connBox.connection.invalidate()
                     }
                 }
@@ -171,7 +171,7 @@ struct XPCClient: XPC {
                     } else {
                         box.resume(returning: ())
                     }
-                    DispatchQueue.main.async {
+                    Task { @MainActor in
                         connBox.connection.invalidate()
                     }
                 }
@@ -191,7 +191,7 @@ struct XPCClient: XPC {
         configPath _: String,
         configContent _: String,
         reply: @escaping (String?, MainXPCError?) -> Void,
-    ) { reply(nil, MainXPCError(domain: "com.manis.XPC", code: -1, message: "XPC service unavailable")) }
+        ) { reply(nil, MainXPCError(domain: "com.manis.XPC", code: -1, message: "XPC service unavailable")) }
 
     func stopKernel(reply: @escaping (MainXPCError?) -> Void) {
         reply(MainXPCError(domain: "com.manis.XPC", code: -1, message: "XPC service unavailable"))

@@ -1,6 +1,8 @@
 import ComposableArchitecture
 import Perception
+import SwiftNavigation
 import SwiftUI
+import SwiftUIIntrospect
 
 struct LogsView: View {
     let store: StoreOf<LogsFeature>
@@ -18,21 +20,21 @@ struct LogsView: View {
         Binding(
             get: { bindableStore.selectedLevel },
             set: { bindableStore.send(.selectLevel($0)) },
-        )
+            )
     }
 
     private var searchBinding: Binding<String> {
         Binding(
             get: { bindableStore.searchText },
             set: { bindableStore.send(.updateSearch($0)) },
-        )
+            )
     }
 
     private var autoScrollBinding: Binding<Bool> {
         Binding(
             get: { bindableStore.autoScroll },
             set: { bindableStore.send(.toggleAutoScroll($0)) },
-        )
+            )
     }
 
     var body: some View {
@@ -46,16 +48,13 @@ struct LogsView: View {
         .task { bindableStore.send(.onAppear) }
         .onDisappear { bindableStore.send(.onDisappear) }
         .alert(
-            "System log error",
-            isPresented: Binding(
-                get: { bindableStore.alerts.errorMessage != nil },
-                set: { presented in if !presented { bindableStore.send(.dismissError) } },
-            ),
-        ) {
-            Button("OK") { bindableStore.send(.dismissError) }
-        } message: {
-            if let message = bindableStore.alerts.errorMessage {
-                Text(message)
+            Binding<AlertState<LogsFeature.AlertAction>?>(
+                get: { bindableStore.alert },
+                set: { _ in },
+                ),
+            ) { action in
+            if let action {
+                bindableStore.send(.alert(action))
             }
         }
     }
@@ -75,17 +74,18 @@ struct LogsView: View {
                         .textFieldStyle(.roundedBorder)
                         .focused($isSearchFocused)
 
-                    if !bindableStore.searchText.isEmpty {
-                        Button {
-                            bindableStore.send(.updateSearch(""))
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .accessibilityLabel("Clear search filter")
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(.secondary)
+                    EmptyView()
+                        .if(!bindableStore.searchText.isEmpty) { _ in
+                            Button {
+                                bindableStore.send(.updateSearch(""))
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .accessibilityLabel("Clear search filter")
+                                    .symbolRenderingMode(.hierarchical)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
-                    }
                 }
 
                 Toggle("Auto-scroll", isOn: autoScrollBinding)
@@ -108,7 +108,7 @@ struct LogsView: View {
                         Label(
                             bindableStore.isStreaming ? "Stop streaming" : "Start streaming",
                             systemImage: bindableStore.isStreaming ? "stop.fill" : "play.fill",
-                        )
+                            )
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -124,26 +124,28 @@ struct LogsView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 4) {
-                        if bindableStore.filteredLogs.isEmpty {
-                            ContentUnavailableView {
-                                Label(
-                                    bindableStore.isStreaming ? "No log entries available" : "Log stream inactive",
-                                    systemImage: "doc.text.magnifyingglass",
-                                )
-                            } description: {
-                                Text(
-                                    bindableStore.isStreaming
-                                        ? "Waiting for incoming log messages"
-                                        : "Enable streaming to receive log data",
-                                )
+                        EmptyView()
+                            .if(bindableStore.filteredLogs.isEmpty) { _ in
+                                ContentUnavailableView {
+                                    Label(
+                                        bindableStore.isStreaming ? "No log entries available" : "Log stream inactive",
+                                        systemImage: "doc.text.magnifyingglass",
+                                        )
+                                } description: {
+                                    Text(
+                                        bindableStore.isStreaming
+                                            ? "Waiting for incoming log messages"
+                                            : "Enable streaming to receive log data",
+                                        )
+                                }
+                                .frame(maxWidth: .infinity, minHeight: 200)
                             }
-                            .frame(maxWidth: .infinity, minHeight: 200)
-                        } else {
-                            ForEach(bindableStore.filteredLogs) { log in
-                                LogRow(log: log)
-                                    .id(log.id)
+                            .ifNot(bindableStore.filteredLogs.isEmpty) { _ in
+                                ForEach(bindableStore.filteredLogs) { log in
+                                    LogRow(log: log)
+                                        .id(log.id)
+                                }
                             }
-                        }
                     }
                     .padding(12)
                 }
@@ -209,6 +211,6 @@ private struct LogRow: View {
         .background(
             logColor.opacity(0.05),
             in: RoundedRectangle(cornerRadius: 8),
-        )
+            )
     }
 }

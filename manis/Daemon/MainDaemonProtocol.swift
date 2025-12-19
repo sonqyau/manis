@@ -8,7 +8,7 @@ import Foundation
         configPath: String,
         configContent: String,
         reply: @escaping (String?, String?) -> Void,
-    )
+        )
 
     func stopMihomo(reply: @escaping (String?) -> Void)
 
@@ -22,7 +22,7 @@ import Foundation
         pacURL: String?,
         bypassList: [String],
         reply: @escaping (String?) -> Void,
-    )
+        )
 
     func disableSystemProxy(reply: @escaping (String?) -> Void)
 
@@ -32,7 +32,7 @@ import Foundation
         servers: [String],
         hijackEnabled: Bool,
         reply: @escaping (String?) -> Void,
-    )
+        )
 
     func flushDNSCache(reply: @escaping (String?) -> Void)
 
@@ -43,7 +43,7 @@ import Foundation
         port: Int,
         timeout: TimeInterval,
         reply: @escaping (Bool) -> Void,
-    )
+        )
 }
 
 @objc class MihomoStatus: NSObject, NSSecureCoding {
@@ -65,7 +65,7 @@ import Foundation
         externalController: String?,
         secret: String?,
         logs: [String],
-    ) {
+        ) {
         self.isRunning = isRunning
         self.processId = processId
         self.startTime = startTime
@@ -139,7 +139,7 @@ import Foundation
         socksProxy: SystemProxyInfo?,
         pacURL: String?,
         bypassList: [String],
-    ) {
+        ) {
         self.isEnabled = isEnabled
         self.httpProxy = httpProxy
         self.httpsProxy = httpsProxy

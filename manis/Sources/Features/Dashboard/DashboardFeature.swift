@@ -1,11 +1,14 @@
 import ComposableArchitecture
 import Foundation
+import SwiftNavigation
+import SwiftUINavigation
+import SwiftUI
 
 @MainActor
 struct DashboardFeature: @preconcurrency Reducer {
     @ObservableState
     struct State {
-        var selectedTab: DashboardTab = .overview
+        var navigationPath = NavigationPath()
         var overview: OverviewFeature.State = .init()
         var proxies: ProxiesFeature.State = .init()
         var connections: ConnectionsFeature.State = .init()
@@ -19,7 +22,8 @@ struct DashboardFeature: @preconcurrency Reducer {
     enum Action {
         case onAppear
         case onDisappear
-        case selectTab(DashboardTab)
+        case navigateToTab(DashboardTab)
+        case navigationPathChanged(NavigationPath)
         case overview(OverviewFeature.Action)
         case proxies(ProxiesFeature.Action)
         case connections(ConnectionsFeature.Action)
@@ -60,11 +64,13 @@ struct DashboardFeature: @preconcurrency Reducer {
             case .onDisappear:
                 return .none
 
-            case let .selectTab(tab):
-                guard state.selectedTab != tab else {
-                    return .none
-                }
-                state.selectedTab = tab
+            case let .navigateToTab(tab):
+                state.navigationPath.removeLast(state.navigationPath.count)
+                state.navigationPath.append(tab)
+                return .none
+
+            case let .navigationPathChanged(path):
+                state.navigationPath = path
                 return .none
 
             case .overview:

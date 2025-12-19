@@ -1,21 +1,23 @@
 @preconcurrency import Combine
 import ComposableArchitecture
 import Foundation
+import IdentifiedCollections
+import SwiftNavigation
 
 @MainActor
 struct ConnectionsFeature: @preconcurrency Reducer {
     @ObservableState
     struct State {
-        struct Alerts: Equatable {
-            var errorMessage: String?
-        }
-
-        var connections: [ConnectionSnapshot.Connection] = []
+        var connections: IdentifiedArrayOf<ConnectionSnapshot.Connection> = []
         var searchText: String = ""
         var selectedFilter: ConnectionFilter = .all
         var closingConnections: Set<String> = []
         var isClosingAll: Bool = false
-        var alerts: Alerts = .init()
+        var alert: AlertState<AlertAction>?
+    }
+
+    enum AlertAction: Equatable {
+        case dismissError
     }
 
     @CasePathable
@@ -29,7 +31,7 @@ struct ConnectionsFeature: @preconcurrency Reducer {
         case mihomoSnapshotUpdated(MihomoSnapshot)
         case closeConnectionFinished(id: String, error: String?)
         case closeAllFinished(error: String?)
-        case dismissError
+        case alert(AlertAction)
     }
 
     private enum CancelID {
@@ -51,7 +53,7 @@ struct ConnectionsFeature: @preconcurrency Reducer {
                 return .cancel(id: CancelID.mihomoStream)
 
             case let .mihomoSnapshotUpdated(snapshot):
-                state.connections = snapshot.connections
+                state.connections = IdentifiedArray(uniqueElements: snapshot.connections)
                 return .none
 
             case let .updateSearch(text):
@@ -75,19 +77,35 @@ struct ConnectionsFeature: @preconcurrency Reducer {
             case let .closeConnectionFinished(id, error):
                 state.closingConnections.remove(id)
                 if let error {
-                    state.alerts.errorMessage = error
+                    state.alert = AlertState {
+                        TextState("Error")
+                    } actions: {
+                        ButtonState(action: .dismissError) {
+                            TextState("OK")
+                        }
+                    } message: {
+                        TextState(error)
+                    }
                 }
                 return .none
 
             case let .closeAllFinished(error):
                 state.isClosingAll = false
                 if let error {
-                    state.alerts.errorMessage = error
+                    state.alert = AlertState {
+                        TextState("Error")
+                    } actions: {
+                        ButtonState(action: .dismissError) {
+                            TextState("OK")
+                        }
+                    } message: {
+                        TextState(error)
+                    }
                 }
                 return .none
 
-            case .dismissError:
-                state.alerts.errorMessage = nil
+            case .alert(.dismissError):
+                state.alert = nil
                 return .none
             }
         }
@@ -108,7 +126,7 @@ struct ConnectionsFeature: @preconcurrency Reducer {
     private func closeConnectionEffect(
         state: inout State,
         id: String,
-    ) -> Effect<Action> {
+        ) -> Effect<Action> {
         guard !state.closingConnections.contains(id) else {
             return .none
         }

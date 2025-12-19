@@ -1,6 +1,8 @@
 import ComposableArchitecture
 import Perception
+import SwiftNavigation
 import SwiftUI
+import SwiftUIIntrospect
 
 struct ProxiesView: View {
     let store: StoreOf<ProxiesFeature>
@@ -16,7 +18,7 @@ struct ProxiesView: View {
         Binding(
             get: { bindableStore.searchText },
             set: { bindableStore.send(.updateSearch($0)) },
-        )
+            )
     }
 
     private var filteredGroups: [(String, GroupInfo)] {
@@ -32,28 +34,30 @@ struct ProxiesView: View {
             searchSection
 
             Section {
-                if filteredGroups.isEmpty {
-                    ContentUnavailableView {
-                        Label("No Proxy Groups", systemImage: "rectangle.stack.fill")
-                    } description: {
-                        Text("No proxy groups are available.")
+                EmptyView()
+                    .if(filteredGroups.isEmpty) { _ in
+                        ContentUnavailableView {
+                            Label("No Proxy Groups", systemImage: "rectangle.stack.fill")
+                        } description: {
+                            Text("No proxy groups are available.")
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 120)
                     }
-                    .frame(maxWidth: .infinity, minHeight: 120)
-                } else {
-                    ForEach(filteredGroups, id: \.0) { name, group in
-                        ProxyGroupCard(
-                            name: name,
-                            group: group,
-                            proxies: bindableStore.proxies,
-                            onSelectProxy: { proxyName in
-                                bindableStore.send(.selectProxy(group: name, proxy: proxyName))
-                            },
-                            onTestDelay: {
-                                bindableStore.send(.testGroupDelay(name))
-                            },
-                        )
+                    .ifNot(filteredGroups.isEmpty) { _ in
+                        ForEach(filteredGroups, id: \.0) { name, group in
+                            ProxyGroupCard(
+                                name: name,
+                                group: group,
+                                proxies: bindableStore.proxies,
+                                onSelectProxy: { proxyName in
+                                    bindableStore.send(.selectProxy(group: name, proxy: proxyName))
+                                },
+                                onTestDelay: {
+                                    bindableStore.send(.testGroupDelay(name))
+                                },
+                                )
+                        }
                     }
-                }
             } header: {
                 Label("Proxy Groups", systemImage: "rectangle.stack")
             }
@@ -64,16 +68,13 @@ struct ProxiesView: View {
         .task { bindableStore.send(.onAppear) }
         .onDisappear { bindableStore.send(.onDisappear) }
         .alert(
-            "Error",
-            isPresented: Binding(
-                get: { bindableStore.alerts.errorMessage != nil },
-                set: { presented in if !presented { bindableStore.send(.dismissError) } },
-            ),
-        ) {
-            Button("OK") { bindableStore.send(.dismissError) }
-        } message: {
-            if let message = bindableStore.alerts.errorMessage {
-                Text(message)
+            Binding<AlertState<ProxiesFeature.AlertAction>?>(
+                get: { bindableStore.alert },
+                set: { _ in },
+                ),
+            ) { action in
+            if let action {
+                bindableStore.send(.alert(action))
             }
         }
     }
@@ -89,17 +90,18 @@ struct ProxiesView: View {
                     .textFieldStyle(.plain)
                     .focused($isSearchFocused)
 
-                if !bindableStore.searchText.isEmpty {
-                    Button {
-                        bindableStore.send(.updateSearch(""))
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .accessibilityLabel("Clear search filter")
-                            .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(.secondary)
+                EmptyView()
+                    .if(!bindableStore.searchText.isEmpty) { _ in
+                        Button {
+                            bindableStore.send(.updateSearch(""))
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .accessibilityLabel("Clear search filter")
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
-                }
             }
             .padding(.vertical, 8)
         } header: {
@@ -173,7 +175,7 @@ private struct ProxyGroupCard: View {
                                 proxyName: proxyName,
                                 isSelected: proxyName == group.now,
                                 proxyInfo: proxies[proxyName],
-                            ) { onSelectProxy(proxyName) }
+                                ) { onSelectProxy(proxyName) }
                         }
                     } else {
                         Text("No proxies are available.")
@@ -206,7 +208,7 @@ private struct ProxyNodeRow: View {
                     .overlay(
                         Circle()
                             .stroke(Color.secondary.opacity(0.3), lineWidth: 1),
-                    )
+                        )
 
                 Text(proxyName)
                     .font(.body)
@@ -222,10 +224,10 @@ private struct ProxyNodeRow: View {
                             Color(delay == 0 ? .red : delay < 100 ? .green : delay < 300 ? .orange : .red)
                                 .opacity(0.15),
                             in: Capsule(),
-                        )
+                            )
                         .foregroundStyle(Color(delay == 0
-                                ? .red
-                                : delay < 100 ? .green : delay < 300 ? .orange : .red))
+                                                ? .red
+                                                : delay < 100 ? .green : delay < 300 ? .orange : .red))
                 } else {
                     Text("—")
                         .font(.caption)
@@ -244,7 +246,7 @@ private struct ProxyNodeRow: View {
             .background(
                 isSelected ? Color.accentColor.opacity(0.1) : Color.clear,
                 in: RoundedRectangle(cornerRadius: 8),
-            )
+                )
         }
         .buttonStyle(.plain)
     }

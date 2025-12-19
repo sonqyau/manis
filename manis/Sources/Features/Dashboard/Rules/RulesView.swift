@@ -16,7 +16,7 @@ struct RulesView: View {
         Binding(
             get: { bindableStore.searchText },
             set: { bindableStore.send(.updateSearch($0)) },
-        )
+            )
     }
 
     var body: some View {
@@ -46,11 +46,12 @@ struct RulesView: View {
                             .font(.title3)
                     }
 
-                    if bindableStore.summary.filteredRules > 0 {
-                        LabeledContent("Filtered") {
-                            Text("\(bindableStore.summary.filteredRules)")
+                    EmptyView()
+                        .if(bindableStore.summary.filteredRules > 0) { _ in
+                            LabeledContent("Filtered") {
+                                Text("\(bindableStore.summary.filteredRules)")
+                            }
                         }
-                    }
                 }
             }
             .padding(.vertical, 4)
@@ -77,13 +78,14 @@ struct RulesView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
 
-                if !bindableStore.searchText.isEmpty {
-                    Button("Clear Filter") {
-                        bindableStore.send(.updateSearch(""))
+                EmptyView()
+                    .if(!bindableStore.searchText.isEmpty) { _ in
+                        Button("Clear Filter") {
+                            bindableStore.send(.updateSearch(""))
+                        }
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
                     }
-                    .buttonStyle(.borderless)
-                    .controlSize(.small)
-                }
             }
             .padding(.vertical, 4)
         } header: {

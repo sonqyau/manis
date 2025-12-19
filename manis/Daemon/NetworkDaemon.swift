@@ -40,12 +40,12 @@ enum NetworkDaemon {
         port: Int,
         timeout: TimeInterval,
         completion: @escaping @Sendable (Bool) -> Void,
-    ) {
+        ) {
         let connection = NWConnection(
             host: NWEndpoint.Host(host),
             port: NWEndpoint.Port(integerLiteral: UInt16(port)),
             using: .tcp,
-        )
+            )
 
         connection.stateUpdateHandler = { state in
             switch state {

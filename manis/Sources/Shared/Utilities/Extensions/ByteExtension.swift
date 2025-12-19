@@ -13,9 +13,8 @@ enum ByteProcessor {
     static func extractSubstring(
         _ string: borrowing String,
         in range: Range<String.Index>,
-    ) -> String {
-        _ = string.utf8Span
-        return String(string[range])
+        ) -> String {
+        String(string[range])
     }
 
     @inlinable

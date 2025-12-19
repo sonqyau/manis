@@ -1,4 +1,5 @@
 import AppKit
+import Clocks
 import Foundation
 import Network
 import OSLog
@@ -15,6 +16,7 @@ final class NetworkDomain {
     static let shared = NetworkDomain()
 
     private let logger = MainLog.shared.logger(for: .network)
+    private let clock: any Clock<Duration>
 
     private var pathMonitor: NWPathMonitor?
     private let monitorQueue = DispatchQueue(label: "com.manis.networkmonitor", qos: .utility)
@@ -28,7 +30,9 @@ final class NetworkDomain {
 
     private var isMonitoring = false
 
-    private init() {}
+    private init(clock: any Clock<Duration> = ContinuousClock()) {
+        self.clock = clock
+    }
 
     func startMonitoring() {
         guard !isMonitoring else {
@@ -92,7 +96,7 @@ final class NetworkDomain {
                         "status": path.status.description,
                         "interfaces": "\(path.availableInterfaces.count)",
                     ],
-                )
+                    )
 
                 if let interface = path.availableInterfaces.first {
                     primaryInterface = interface.name
@@ -127,7 +131,7 @@ final class NetworkDomain {
             retain: nil,
             release: nil,
             copyDescription: nil,
-        )
+            )
 
         guard
             let store = SCDynamicStoreCreate(
@@ -135,7 +139,7 @@ final class NetworkDomain {
                 "com.manis.proxy.monitor" as CFString,
                 callback,
                 &context,
-            )
+                )
         else {
             await MainActor.run {
                 logger.error("Failed to create SCDynamicStore for proxy monitoring")
@@ -184,7 +188,7 @@ final class NetworkDomain {
             retain: nil,
             release: nil,
             copyDescription: nil,
-        )
+            )
 
         guard
             let store = SCDynamicStoreCreate(
@@ -192,7 +196,7 @@ final class NetworkDomain {
                 "com.manis.ip.monitor" as CFString,
                 callback,
                 &context,
-            )
+                )
         else {
             await MainActor.run {
                 logger.error("Failed to create SCDynamicStore for IP monitoring")
@@ -227,7 +231,7 @@ final class NetworkDomain {
             selector: #selector(handleSystemWake),
             name: NSWorkspace.didWakeNotification,
             object: nil,
-        )
+            )
 
         logger.info("Sleep and wake monitoring started")
     }
@@ -238,7 +242,7 @@ final class NetworkDomain {
         NotificationCenter.default.post(name: .networkInterfaceDidChange, object: self)
 
         Task(priority: .utility) { @MainActor in
-            try? await Task.sleep(for: .seconds(1))
+            try? await clock.sleep(for: .seconds(1))
             NotificationCenter.default.post(name: .systemDidWakeFromSleep, object: self)
             self.logger.debug("Wake notification posted")
         }
@@ -254,7 +258,7 @@ final class NetworkDomain {
         }
         let key = SCDynamicStoreKeyCreateNetworkGlobalEntity(
             nil, kSCDynamicStoreDomainState, kSCEntNetIPv4,
-        )
+            )
 
         guard let dict = SCDynamicStoreCopyValue(store, key) as? [String: Any],
               let iface = dict[kSCDynamicStorePropNetPrimaryInterface as String] as? String
@@ -270,7 +274,7 @@ final class NetworkDomain {
         }
         let key = SCDynamicStoreKeyCreateNetworkGlobalEntity(
             nil, kSCDynamicStoreDomainState, kSCEntNetDNS,
-        )
+            )
 
         guard let dict = SCDynamicStoreCopyValue(store, key) as? [String: Any],
               let servers = dict[kSCPropNetDNSServerAddresses as String] as? [String]
@@ -293,11 +297,10 @@ final class NetworkDomain {
 
         let ipv4Key = SCDynamicStoreKeyCreateNetworkInterfaceEntity(
             nil, kSCDynamicStoreDomainState, ifName as CFString, kSCEntNetIPv4,
-        )
+            )
         if let ipv4Info = SCDynamicStoreCopyValue(store, ipv4Key) as? [String: Any],
            let addresses = ipv4Info[kSCPropNetIPv4Addresses as String] as? [String],
-           let first = addresses.first
-        {
+           let first = addresses.first {
             primaryIPAddress = first
             return first
         }
@@ -308,7 +311,7 @@ final class NetworkDomain {
 
         let ipv6Key = SCDynamicStoreKeyCreateNetworkInterfaceEntity(
             nil, kSCDynamicStoreDomainState, ifName as CFString, kSCEntNetIPv6,
-        )
+            )
         guard let ipv6Info = SCDynamicStoreCopyValue(store, ipv6Key) as? [String: Any],
               let addresses = ipv6Info[kSCPropNetIPv6Addresses as String] as? [String],
               let first = addresses.first

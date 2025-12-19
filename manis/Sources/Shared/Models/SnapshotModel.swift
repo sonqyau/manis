@@ -38,8 +38,8 @@ struct LaunchSnapshot {
     var isEnabled: Bool
     var requiresApproval: Bool
 
-    init(_ state: BootstrapManager.State) {
-        isEnabled = state.isEnabled
-        requiresApproval = state.requiresApproval
+    init() {
+        isEnabled = Bootstrap.isEnabled
+        requiresApproval = Bootstrap.requiresApproval
     }
 }

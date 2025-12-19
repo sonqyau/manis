@@ -1,6 +1,8 @@
 import ComposableArchitecture
 import Perception
+import SwiftNavigation
 import SwiftUI
+import SwiftUINavigation
 
 struct MenuBarIconView: View {
     let store: StoreOf<MenuBarFeature>
@@ -84,20 +86,13 @@ struct MenuBarContentView: View {
         .task { bindableStore.send(.onAppear) }
         .onDisappear { bindableStore.send(.onDisappear) }
         .alert(
-            "Menu Bar Error",
-            isPresented: Binding(
-                get: { bindableStore.alerts.errorMessage != nil },
-                set: { presented in
-                    if !presented {
-                        bindableStore.send(.dismissError)
-                    }
-                },
-            ),
-        ) {
-            Button("OK") { bindableStore.send(.dismissError) }
-        } message: {
-            if let message = bindableStore.alerts.errorMessage {
-                Text(message)
+            Binding<AlertState<MenuBarFeature.AlertAction>?>(
+                get: { bindableStore.alert },
+                set: { _ in },
+                ),
+            ) { action in
+            if let action {
+                bindableStore.send(.alert(action))
             }
         }
     }
@@ -131,8 +126,7 @@ struct MenuBarContentView: View {
                 Spacer()
 
                 if let interface = bindableStore.networkInterface,
-                   let ipAddress = bindableStore.ipAddress
-                {
+                   let ipAddress = bindableStore.ipAddress {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(interface)
                             .font(.caption2)
@@ -150,13 +144,13 @@ struct MenuBarContentView: View {
                         icon: "arrow.down",
                         value: bindableStore.downloadSpeed,
                         color: .blue,
-                    )
+                        )
                     Divider().frame(height: 20)
                     trafficStat(
                         icon: "arrow.up",
                         value: bindableStore.uploadSpeed,
                         color: .green,
-                    )
+                        )
                 }
             }
         }
@@ -181,7 +175,7 @@ struct MenuBarContentView: View {
         icon: String,
         isActive: Bool = false,
         activeColor: Color = .blue,
-    ) -> some View {
+        ) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.body)
@@ -198,7 +192,7 @@ struct MenuBarContentView: View {
         .background(
             isActive ? activeColor.opacity(0.15) : Color.secondary.opacity(0.08),
             in: RoundedRectangle(cornerRadius: 10),
-        )
+            )
     }
 
     private var proxyGroupsSection: some View {
@@ -207,7 +201,7 @@ struct MenuBarContentView: View {
                 MenuBarProxyGroupRow(
                     group: proxyGroup,
                     proxies: bindableStore.proxies,
-                ) { groupName, proxy in
+                    ) { groupName, proxy in
                     bindableStore.send(.selectProxy(group: groupName, proxy: proxy))
                 }
             }
@@ -261,7 +255,7 @@ struct MenuBarNavigationButton: View {
         showsChevron: Bool = true,
         role: ButtonRole? = nil,
         action: @escaping () -> Void,
-    ) {
+        ) {
         self.title = title
         self.icon = icon
         self.tint = tint
@@ -288,7 +282,7 @@ struct MenuBarNavigationButton: View {
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill((tint ?? Color.secondary).opacity(0.08)),
-            )
+                )
         }
         .buttonStyle(.plain)
     }
@@ -345,7 +339,7 @@ private struct MenuBarProxyGroupRow: View {
                             proxyName: proxyName,
                             isSelected: proxyName == group.info.now,
                             proxyInfo: proxies[proxyName],
-                        ) {
+                            ) {
                             onSelect(group.id, proxyName)
                         }
                     }
@@ -372,7 +366,7 @@ private struct MenuBarProxyNodeRow: View {
                     .overlay(
                         Circle()
                             .stroke(Color.secondary.opacity(0.3), lineWidth: 1),
-                    )
+                        )
 
                 Text(proxyName)
                     .font(.body)

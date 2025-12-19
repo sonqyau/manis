@@ -1,15 +1,12 @@
 @preconcurrency import Combine
 import ComposableArchitecture
 import Foundation
+import SwiftNavigation
 
 @MainActor
 struct MenuBarFeature: @preconcurrency Reducer {
     @ObservableState
     struct State {
-        struct Alerts: Equatable {
-            var errorMessage: String?
-        }
-
         struct ProxySelectorGroup: Identifiable {
             var id: String
             var info: GroupInfo
@@ -24,7 +21,11 @@ struct MenuBarFeature: @preconcurrency Reducer {
         var proxies: [String: ProxyInfo] = [:]
         var networkInterface: String?
         var ipAddress: String?
-        var alerts: Alerts = .init()
+        var alert: AlertState<AlertAction>?
+    }
+
+    enum AlertAction: Equatable {
+        case dismissError
     }
 
     @CasePathable
@@ -37,7 +38,7 @@ struct MenuBarFeature: @preconcurrency Reducer {
 
         case selectProxyFinished(error: String?)
         case operationFinished(String?)
-        case dismissError
+        case alert(AlertAction)
     }
 
     private enum CancelID {
@@ -67,8 +68,8 @@ struct MenuBarFeature: @preconcurrency Reducer {
         case .onDisappear:
             return onDisappearEffect()
 
-        case .dismissError:
-            state.alerts.errorMessage = nil
+        case .alert(.dismissError):
+            state.alert = nil
             return .none
 
         case .refreshNetworkInfo:
@@ -89,12 +90,30 @@ struct MenuBarFeature: @preconcurrency Reducer {
 
         case let .selectProxyFinished(error):
             if let error {
-                state.alerts.errorMessage = error
+                state.alert = AlertState {
+                    TextState("Error")
+                } actions: {
+                    ButtonState(action: .dismissError) {
+                        TextState("OK")
+                    }
+                } message: {
+                    TextState(error)
+                }
             }
             return .none
 
         case let .operationFinished(errorMessage):
-            state.alerts.errorMessage = errorMessage
+            if let errorMessage {
+                state.alert = AlertState {
+                    TextState("Error")
+                } actions: {
+                    ButtonState(action: .dismissError) {
+                        TextState("OK")
+                    }
+                } message: {
+                    TextState(errorMessage)
+                }
+            }
             return .none
         }
     }
@@ -120,7 +139,7 @@ struct MenuBarFeature: @preconcurrency Reducer {
     private func onDisappearEffect() -> Effect<Action> {
         .merge(
             .cancel(id: CancelID.mihomoStream),
-        )
+            )
     }
 
     private func selectProxyEffect(group: String, proxy: String) -> Effect<Action> {
@@ -139,7 +158,7 @@ struct MenuBarFeature: @preconcurrency Reducer {
     private func runOperation(
         containerDescription _: String,
         work: @escaping () async throws -> Void,
-    ) -> Effect<Action> {
+        ) -> Effect<Action> {
         .run { @MainActor send in
             do {
                 try await work()
@@ -157,7 +176,7 @@ struct MenuBarFeature: @preconcurrency Reducer {
 
     private static func buildSelectorGroups(
         from groups: [String: GroupInfo],
-    ) -> [State.ProxySelectorGroup] {
+        ) -> [State.ProxySelectorGroup] {
         groups
             .filter { $0.value.type.lowercased() == "selector" }
             .sorted { $0.key < $1.key }

@@ -6,7 +6,7 @@ protocol MihomoService {
     var statePublisher: AnyPublisher<MihomoDomain.State, Never> { get }
 
     func configure(baseURL: String, secret: String?)
-    func connect()
+    func connect() async
     func disconnect()
     func currentState() -> MihomoDomain.State
     func requestDashboardRefresh()
@@ -14,7 +14,7 @@ protocol MihomoService {
     func closeConnection(id: String) async throws
     func closeAllConnections() async throws
     func testGroupDelay(name: String) async throws
-    func startLogStream(level: String?)
+    func startLogStream(level: String?) async
     func stopLogStream()
     func clearLogs()
     func reloadConfig(path: String, payload: String) async throws
@@ -40,8 +40,8 @@ struct APIDomainMihomoServiceAdapter: MihomoService {
         domain.configure(baseURL: baseURL, secret: secret)
     }
 
-    func connect() {
-        domain.connect()
+    func connect() async {
+        await domain.connect()
     }
 
     func disconnect() {
@@ -72,8 +72,8 @@ struct APIDomainMihomoServiceAdapter: MihomoService {
         _ = try await domain.testGroupDelay(name: name)
     }
 
-    func startLogStream(level: String?) {
-        domain.startLogStream(level: level)
+    func startLogStream(level: String?) async {
+        await domain.startLogStream(level: level)
     }
 
     func stopLogStream() {

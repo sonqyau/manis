@@ -1,6 +1,9 @@
 import ComposableArchitecture
 import Perception
+import STTextView
+import SwiftNavigation
 import SwiftUI
+import SwiftUINavigation
 
 struct PersistenceView: View {
     let store: StoreOf<PersistenceFeature>
@@ -44,33 +47,38 @@ struct ConfigDetailView: View {
                 }
             }
         }
-        .sheet(
-            isPresented: Binding(
-                get: { store.showingAddConfig },
-                set: { store.send(.showAddConfig($0)) },
-            ),
-        ) {
+        .sheet(isPresented: Binding(
+            get: { store.showingAddConfig },
+            set: { store.send(.showAddConfig($0)) }
+        )) {
             AddRemoteConfigView()
         }
-        .sheet(
-            isPresented: Binding(
-                get: { store.showingAddInstance },
-                set: { store.send(.showAddInstance($0)) },
-            ),
-        ) {
+        .sheet(isPresented: Binding(
+            get: { store.showingAddInstance },
+            set: { store.send(.showAddInstance($0)) }
+        )) {
             AddRemoteInstanceView()
         }
+        .sheet(isPresented: Binding(
+            get: { store.showingConfigEditor },
+            set: { store.send(.showConfigEditor($0)) }
+        )) {
+            ConfigEditorWindow(
+                fileName: "config.yaml",
+                fileExtension: "yaml",
+                language: .yaml,
+                initialContent: store.editingConfigContent,
+                )
+            .frame(width: 900, height: 700)
+        }
         .alert(
-            "Error",
-            isPresented: Binding(
-                get: { store.alerts.errorMessage != nil },
-                set: { presented in if !presented { store.send(.dismissError) } },
-            ),
-        ) {
-            Button("OK") { store.send(.dismissError) }
-        } message: {
-            if let error = store.alerts.errorMessage {
-                Text(error)
+            Binding<AlertState<PersistenceFeature.AlertAction>?>(
+                get: { store.alert },
+                set: { _ in },
+                ),
+            ) { action in
+            if let action {
+                store.send(.alert(action))
             }
         }
         .task { store.send(.onAppear) }
@@ -102,7 +110,7 @@ struct ConfigDetailView: View {
         } footer: {
             Text(
                 "Local mode manages the on-device Mihomo kernel. Remote mode connects to an external Mihomo instance.",
-            )
+                )
             .foregroundStyle(.secondary)
         }
     }
@@ -204,7 +212,7 @@ struct ConfigDetailView: View {
         } footer: {
             Text(
                 "Connect to remote Mihomo instances. System proxy and TUN controls are disabled while in remote mode.",
-            )
+                )
             .foregroundStyle(.secondary)
         }
     }
@@ -294,7 +302,7 @@ struct RemoteConfigRow: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(
                     accentColor.opacity(config.isActive ? 0.5 : 0.2), lineWidth: config.isActive ? 1.5 : 1,
-                )
+                    )
         }
         .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
@@ -443,7 +451,7 @@ struct AddRemoteInstanceView: View {
                 } footer: {
                     Text(
                         "Enter the external controller URL and secret provided by the remote Mihomo instance.",
-                    )
+                        )
                 }
             }
             .formStyle(.grouped)
@@ -480,7 +488,7 @@ struct AddRemoteInstanceView: View {
                 name: name,
                 apiURL: apiURL,
                 secret: secret.isEmpty ? nil : secret,
-            )
+                )
             dismiss()
         } catch {
             errorMessage = error.localizedDescription

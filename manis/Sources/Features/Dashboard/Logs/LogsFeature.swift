@@ -1,28 +1,30 @@
 @preconcurrency import Combine
 import ComposableArchitecture
 import Foundation
+import IdentifiedCollections
+import SwiftNavigation
 
 @MainActor
 struct LogsFeature: @preconcurrency Reducer {
     @ObservableState
     struct State {
-        struct Alerts: Equatable {
-            var errorMessage: String?
-        }
-
         struct Summary: Equatable {
             var totalLogs: Int = 0
             var filteredLogs: Int = 0
         }
 
-        var logs: [LogMessage] = []
+        var logs: IdentifiedArrayOf<LogMessage> = []
         var selectedLevel: String = "info"
         var searchText: String = ""
         var isStreaming: Bool = false
         var autoScroll: Bool = true
-        var filteredLogs: [LogMessage] = []
+        var filteredLogs: IdentifiedArrayOf<LogMessage> = []
         var summary: Summary = .init()
-        var alerts: Alerts = .init()
+        var alert: AlertState<AlertAction>?
+    }
+
+    enum AlertAction: Equatable {
+        case dismissError
     }
 
     @CasePathable
@@ -35,7 +37,7 @@ struct LogsFeature: @preconcurrency Reducer {
         case toggleStreaming
         case clearLogs
         case mihomoSnapshotUpdated(MihomoSnapshot)
-        case dismissError
+        case alert(AlertAction)
     }
 
     private enum CancelID {
@@ -57,7 +59,7 @@ struct LogsFeature: @preconcurrency Reducer {
                 return onDisappearEffect(wasStreaming: wasStreaming)
 
             case let .mihomoSnapshotUpdated(snapshot):
-                state.logs = snapshot.logs
+                state.logs = IdentifiedArray(uniqueElements: snapshot.logs)
                 refreshLogsDerivedState(state: &state)
                 return .none
 
@@ -93,8 +95,8 @@ struct LogsFeature: @preconcurrency Reducer {
                 refreshLogsDerivedState(state: &state)
                 return clearLogsEffect()
 
-            case .dismissError:
-                state.alerts.errorMessage = nil
+            case .alert(.dismissError):
+                state.alert = nil
                 return .none
             }
         }
@@ -122,20 +124,20 @@ struct LogsFeature: @preconcurrency Reducer {
                     mihomoService.stopLogStream()
                 }
                 : .none,
-        )
+            )
     }
 
     private func restartLogStream(level: String) -> Effect<Action> {
         .run { @MainActor _ in
             mihomoService.stopLogStream()
-            mihomoService.startLogStream(level: level)
+            await mihomoService.startLogStream(level: level)
         }
     }
 
     private func toggleStreamingEffect(isStreaming: Bool, level: String) -> Effect<Action> {
         if isStreaming {
             .run { @MainActor _ in
-                mihomoService.startLogStream(level: level)
+                await mihomoService.startLogStream(level: level)
             }
         } else {
             .run { @MainActor _ in
@@ -155,13 +157,13 @@ struct LogsFeature: @preconcurrency Reducer {
         if search.isEmpty {
             state.filteredLogs = state.logs
         } else {
-            state.filteredLogs = state.logs.filter { message in
+            state.filteredLogs = IdentifiedArray(uniqueElements: state.logs.filter { message in
                 message.payload.localizedCaseInsensitiveContains(search)
-            }
+            })
         }
         state.summary = .init(
             totalLogs: state.logs.count,
             filteredLogs: search.isEmpty ? 0 : state.filteredLogs.count,
-        )
+            )
     }
 }

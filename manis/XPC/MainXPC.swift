@@ -18,8 +18,8 @@ final class MainXPC: NSObject, MainXPCProtocol {
                         processId: status.processId,
                         externalController: status.externalController,
                         secret: status.secret,
-                    ),
-                )
+                        ),
+                    )
 
             case .failure:
                 reply(ManisKernelStatus(isRunning: false, processId: 0, externalController: nil, secret: nil))
@@ -32,12 +32,12 @@ final class MainXPC: NSObject, MainXPCProtocol {
         configPath: String,
         configContent: String,
         reply: @escaping (String?, MainXPCError?) -> Void,
-    ) {
+        ) {
         helperBridge.startMihomo(
             executablePath: executablePath,
             configPath: configPath,
             configContent: configContent,
-        ) { result in
+            ) { result in
             switch result {
             case let .success(message):
                 reply(message, nil)

@@ -1,6 +1,7 @@
 import ComposableArchitecture
 import Foundation
 import Perception
+import SwiftNavigation
 
 @MainActor
 struct SettingsFeature: @preconcurrency Reducer {
@@ -24,10 +25,6 @@ struct SettingsFeature: @preconcurrency Reducer {
             var requiresApproval: Bool = false
         }
 
-        struct Alerts: Equatable {
-            var errorMessage: String?
-        }
-
         var statusOverview: StatusOverview = .init()
         var launchAtLogin: Bootstrap = .init()
 
@@ -37,13 +34,17 @@ struct SettingsFeature: @preconcurrency Reducer {
 
         var daemonStatus: String = "Unknown"
 
-        var alerts: Alerts = .init()
+        var alert: AlertState<AlertAction>?
         var isProcessing: Bool = false
+    }
+
+    enum AlertAction: Equatable {
+        case dismissError
     }
 
     enum Action: Equatable {
         case onAppear
-        case dismissError
+        case alert(AlertAction)
         case openSystemSettings
         case confirmBootstrap
         case toggleBootstrap
@@ -62,9 +63,6 @@ struct SettingsFeature: @preconcurrency Reducer {
         case operationFinished(String?)
     }
 
-    @Dependency(\.launchService)
-    var launchService
-
     @Dependency(\.settingsService)
     var settingsService
 
@@ -82,22 +80,26 @@ struct SettingsFeature: @preconcurrency Reducer {
             case .onAppear:
                 return onAppearEffect(state: &state)
 
-            case .dismissError:
-                state.alerts.errorMessage = nil
+            case .alert(.dismissError):
+                state.alert = nil
                 return .none
 
             case let .operationFinished(errorMessage):
                 return operationFinishedEffect(state: &state, errorMessage: errorMessage)
 
             case .confirmBootstrap:
-                launchService.updateStatus()
+                let launchState = LaunchSnapshot()
+                state.launchAtLogin = .init(
+                    isEnabled: launchState.isEnabled,
+                    requiresApproval: launchState.requiresApproval,
+                    )
                 return .none
 
             case .toggleBootstrap:
                 return toggleBootstrapEffect(state: &state)
 
             case .openSystemSettings:
-                launchService.openSystemSettings()
+                Bootstrap.openSystemSettings()
                 return .none
 
             case .refreshDaemonStatus:
@@ -127,20 +129,28 @@ struct SettingsFeature: @preconcurrency Reducer {
                     previousController: previousController,
                     previousSecret: previousSecret,
                     state: &state,
-                )
+                    )
 
                 state.statusOverview = .init(
                     indicatorIsActive: snapshot.isRunning,
                     summary: snapshot.isRunning ? "Kernel Running" : "Kernel Stopped",
                     hint: snapshot.externalController,
-                )
+                    )
 
                 state.isProcessing = false
                 return .none
 
             case let .kernelStatusFailed(message):
                 state.isProcessing = false
-                state.alerts.errorMessage = message
+                state.alert = AlertState {
+                    TextState("Error")
+                } actions: {
+                    ButtonState(action: .dismissError) {
+                        TextState("OK")
+                    }
+                } message: {
+                    TextState(message)
+                }
                 return .none
 
             case .startKernel:
@@ -153,18 +163,18 @@ struct SettingsFeature: @preconcurrency Reducer {
     }
 
     private func onAppearEffect(state: inout State) -> Effect<Action> {
-        let launchState = LaunchSnapshot(launchService.currentState())
+        let launchState = LaunchSnapshot()
 
         state.statusOverview = .init(
             indicatorIsActive: false,
             summary: "Ready",
             hint: nil,
-        )
+            )
 
         state.launchAtLogin = .init(
             isEnabled: launchState.isEnabled,
             requiresApproval: launchState.requiresApproval,
-        )
+            )
 
         state.daemonStatus = describeDaemonStatus()
 
@@ -181,7 +191,7 @@ struct SettingsFeature: @preconcurrency Reducer {
             return .none
         }
         state.isProcessing = true
-        state.alerts.errorMessage = nil
+        state.alert = nil
 
         return .run { @MainActor send in
             do {
@@ -200,7 +210,7 @@ struct SettingsFeature: @preconcurrency Reducer {
             return .none
         }
         state.isProcessing = true
-        state.alerts.errorMessage = nil
+        state.alert = nil
 
         return .run { @MainActor send in
             do {
@@ -232,17 +242,27 @@ struct SettingsFeature: @preconcurrency Reducer {
     private func operationFinishedEffect(
         state: inout State,
         errorMessage: String?,
-    ) -> Effect<Action> {
+        ) -> Effect<Action> {
         state.isProcessing = false
-        state.alerts.errorMessage = errorMessage
+        if let errorMessage {
+            state.alert = AlertState {
+                TextState("Error")
+            } actions: {
+                ButtonState(action: .dismissError) {
+                    TextState("OK")
+                }
+            } message: {
+                TextState(errorMessage)
+            }
+        }
 
         state.daemonStatus = describeDaemonStatus()
 
-        let launchState = LaunchSnapshot(launchService.currentState())
+        let launchState = LaunchSnapshot()
         state.launchAtLogin = .init(
             isEnabled: launchState.isEnabled,
             requiresApproval: launchState.requiresApproval,
-        )
+            )
         return .none
     }
 
@@ -251,21 +271,16 @@ struct SettingsFeature: @preconcurrency Reducer {
             return .none
         }
         state.isProcessing = true
-        state.alerts.errorMessage = nil
+        state.alert = nil
 
-        let launchContainer = BootstrapServiceDependency(service: launchService)
         let settingsContainer = SettingsServiceDependency(service: settingsService)
 
         return .run { @MainActor send in
-            do {
-                try launchContainer.service.toggle()
-                let enabled = launchContainer.service.currentState().isEnabled
-                settingsContainer.service.launchAtLogin = enabled
-                send(.operationFinished(nil))
-            } catch {
-                let message = (error as NSError).localizedDescription
-                send(.operationFinished(message))
-            }
+            Bootstrap.isEnabled.toggle()
+            let enabled = Bootstrap.isEnabled
+            settingsContainer.service.launchAtLogin = enabled
+            send(.confirmBootstrap)
+            send(.operationFinished(nil))
         }
     }
 
@@ -275,7 +290,7 @@ struct SettingsFeature: @preconcurrency Reducer {
         }
 
         state.isProcessing = true
-        state.alerts.errorMessage = nil
+        state.alert = nil
 
         return .run { @MainActor send in
             do {
@@ -287,9 +302,9 @@ struct SettingsFeature: @preconcurrency Reducer {
                             processId: status.processId,
                             externalController: status.externalController,
                             secret: status.secret,
+                            ),
                         ),
-                    ),
-                )
+                    )
             } catch {
                 let message = (error as NSError).localizedDescription
                 send(.kernelStatusFailed(message))
@@ -303,7 +318,7 @@ struct SettingsFeature: @preconcurrency Reducer {
         }
 
         state.isProcessing = true
-        state.alerts.errorMessage = nil
+        state.alert = nil
 
         let configURL = resourceService.configFilePath
         let configDir = resourceService.configDirectory
@@ -316,7 +331,7 @@ struct SettingsFeature: @preconcurrency Reducer {
                     executablePath: executablePath,
                     configPath: configDir.path,
                     configContent: configContent,
-                )
+                    )
                 send(.refreshKernelStatus)
             } catch {
                 let message = (error as NSError).localizedDescription
@@ -331,7 +346,7 @@ struct SettingsFeature: @preconcurrency Reducer {
         }
 
         state.isProcessing = true
-        state.alerts.errorMessage = nil
+        state.alert = nil
 
         return .run { @MainActor send in
             do {
@@ -364,7 +379,7 @@ struct SettingsFeature: @preconcurrency Reducer {
         previousController: String?,
         previousSecret: String?,
         state: inout State,
-    ) {
+        ) {
         if !statusIsRunning {
             if state.statusOverview.indicatorIsActive {
                 mihomoService.disconnect()
@@ -385,6 +400,5 @@ struct SettingsFeature: @preconcurrency Reducer {
 
         mihomoService.disconnect()
         mihomoService.configure(baseURL: baseURL, secret: secret)
-        mihomoService.connect()
     }
 }

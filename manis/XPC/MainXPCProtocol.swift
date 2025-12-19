@@ -8,7 +8,7 @@ import Foundation
         configPath: String,
         configContent: String,
         reply: @escaping (String?, MainXPCError?) -> Void,
-    )
+        )
     func stopKernel(reply: @escaping (MainXPCError?) -> Void)
 }
 

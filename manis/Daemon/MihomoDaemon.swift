@@ -1,5 +1,7 @@
+import Clocks
+import ConcurrencyExtras
 import Foundation
-import os.log
+import OSLog
 import Yams
 
 struct InternalMihomoStatus {
@@ -12,91 +14,59 @@ struct InternalMihomoStatus {
     let logs: [String]
 }
 
+private struct MihomoState: Sendable {
+    var logs: [String] = []
+    var startTime: Date?
+    var configPath: String?
+    var externalController: String?
+    var secret: String?
+}
+
 class MihomoDaemon: @unchecked Sendable {
     private var process: Process?
     private let processQueue = DispatchQueue(label: "com.manis.mihomo.process", qos: .userInitiated)
-    private let logsLock = NSLock()
-    private var _logs: [String] = []
-    private var _startTime: Date?
-    private var _configPath: String?
-    private var _externalController: String?
-    private var _secret: String?
+    private let state = LockIsolated(MihomoState())
+    private let clock: any Clock<Duration>
 
     private var logs: [String] {
-        get {
-            logsLock.lock()
-            defer { logsLock.unlock() }
-            return _logs
-        }
-        set {
-            logsLock.lock()
-            defer { logsLock.unlock() }
-            _logs = newValue
-        }
+        get { state.value.logs }
+        set { state.withValue { $0.logs = newValue } }
     }
 
     private var startTime: Date? {
-        get {
-            logsLock.lock()
-            defer { logsLock.unlock() }
-            return _startTime
-        }
-        set {
-            logsLock.lock()
-            defer { logsLock.unlock() }
-            _startTime = newValue
-        }
+        get { state.value.startTime }
+        set { state.withValue { $0.startTime = newValue } }
     }
 
     private var configPath: String? {
-        get {
-            logsLock.lock()
-            defer { logsLock.unlock() }
-            return _configPath
-        }
-        set {
-            logsLock.lock()
-            defer { logsLock.unlock() }
-            _configPath = newValue
-        }
+        get { state.value.configPath }
+        set { state.withValue { $0.configPath = newValue } }
     }
 
     private var externalController: String? {
-        get {
-            logsLock.lock()
-            defer { logsLock.unlock() }
-            return _externalController
-        }
-        set {
-            logsLock.lock()
-            defer { logsLock.unlock() }
-            _externalController = newValue
-        }
+        get { state.value.externalController }
+        set { state.withValue { $0.externalController = newValue } }
     }
 
     private var secret: String? {
-        get {
-            logsLock.lock()
-            defer { logsLock.unlock() }
-            return _secret
-        }
-        set {
-            logsLock.lock()
-            defer { logsLock.unlock() }
-            _secret = newValue
-        }
+        get { state.value.secret }
+        set { state.withValue { $0.secret = newValue } }
     }
 
     private let logger = Logger(subsystem: "com.manis.Daemon", category: "MihomoDaemon")
 
     private let forcedExternalController = "127.0.0.1:9090"
 
+    init(clock: any Clock<Duration> = ContinuousClock()) {
+        self.clock = clock
+    }
+
     func start(
         executablePath: String,
         configPath: String,
         configContent: String,
         completion: @escaping @Sendable (Result<String, Error>) -> Void,
-    ) {
+        ) {
         processQueue.async { [weak self] in
             guard let self else { return }
 
@@ -144,12 +114,13 @@ class MihomoDaemon: @unchecked Sendable {
 
                 self.logger.info("Mihomo process started with PID: \(proc.processIdentifier)")
 
-                Thread.sleep(forTimeInterval: 2.0)
-
-                if self.testExternalController() {
-                    completion(.success("Mihomo started successfully"))
-                } else {
-                    completion(.failure(MihomoError.apiTestFailed))
+                Task {
+                    try? await clock.sleep(for: .seconds(2))
+                    if self.testExternalController() {
+                        completion(.success("Mihomo started successfully"))
+                    } else {
+                        completion(.failure(MihomoError.apiTestFailed))
+                    }
                 }
             } catch {
                 completion(.failure(error))
@@ -212,21 +183,22 @@ class MihomoDaemon: @unchecked Sendable {
                 configPath: configPath,
                 configContent: configContent,
                 completion: completion,
-            )
+                )
         }
     }
 
     func getStatus() -> InternalMihomoStatus {
         processQueue.sync {
-            InternalMihomoStatus(
+            let currentState = state.value
+            return InternalMihomoStatus(
                 isRunning: process?.isRunning ?? false,
                 processId: process?.processIdentifier,
-                startTime: startTime,
-                configPath: configPath,
-                externalController: externalController,
-                secret: secret,
-                logs: logs,
-            )
+                startTime: currentState.startTime,
+                configPath: currentState.configPath,
+                externalController: currentState.externalController,
+                secret: currentState.secret,
+                logs: currentState.logs,
+                )
         }
     }
 
@@ -253,8 +225,7 @@ class MihomoDaemon: @unchecked Sendable {
 
             if let response = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let hello = response["hello"] as? String,
-               hello == "clash.meta" || hello == "mihomo"
-            {
+               hello == "clash.meta" || hello == "mihomo" {
                 return true
             }
         } catch {

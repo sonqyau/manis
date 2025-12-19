@@ -1,5 +1,6 @@
 import ComposableArchitecture
 import Perception
+import SwiftNavigation
 import SwiftUI
 
 struct ConnectionsView: View {
@@ -9,7 +10,7 @@ struct ConnectionsView: View {
         KeyPathComparator(
             \ConnectionSnapshot.Connection.start,
             order: .reverse,
-        ),
+            ),
     ]
     @FocusState private var isSearchFocused: Bool
 
@@ -22,18 +23,18 @@ struct ConnectionsView: View {
         Binding(
             get: { bindableStore.searchText },
             set: { bindableStore.send(.updateSearch($0)) },
-        )
+            )
     }
 
     private var filterBinding: Binding<ConnectionFilter> {
         Binding(
             get: { bindableStore.selectedFilter },
             set: { bindableStore.send(.selectFilter($0)) },
-        )
+            )
     }
 
     private var filteredConnections: [ConnectionSnapshot.Connection] {
-        var conns = bindableStore.connections
+        var conns = bindableStore.connections.elements
 
         let filter = bindableStore.selectedFilter
         if filter != .all {
@@ -65,16 +66,13 @@ struct ConnectionsView: View {
         .task { bindableStore.send(.onAppear) }
         .onDisappear { bindableStore.send(.onDisappear) }
         .alert(
-            "Error",
-            isPresented: Binding(
-                get: { bindableStore.alerts.errorMessage != nil },
-                set: { presented in if !presented { bindableStore.send(.dismissError) } },
-            ),
-        ) {
-            Button("OK") { bindableStore.send(.dismissError) }
-        } message: {
-            if let message = bindableStore.alerts.errorMessage {
-                Text(message)
+            Binding<AlertState<ConnectionsFeature.AlertAction>?>(
+                get: { bindableStore.alert },
+                set: { _ in },
+                ),
+            ) { action in
+            if let action {
+                bindableStore.send(.alert(action))
             }
         }
     }
@@ -87,11 +85,12 @@ struct ConnectionsView: View {
                         Text("\(bindableStore.connections.count)")
                     }
 
-                    if !bindableStore.searchText.isEmpty || bindableStore.selectedFilter != .all {
-                        LabeledContent("Filtered results") {
-                            Text("\(filteredConnections.count)")
+                    EmptyView()
+                        .if(!bindableStore.searchText.isEmpty || bindableStore.selectedFilter != .all) { _ in
+                            LabeledContent("Filtered results") {
+                                Text("\(filteredConnections.count)")
+                            }
                         }
-                    }
 
                     Spacer()
 
@@ -120,10 +119,11 @@ struct ConnectionsView: View {
                         .textFieldStyle(.roundedBorder)
                         .focused($isSearchFocused)
 
-                    if !bindableStore.searchText.isEmpty {
-                        Button("Clear filter") { bindableStore.send(.updateSearch("")) }
-                            .buttonStyle(.borderless)
-                    }
+                    EmptyView()
+                        .if(!bindableStore.searchText.isEmpty) { _ in
+                            Button("Clear filter") { bindableStore.send(.updateSearch("")) }
+                                .buttonStyle(.borderless)
+                        }
                 }
 
                 Picker("Connection type", selection: filterBinding) {
@@ -133,14 +133,15 @@ struct ConnectionsView: View {
                 }
                 .pickerStyle(.segmented)
 
-                if bindableStore.selectedFilter != .all {
-                    Button(role: .destructive) {
-                        bindableStore.send(.selectFilter(.all))
-                    } label: {
-                        Label("Reset filters", systemImage: "xmark.circle")
+                EmptyView()
+                    .if(bindableStore.selectedFilter != .all) { _ in
+                        Button(role: .destructive) {
+                            bindableStore.send(.selectFilter(.all))
+                        } label: {
+                            Label("Reset filters", systemImage: "xmark.circle")
+                        }
+                        .buttonStyle(.bordered)
                     }
-                    .buttonStyle(.bordered)
-                }
 
                 Button {
                     bindableStore.send(.closeAll)
@@ -162,7 +163,7 @@ struct ConnectionsView: View {
                 filteredConnections,
                 selection: .constant(Set<ConnectionSnapshot.Connection.ID>()),
                 sortOrder: $sortOrder,
-            ) {
+                ) {
                 TableColumn("Host") { connection in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(connection.displayDestination)
@@ -204,8 +205,8 @@ struct ConnectionsView: View {
                         ByteCountFormatter.string(
                             fromByteCount: connection.download,
                             countStyle: .binary,
-                        ),
-                    )
+                            ),
+                        )
                     .font(.caption)
                 }
                 .width(ideal: 110)
@@ -215,8 +216,8 @@ struct ConnectionsView: View {
                         ByteCountFormatter.string(
                             fromByteCount: connection.upload,
                             countStyle: .binary,
-                        ),
-                    )
+                            ),
+                        )
                     .font(.caption)
                 }
                 .width(ideal: 110)
@@ -228,20 +229,22 @@ struct ConnectionsView: View {
                 .width(ideal: 90)
 
                 TableColumn("Actions") { connection in
-                    if bindableStore.closingConnections.contains(connection.id) {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
-                        Button {
-                            bindableStore.send(.closeConnection(connection.id))
-                        } label: {
-                            Image(systemName: "xmark.circle")
-                                .foregroundStyle(.red)
-                                .accessibilityLabel("Terminate connection")
+                    EmptyView()
+                        .if(bindableStore.closingConnections.contains(connection.id)) { _ in
+                            ProgressView()
+                                .controlSize(.small)
                         }
-                        .buttonStyle(.plain)
-                        .help("Terminate this connection")
-                    }
+                        .ifNot(bindableStore.closingConnections.contains(connection.id)) { _ in
+                            Button {
+                                bindableStore.send(.closeConnection(connection.id))
+                            } label: {
+                                Image(systemName: "xmark.circle")
+                                    .foregroundStyle(.red)
+                                    .accessibilityLabel("Terminate connection")
+                            }
+                            .buttonStyle(.plain)
+                            .help("Terminate this connection")
+                        }
                 }
                 .width(ideal: 60)
             }
@@ -262,13 +265,13 @@ struct ConnectionsView: View {
         ByteCountFormatter.string(
             fromByteCount: filteredConnections.reduce(0) { $0 + $1.download },
             countStyle: .binary,
-        )
+            )
     }
 
     private var totalUpload: String {
         ByteCountFormatter.string(
             fromByteCount: filteredConnections.reduce(0) { $0 + $1.upload },
             countStyle: .binary,
-        )
+            )
     }
 }

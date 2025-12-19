@@ -1,23 +1,27 @@
 @preconcurrency import Combine
 import ComposableArchitecture
 import Foundation
+import IdentifiedCollections
+import SwiftNavigation
 
 @MainActor
 struct PersistenceFeature: @preconcurrency Reducer {
     @ObservableState
     struct State {
-        struct Alerts: Equatable {
-            var errorMessage: String?
-        }
-
-        var configs: [PersistenceModel] = []
-        var remoteInstances: [RemoteInstance] = []
+        var configs: IdentifiedArrayOf<PersistenceModel> = []
+        var remoteInstances: IdentifiedArrayOf<RemoteInstance> = []
         var isLocalMode: Bool = true
         var activeRemoteInstance: RemoteInstance?
         var isUpdatingAll: Bool = false
         var showingAddConfig: Bool = false
         var showingAddInstance: Bool = false
-        var alerts: Alerts = .init()
+        var showingConfigEditor: Bool = false
+        var editingConfigContent: String?
+        var alert: AlertState<AlertAction>?
+    }
+
+    enum AlertAction: Equatable {
+        case dismissError
     }
 
     @CasePathable
@@ -30,11 +34,13 @@ struct PersistenceFeature: @preconcurrency Reducer {
         case deleteConfig(PersistenceModel)
         case showAddConfig(Bool)
         case showAddInstance(Bool)
+        case showConfigEditor(Bool)
+        case editConfig(String?)
         case activateInstance(RemoteInstance?)
         case deleteInstance(RemoteInstance)
         case domainStateUpdated(PersistenceDomain.State)
         case operationFinished(String?)
-        case dismissError
+        case alert(AlertAction)
     }
 
     private enum CancelID {
@@ -56,8 +62,8 @@ struct PersistenceFeature: @preconcurrency Reducer {
                 return .cancel(id: CancelID.domainStream)
 
             case let .domainStateUpdated(domainState):
-                state.configs = domainState.configs
-                state.remoteInstances = domainState.remoteInstances
+                state.configs = IdentifiedArray(uniqueElements: domainState.configs)
+                state.remoteInstances = IdentifiedArray(uniqueElements: domainState.remoteInstances)
                 state.isLocalMode = domainState.isLocalMode
                 state.activeRemoteInstance = domainState.activeRemoteInstance
                 return .none
@@ -88,15 +94,32 @@ struct PersistenceFeature: @preconcurrency Reducer {
                 state.showingAddInstance = flag
                 return .none
 
+            case let .showConfigEditor(flag):
+                state.showingConfigEditor = flag
+                return .none
+
+            case let .editConfig(content):
+                state.editingConfigContent = content
+                state.showingConfigEditor = true
+                return .none
+
             case let .operationFinished(error):
                 state.isUpdatingAll = false
                 if let error {
-                    state.alerts.errorMessage = error
+                    state.alert = AlertState {
+                        TextState("Error")
+                    } actions: {
+                        ButtonState(action: .dismissError) {
+                            TextState("OK")
+                        }
+                    } message: {
+                        TextState(error)
+                    }
                 }
                 return .none
 
-            case .dismissError:
-                state.alerts.errorMessage = nil
+            case .alert(.dismissError):
+                state.alert = nil
                 return .none
             }
         }
@@ -163,7 +186,7 @@ struct PersistenceFeature: @preconcurrency Reducer {
     private func activateInstanceEffect(instance: RemoteInstance?) -> Effect<Action> {
         let service = persistenceService
         return .run { @MainActor send in
-            service.activateRemoteInstance(instance)
+            await service.activateRemoteInstance(instance)
             send(.operationFinished(nil))
         }
     }

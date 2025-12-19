@@ -7,10 +7,6 @@ extension Container {
         self { @MainActor in APIDomainMihomoServiceAdapter() }.shared
     }
 
-    var launchAtLoginService: Factory<BootstrapService> {
-        self { @MainActor in BootstrapManagerServiceAdapter() }.shared
-    }
-
     var settingsService: Factory<SettingsService> {
         self { @MainActor in SettingsManagerServiceAdapter() }.shared
     }
