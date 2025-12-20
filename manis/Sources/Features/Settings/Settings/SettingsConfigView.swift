@@ -2,7 +2,7 @@ import STTextView
 import SwiftUI
 import UniformTypeIdentifiers
 
-struct ConfigEditView: View {
+struct SettingsConfigView: View {
     @Binding var text: String
     @State private var isEdited = false
     @State private var showSaveDialog = false
@@ -260,7 +260,7 @@ struct ConfigEditorWindow: View {
     }
 
     var body: some View {
-        ConfigEditView(
+        SettingsConfigView(
             text: $configText,
             fileName: fileName,
             fileExtension: fileExtension,

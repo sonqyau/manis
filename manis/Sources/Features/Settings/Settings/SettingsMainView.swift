@@ -3,7 +3,7 @@ import Perception
 import SwiftNavigation
 import SwiftUI
 
-struct SettingsView: View {
+struct SettingsMainView: View {
     @Bindable private var store: StoreOf<SettingsFeature>
     let persistenceStore: StoreOf<PersistenceFeature>
 

@@ -4,7 +4,7 @@ import SwiftNavigation
 import SwiftUI
 import SwiftUIIntrospect
 
-struct LogsView: View {
+struct LogsMainView: View {
     let store: StoreOf<LogsFeature>
     @Bindable private var bindableStore: StoreOf<LogsFeature>
     @FocusState private var isSearchFocused: Bool

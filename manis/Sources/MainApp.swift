@@ -43,7 +43,7 @@ struct MainApp: App {
         .keyboardShortcut("d", modifiers: [.command])
 
         Window("Preferences", id: "settingsWindow") {
-            SettingsView(
+            SettingsMainView(
                 store: appFeatureStore.scope(state: \.settings, action: \.settings),
                 persistenceStore: persistenceStore,
                 )

@@ -109,7 +109,7 @@ struct DashboardView: View {
             DNSView(store: store.scope(state: \.dns, action: \.dns))
 
         case .logs:
-            LogsView(store: store.scope(state: \.logs, action: \.logs))
+            LogsMainView(store: store.scope(state: \.logs, action: \.logs))
         }
     }
 

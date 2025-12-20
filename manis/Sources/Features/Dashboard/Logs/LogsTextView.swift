@@ -4,7 +4,7 @@ import STTextView
 import SwiftUI
 import SwiftUIIntrospect
 
-struct LogTextView: View {
+struct LogsTextView: View {
     let store: StoreOf<LogsFeature>
     @Bindable private var bindableStore: StoreOf<LogsFeature>
     @FocusState private var isSearchFocused: Bool
