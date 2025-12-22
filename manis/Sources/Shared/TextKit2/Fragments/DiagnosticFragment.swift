@@ -4,14 +4,14 @@ import Foundation
 
 public class DiagnosticFragment: NSTextLayoutFragment {
     public enum DiagnosticType {
-        case none
+        case empty
         case error
         case warning
         case info
 
         var color: NSColor {
             switch self {
-            case .none: .clear
+            case .empty: .clear
             case .error: .systemRed
             case .warning: .systemOrange
             case .info: .systemBlue
@@ -20,7 +20,7 @@ public class DiagnosticFragment: NSTextLayoutFragment {
 
         var symbol: String {
             switch self {
-            case .none: ""
+            case .empty: ""
             case .error: "xmark.circle"
             case .warning: "exclamationmark.triangle"
             case .info: "info.circle"
@@ -28,18 +28,18 @@ public class DiagnosticFragment: NSTextLayoutFragment {
         }
     }
 
-    public var diagnosticType: DiagnosticType = .none
+    public var diagnosticType: DiagnosticType = .empty
     public var diagnosticMessage: String?
 
     override public var leadingPadding: CGFloat {
-        diagnosticType != .none ? 20.0 : 0.0
+        diagnosticType != .empty ? 20.0 : 0.0
     }
 
     override public var topMargin: CGFloat { 2.0 }
     override public var bottomMargin: CGFloat { 2.0 }
 
     private var diagnosticIndicatorBounds: CGRect {
-        guard diagnosticType != .none else { return .zero }
+        guard diagnosticType != .empty else { return .zero }
 
         var bounds = CGRect.null
         for lineFragment in textLineFragments {
@@ -68,7 +68,7 @@ public class DiagnosticFragment: NSTextLayoutFragment {
     }
 
     override public func draw(at renderingOrigin: CGPoint, in ctx: CGContext) {
-        if diagnosticType != .none {
+        if diagnosticType != .empty {
             drawDiagnosticIndicator(at: renderingOrigin, in: ctx)
         }
 
@@ -100,7 +100,7 @@ public class DiagnosticFragment: NSTextLayoutFragment {
             y: indicatorRect.midY - symbolSize.height / 2,
             width: symbolSize.width,
             height: symbolSize.height,
-            )
+        )
 
         attributedSymbol.draw(in: symbolRect)
 

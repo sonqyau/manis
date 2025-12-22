@@ -4,14 +4,14 @@ import Foundation
 import STTextView
 import SwiftUI
 
-public class TextKit2Bridge {
+public enum TextKit2Bridge {
     public enum LayoutFragmentFactory {
         public static func diagnostic(
             for textElement: NSTextElement,
             range: NSTextRange,
             type: DiagnosticFragment.DiagnosticType,
             message: String? = nil,
-            ) -> NSTextLayoutFragment {
+        ) -> NSTextLayoutFragment {
             let fragment = DiagnosticFragment(textElement: textElement, range: range)
             fragment.diagnosticType = type
             fragment.diagnosticMessage = message
@@ -22,7 +22,7 @@ public class TextKit2Bridge {
             for textElement: NSTextElement,
             range: NSTextRange,
             language: String? = nil,
-            ) -> NSTextLayoutFragment {
+        ) -> NSTextLayoutFragment {
             let fragment = CodeBlockFragment(textElement: textElement, range: range)
             fragment.isCodeBlock = true
             fragment.codeBlockLanguage = language
@@ -33,7 +33,7 @@ public class TextKit2Bridge {
             for textElement: NSTextElement,
             range: NSTextRange,
             color: NSColor? = nil,
-            ) -> NSTextLayoutFragment {
+        ) -> NSTextLayoutFragment {
             let fragment = HighlightFragment(textElement: textElement, range: range)
             fragment.isHighlighted = true
             fragment.highlightColor = color
@@ -47,7 +47,7 @@ public class TextKit2Bridge {
             language: TextKit2Language,
             theme: TextKit2Theme,
             fontSize: CGFloat = 12,
-            ) -> HighlightPlugin {
+        ) -> HighlightPlugin {
             HighlightPlugin(language: language, theme: theme, fontSize: fontSize)
         }
 
@@ -61,27 +61,27 @@ public class TextKit2Bridge {
         public static func textRange(
             from nsRange: NSRange,
             in textContentManager: NSTextContentManager,
-            ) -> NSTextRange? {
+        ) -> NSTextRange? {
             NSTextRange(nsRange, in: textContentManager)
         }
 
         public static func nsRange(
             from textRange: NSTextRange,
             in textContentManager: NSTextContentManager,
-            ) -> NSRange {
+        ) -> NSRange {
             NSRange(textRange, in: textContentManager)
         }
 
         public static func visibleRange(
             from layoutManager: NSTextLayoutManager,
-            ) -> NSTextRange? {
+        ) -> NSTextRange? {
             layoutManager.textViewportLayoutController.viewportRange
         }
 
         public static func enumerateVisibleFragments(
             in layoutManager: NSTextLayoutManager,
             using block: (NSTextLayoutFragment) -> Bool,
-            ) {
+        ) {
             guard let viewportRange = layoutManager.textViewportLayoutController.viewportRange else {
                 return
             }
@@ -90,7 +90,7 @@ public class TextKit2Bridge {
                 from: viewportRange.location,
                 options: .ensuresLayout,
                 using: block,
-                )
+            )
         }
     }
 }
@@ -102,14 +102,14 @@ public extension TextKit2Extension {
         language: TextKit2Language = .plain,
         fontSize: CGFloat = 12,
         theme: TextKit2Theme = .default,
-        ) -> TextKit2Extension {
+    ) -> TextKit2Extension {
         var textExtension = TextKit2Extension(
             text: text,
             isEditable: isEditable,
             language: language,
             fontSize: fontSize,
             theme: theme,
-            )
+        )
         textExtension.enableDiagnostics = true
         return textExtension
     }
@@ -121,14 +121,14 @@ public extension TextKit2Extension {
         fontSize: CGFloat = 12,
         theme: TextKit2Theme = .default,
         plugins: [any STPlugin],
-        ) -> TextKit2Extension {
+    ) -> TextKit2Extension {
         var textExtension = TextKit2Extension(
             text: text,
             isEditable: isEditable,
             language: language,
             fontSize: fontSize,
             theme: theme,
-            )
+        )
         textExtension.plugins = plugins
         return textExtension
     }
@@ -140,14 +140,14 @@ public extension TextKit2Extension {
         fontSize: CGFloat = 12,
         theme: TextKit2Theme = .default,
         fragmentFactory: @escaping (NSTextElement, NSTextRange) -> NSTextLayoutFragment,
-        ) -> TextKit2Extension {
+    ) -> TextKit2Extension {
         var textExtension = TextKit2Extension(
             text: text,
             isEditable: isEditable,
             language: language,
             fontSize: fontSize,
             theme: theme,
-            )
+        )
         textExtension.layoutFragmentFactory = fragmentFactory
         return textExtension
     }

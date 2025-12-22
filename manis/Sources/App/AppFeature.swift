@@ -17,7 +17,7 @@ struct AppFeature: @preconcurrency Reducer {
             menuBar: MenuBarFeature.State = .init(),
             persistence: PersistenceFeature.State = .init(),
             resource: ResourceFeature.State = .init(),
-            ) {
+        ) {
             self.lifecycle = lifecycle
             self.dashboard = dashboard
             self.settings = settings

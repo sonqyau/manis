@@ -21,22 +21,29 @@ public class TextLayout: STTextLayoutManager, NSTextLayoutManagerDelegate {
         _: NSTextLayoutManager,
         textLayoutFragmentFor location: NSTextLocation,
         in textElement: NSTextElement,
-        ) -> NSTextLayoutFragment {
+    ) -> NSTextLayoutFragment {
         if let customDelegate,
            let customFragment = customDelegate.textLayoutManager(
-            self,
-            customLayoutFragmentFor: location,
-            in: textElement,
-            ) {
+               self,
+               customLayoutFragmentFor: location,
+               in: textElement,
+           )
+        {
             return customFragment
         }
 
         if let factory = layoutFragmentFactory,
-           let elementRange = textElement.elementRange {
+           let elementRange = textElement.elementRange
+        {
             return factory(textElement, elementRange)
         }
 
-        return NSTextLayoutFragment(textElement: textElement, range: textElement.elementRange!)
+        guard let elementRange = textElement.elementRange else {
+            let emptyRange = NSTextRange(location: location)
+            return NSTextLayoutFragment(textElement: textElement, range: emptyRange)
+        }
+
+        return NSTextLayoutFragment(textElement: textElement, range: elementRange)
     }
 }
 
@@ -45,5 +52,5 @@ public protocol ManisTextLayoutManagerDelegate: AnyObject {
         _ textLayoutManager: TextLayout,
         customLayoutFragmentFor location: NSTextLocation,
         in textElement: NSTextElement,
-        ) -> NSTextLayoutFragment?
+    ) -> NSTextLayoutFragment?
 }

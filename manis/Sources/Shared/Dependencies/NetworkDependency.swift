@@ -1,7 +1,7 @@
 import Dependencies
 
 struct NetworkInspectorClient {
-    var isSystemProxySetToMihomo: @Sendable (_ httpPort: Int, _ socksPort: Int, _ strict: Bool) async
+    var isConnectSetToMihomo: @Sendable (_ httpPort: Int, _ socksPort: Int, _ strict: Bool) async
         -> Bool
     var getPrimaryInterfaceName: @Sendable () async -> String?
     var getPrimaryIPAddress: @Sendable (_ allowIPv6: Bool) async -> String?
@@ -9,13 +9,13 @@ struct NetworkInspectorClient {
 
 enum NetworkInspectorClientKey: DependencyKey {
     static let liveValue = NetworkInspectorClient(
-        isSystemProxySetToMihomo: { httpPort, socksPort, strict in
+        isConnectSetToMihomo: { httpPort, socksPort, strict in
             await MainActor.run {
-                NetworkDomain.shared.isSystemProxySetToMihomo(
+                NetworkDomain.shared.isConnectSetToMihomo(
                     httpPort: httpPort,
                     socksPort: socksPort,
                     strict: strict,
-                    )
+                )
             }
         },
         getPrimaryInterfaceName: {
@@ -28,7 +28,7 @@ enum NetworkInspectorClientKey: DependencyKey {
                 NetworkDomain.shared.getPrimaryIPAddress(allowIPv6: allowIPv6)
             }
         },
-        )
+    )
 }
 
 extension DependencyValues {

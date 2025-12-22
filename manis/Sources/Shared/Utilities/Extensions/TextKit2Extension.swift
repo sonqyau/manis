@@ -63,7 +63,7 @@ public struct TextKit2Extension: NSViewRepresentable {
             language: language,
             theme: theme,
             fontSize: fontSize,
-            )
+        )
         textView.addPlugin(syntaxPlugin)
 
         if enableDiagnostics {

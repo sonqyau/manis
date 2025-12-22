@@ -114,7 +114,7 @@ struct RulesFeature: @preconcurrency Reducer {
                     totalDownload: connection.download,
                     totalUpload: connection.upload,
                     connections: [connection],
-                    )
+                )
             }
         }
 
@@ -135,6 +135,6 @@ struct RulesFeature: @preconcurrency Reducer {
             activeRules: results.count,
             totalConnections: results.reduce(into: 0) { $0 += $1.count },
             filteredRules: search.isEmpty ? 0 : results.count,
-            )
+        )
     }
 }

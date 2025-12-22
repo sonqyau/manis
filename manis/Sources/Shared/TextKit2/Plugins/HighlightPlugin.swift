@@ -19,6 +19,10 @@ public class HighlightPlugin: STPlugin {
         self.fontSize = fontSize
     }
 
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
     public func setUp(context: any Context) {
         self.textView = context.textView
 
@@ -27,13 +31,12 @@ public class HighlightPlugin: STPlugin {
             selector: #selector(textDidChange),
             name: NSText.didChangeNotification,
             object: context.textView,
-            )
+        )
 
         highlightVisibleRange()
     }
 
     public func tearDown() {
-        NotificationCenter.default.removeObserver(self)
         textView = nil
         highlightedRanges.removeAll()
     }
@@ -136,7 +139,7 @@ private func highlightPattern(
     in attributedString: NSMutableAttributedString,
     options: NSRegularExpression.Options = [],
     captureGroup: Int = 0,
-    ) {
+) {
     guard let regex = try? NSRegularExpression(pattern: pattern, options: options) else {
         return
     }

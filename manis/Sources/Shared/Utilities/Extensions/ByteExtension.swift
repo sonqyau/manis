@@ -13,7 +13,7 @@ enum ByteProcessor {
     static func extractSubstring(
         _ string: borrowing String,
         in range: Range<String.Index>,
-        ) -> String {
+    ) -> String {
         String(string[range])
     }
 

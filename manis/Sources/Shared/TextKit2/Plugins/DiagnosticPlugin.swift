@@ -77,8 +77,8 @@ extension DiagnosticPlugin: @MainActor ManisTextLayoutManagerDelegate {
         _ textLayoutManager: TextLayout,
         customLayoutFragmentFor _: NSTextLocation,
         in textElement: NSTextElement,
-        ) -> NSTextLayoutFragment? {
-        guard let _ = textLayoutManager.textContentManager,
+    ) -> NSTextLayoutFragment? {
+        guard textLayoutManager.textContentManager != nil,
               let elementRange = textElement.elementRange
         else {
             return nil

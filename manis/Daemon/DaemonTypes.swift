@@ -1,0 +1,169 @@
+import Foundation
+
+struct DaemonRequest: Codable, Sendable {
+    let method: String
+    let executablePath: String?
+    let configPath: String?
+    let configContent: String?
+    let httpPort: Int?
+    let socksPort: Int?
+    let pacURL: String?
+    let bypassList: [String]?
+    let servers: [String]?
+    let hijackEnabled: Bool
+    let host: String?
+    let port: Int?
+    let timeout: TimeInterval?
+    let enabled: Bool
+    let dnsServer: String?
+
+    init(
+        method: String,
+        executablePath: String? = nil,
+        configPath: String? = nil,
+        configContent: String? = nil,
+        httpPort: Int? = nil,
+        socksPort: Int? = nil,
+        pacURL: String? = nil,
+        bypassList: [String]? = nil,
+        servers: [String]? = nil,
+        hijackEnabled: Bool = false,
+        host: String? = nil,
+        port: Int? = nil,
+        timeout: TimeInterval? = nil,
+        enabled: Bool = false,
+        dnsServer: String? = nil,
+    ) {
+        self.method = method
+        self.executablePath = executablePath
+        self.configPath = configPath
+        self.configContent = configContent
+        self.httpPort = httpPort
+        self.socksPort = socksPort
+        self.pacURL = pacURL
+        self.bypassList = bypassList
+        self.servers = servers
+        self.hijackEnabled = hijackEnabled
+        self.host = host
+        self.port = port
+        self.timeout = timeout
+        self.enabled = enabled
+        self.dnsServer = dnsServer
+    }
+}
+
+enum DaemonResponse: Codable, Sendable {
+    case version(String)
+    case mihomoStatus(MihomoStatus)
+    case systemProxyStatus(ConnectStatus)
+    case usedPorts([Int])
+    case connectivity(Bool)
+    case message(String)
+    case error(MainXPCError)
+
+    enum CodingKeys: String, CodingKey {
+        case type, value
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let type = try container.decode(String.self, forKey: .type)
+
+        switch type {
+        case "version":
+            let value = try container.decode(String.self, forKey: .value)
+            self = .version(value)
+        case "mihomoStatus":
+            let value = try container.decode(MihomoStatus.self, forKey: .value)
+            self = .mihomoStatus(value)
+        case "systemProxyStatus":
+            let value = try container.decode(ConnectStatus.self, forKey: .value)
+            self = .systemProxyStatus(value)
+        case "usedPorts":
+            let value = try container.decode([Int].self, forKey: .value)
+            self = .usedPorts(value)
+        case "connectivity":
+            let value = try container.decode(Bool.self, forKey: .value)
+            self = .connectivity(value)
+        case "message":
+            let value = try container.decode(String.self, forKey: .value)
+            self = .message(value)
+        case "error":
+            let value = try container.decode(MainXPCError.self, forKey: .value)
+            self = .error(value)
+        default:
+            throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "Unknown response type")
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        switch self {
+        case let .version(value):
+            try container.encode("version", forKey: .type)
+            try container.encode(value, forKey: .value)
+        case let .mihomoStatus(value):
+            try container.encode("mihomoStatus", forKey: .type)
+            try container.encode(value, forKey: .value)
+        case let .systemProxyStatus(value):
+            try container.encode("systemProxyStatus", forKey: .type)
+            try container.encode(value, forKey: .value)
+        case let .usedPorts(value):
+            try container.encode("usedPorts", forKey: .type)
+            try container.encode(value, forKey: .value)
+        case let .connectivity(value):
+            try container.encode("connectivity", forKey: .type)
+            try container.encode(value, forKey: .value)
+        case let .message(value):
+            try container.encode("message", forKey: .type)
+            try container.encode(value, forKey: .value)
+        case let .error(value):
+            try container.encode("error", forKey: .type)
+            try container.encode(value, forKey: .value)
+        }
+    }
+}
+
+struct MainXPCError: Error, Codable, Sendable {
+    let domain: String
+    let code: Int
+    let message: String
+
+    init(domain: String, code: Int, message: String) {
+        self.domain = domain
+        self.code = code
+        self.message = message
+    }
+
+    init(error: any Error) {
+        let ns = error as NSError
+        self.domain = ns.domain
+        self.code = ns.code
+        self.message = ns.localizedDescription
+    }
+}
+
+struct MihomoStatus: Codable, Sendable {
+    let isRunning: Bool
+    let processId: Int32
+    let startTime: Date?
+    let configPath: String?
+    let externalController: String?
+    let secret: String?
+    let logs: [String]
+}
+
+struct ConnectStatus: Codable, Sendable {
+    let isEnabled: Bool
+    let httpProxy: ConnectInfo?
+    let httpsProxy: ConnectInfo?
+    let socksProxy: ConnectInfo?
+    let pacURL: String?
+    let bypassList: [String]
+}
+
+struct ConnectInfo: Codable, Sendable {
+    let host: String
+    let port: Int32
+}

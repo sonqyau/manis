@@ -6,7 +6,7 @@ protocol NetworkService: Sendable {
     func stopMonitoring()
     func getPrimaryInterfaceName() -> String?
     func getPrimaryIPAddress(allowIPv6: Bool) -> String?
-    func isSystemProxySetToMihomo(httpPort: Int, socksPort: Int, strict: Bool) -> Bool
+    func isConnectSetToMihomo(httpPort: Int, socksPort: Int, strict: Bool) -> Bool
 }
 
 @MainActor
@@ -33,7 +33,7 @@ final class NetworkDomainServiceAdapter: NetworkService, @unchecked Sendable {
         domain.getPrimaryIPAddress(allowIPv6: allowIPv6)
     }
 
-    func isSystemProxySetToMihomo(httpPort: Int, socksPort: Int, strict: Bool) -> Bool {
-        domain.isSystemProxySetToMihomo(httpPort: httpPort, socksPort: socksPort, strict: strict)
+    func isConnectSetToMihomo(httpPort: Int, socksPort: Int, strict: Bool) -> Bool {
+        domain.isConnectSetToMihomo(httpPort: httpPort, socksPort: socksPort, strict: strict)
     }
 }

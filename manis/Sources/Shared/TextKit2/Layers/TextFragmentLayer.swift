@@ -4,7 +4,7 @@ import Foundation
 import QuartzCore
 
 public class TextFragmentLayer: CALayer {
-    public var layoutFragment: NSTextLayoutFragment!
+    public var layoutFragment: NSTextLayoutFragment?
     public var padding: CGFloat
     public var showLayerFrames: Bool = false
 
@@ -46,6 +46,8 @@ public class TextFragmentLayer: CALayer {
     }
 
     public func updateGeometry() {
+        guard let layoutFragment else { return }
+
         bounds = layoutFragment.renderingSurfaceBounds
 
         if showLayerFrames {
@@ -57,7 +59,7 @@ public class TextFragmentLayer: CALayer {
         anchorPoint = CGPoint(
             x: -bounds.origin.x / bounds.size.width,
             y: -bounds.origin.y / bounds.size.height,
-            )
+        )
         position = layoutFragment.layoutFragmentFrame.origin
 
         var newBounds = bounds
@@ -69,6 +71,8 @@ public class TextFragmentLayer: CALayer {
     }
 
     override public func draw(in ctx: CGContext) {
+        guard let layoutFragment else { return }
+
         layoutFragment.draw(at: .zero, in: ctx)
 
         if showLayerFrames {
@@ -77,6 +81,8 @@ public class TextFragmentLayer: CALayer {
     }
 
     private func drawDebugFrames(in ctx: CGContext) {
+        guard let layoutFragment else { return }
+
         let inset = 0.5 * strokeWidth
 
         ctx.setLineWidth(strokeWidth)

@@ -28,7 +28,7 @@ final class ResourceDomainServiceAdapter: ResourceService, @unchecked Sendable {
         let snapshot = ResourceSnapshot(
             isInitialized: domain.isInitialized,
             lastErrorDescription: Self.describe(domain.initializationError),
-            )
+        )
         stateSubject = CurrentValueSubject(snapshot)
     }
 
@@ -66,7 +66,7 @@ final class ResourceDomainServiceAdapter: ResourceService, @unchecked Sendable {
         let snapshot = ResourceSnapshot(
             isInitialized: domain.isInitialized,
             lastErrorDescription: Self.describe(domain.initializationError),
-            )
+        )
         stateSubject.send(snapshot)
     }
 

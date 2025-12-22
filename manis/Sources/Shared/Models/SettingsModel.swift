@@ -52,7 +52,7 @@ final class SettingsManager {
             schema: schema,
             isStoredInMemoryOnly: false,
             allowsSave: true,
-            )
+        )
 
         do {
             let container = try ModelContainer(for: schema, configurations: [configuration])

@@ -18,7 +18,7 @@ struct ProxiesView: View {
         Binding(
             get: { bindableStore.searchText },
             set: { bindableStore.send(.updateSearch($0)) },
-            )
+        )
     }
 
     private var filteredGroups: [(String, GroupInfo)] {
@@ -55,7 +55,7 @@ struct ProxiesView: View {
                                 onTestDelay: {
                                     bindableStore.send(.testGroupDelay(name))
                                 },
-                                )
+                            )
                         }
                     }
             } header: {
@@ -71,8 +71,8 @@ struct ProxiesView: View {
             Binding<AlertState<ProxiesFeature.AlertAction>?>(
                 get: { bindableStore.alert },
                 set: { _ in },
-                ),
-            ) { action in
+            ),
+        ) { action in
             if let action {
                 bindableStore.send(.alert(action))
             }
@@ -175,7 +175,7 @@ private struct ProxyGroupCard: View {
                                 proxyName: proxyName,
                                 isSelected: proxyName == group.now,
                                 proxyInfo: proxies[proxyName],
-                                ) { onSelectProxy(proxyName) }
+                            ) { onSelectProxy(proxyName) }
                         }
                     } else {
                         Text("No proxies are available.")
@@ -208,7 +208,7 @@ private struct ProxyNodeRow: View {
                     .overlay(
                         Circle()
                             .stroke(Color.secondary.opacity(0.3), lineWidth: 1),
-                        )
+                    )
 
                 Text(proxyName)
                     .font(.body)
@@ -224,10 +224,10 @@ private struct ProxyNodeRow: View {
                             Color(delay == 0 ? .red : delay < 100 ? .green : delay < 300 ? .orange : .red)
                                 .opacity(0.15),
                             in: Capsule(),
-                            )
+                        )
                         .foregroundStyle(Color(delay == 0
-                                                ? .red
-                                                : delay < 100 ? .green : delay < 300 ? .orange : .red))
+                                ? .red
+                                : delay < 100 ? .green : delay < 300 ? .orange : .red))
                 } else {
                     Text("—")
                         .font(.caption)
@@ -246,7 +246,7 @@ private struct ProxyNodeRow: View {
             .background(
                 isSelected ? Color.accentColor.opacity(0.1) : Color.clear,
                 in: RoundedRectangle(cornerRadius: 8),
-                )
+            )
         }
         .buttonStyle(.plain)
     }

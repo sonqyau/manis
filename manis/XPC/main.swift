@@ -1,9 +1,16 @@
 import Foundation
+import OSLog
 
-let delegate = MainXPCDelegate()
-let listener = NSXPCListener(machServiceName: MainXPCConstants.machServiceName)
+let logger = Logger(subsystem: "com.manis.XPC", category: "Main")
 
-listener.delegate = delegate
-listener.resume()
+logger.info("Starting MainXPC")
 
-RunLoop.current.run()
+let xpcService = XPCService()
+let xpcListener = XPCConnection(xpcService: xpcService)
+
+do {
+    try await xpcListener.start()
+} catch {
+    logger.error("Failed to start XPC service: \(error)")
+    exit(1)
+}
