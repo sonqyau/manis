@@ -3,7 +3,7 @@ import Foundation
 import SwiftData
 
 @MainActor
-protocol PersistenceService {
+protocol PersistenceService: Sendable {
     var statePublisher: AnyPublisher<PersistenceDomain.State, Never> { get }
     var configs: [PersistenceModel] { get }
     var remoteInstances: [RemoteInstance] { get }
@@ -22,7 +22,7 @@ protocol PersistenceService {
 }
 
 @MainActor
-struct RemoteConfigPersistenceServiceAdapter: PersistenceService {
+final class RemoteConfigPersistenceServiceAdapter: PersistenceService, @unchecked Sendable {
     private let domain: PersistenceDomain
 
     init(domain: PersistenceDomain = .shared) {

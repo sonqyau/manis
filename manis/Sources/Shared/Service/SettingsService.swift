@@ -1,14 +1,14 @@
 import Foundation
 
 @MainActor
-protocol SettingsService: AnyObject {
+protocol SettingsService: AnyObject, Sendable {
     func initialize() throws
 
     var launchAtLogin: Bool { get set }
 }
 
 @MainActor
-final class SettingsManagerServiceAdapter: SettingsService {
+final class SettingsManagerServiceAdapter: SettingsService, @unchecked Sendable {
     private let manager: SettingsManager
 
     init(manager: SettingsManager = .shared) {

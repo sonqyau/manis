@@ -6,6 +6,9 @@ import SwiftUI
 struct SettingsMainView: View {
     @Bindable private var store: StoreOf<SettingsFeature>
     let persistenceStore: StoreOf<PersistenceFeature>
+    
+    @State private var showingConfigEditor = false
+    @State private var configContent = ""
 
     init(store: StoreOf<SettingsFeature>, persistenceStore: StoreOf<PersistenceFeature>) {
         _store = Bindable(wrappedValue: store)
@@ -114,6 +117,14 @@ struct SettingsMainView: View {
                 store.send(.alert(action))
             }
         }
+        .sheet(isPresented: $showingConfigEditor) {
+            ConfigEditorWindow(
+                fileName: "config.yaml",
+                fileExtension: "yaml",
+                language: .yaml,
+                initialContent: configContent
+            )
+        }
     }
 
     private var statusSection: some View {
@@ -208,15 +219,50 @@ struct SettingsMainView: View {
     }
 
     private func openConfigEditor() {
-        let configURL = Bundle.main.url(forResource: "config", withExtension: "yaml")
-        if let configURL {
+        if let configURL = Bundle.main.url(forResource: "config", withExtension: "yaml") {
             do {
-                let content = try String(contentsOf: configURL, encoding: .utf8)
-                print("Config content loaded: \(content.count) characters")
+                configContent = try String(contentsOf: configURL, encoding: .utf8)
+                print("Config loaded from Resources: \(configContent.count) characters")
             } catch {
-                print("Failed to load config: \(error)")
+                print("Failed to load config from Resources: \(error)")
+                configContent = getDefaultConfigContent()
             }
+        } else {
+            print("config.yaml not found in Resources, using default content")
+            configContent = getDefaultConfigContent()
         }
+        
+        showingConfigEditor = true
+    }
+    
+    private func getDefaultConfigContent() -> String {
+        return """
+        
+        port: 7890
+        socks-port: 7891
+        allow-lan: false
+        mode: rule
+        log-level: info
+        
+        external-controller: 127.0.0.1:9090
+        
+        dns:
+          enable: true
+          listen: 0.0.0.0:53
+          default-nameserver:
+            - 114.114.114.114
+            - 8.8.8.8
+          nameserver:
+            - https://doh.pub/dns-query
+            - https://dns.alidns.com/dns-query
+        
+        proxies:
+        
+        proxy-groups:
+        
+        rules:
+          - MATCH,DIRECT
+        """
     }
 
     private var aboutSection: some View {

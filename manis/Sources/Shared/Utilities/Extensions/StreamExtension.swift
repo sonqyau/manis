@@ -1,6 +1,5 @@
 import Clocks
 import Foundation
-import Starscream
 
 struct WebSocketReconnectionConfig {
     let enabled: Bool
@@ -41,13 +40,13 @@ protocol WebSocketStreamClient: AnyObject {
     func send(data: Data)
 }
 
-final class StarscreamWebSocketStreamClient: NSObject, WebSocketStreamClient, WebSocketDelegate, @unchecked Sendable {
+final class URLSessionWebSocketStreamClient: NSObject, WebSocketStreamClient, @unchecked Sendable {
     private let request: URLRequest
     private let reconnectionConfig: WebSocketReconnectionConfig
     private let clock: any Clock<Duration>
-    private var socket: WebSocket?
+    private var webSocketTask: URLSessionWebSocketTask?
+    private var urlSession: URLSession?
     private var continuation: AsyncStream<WebSocketStreamEvent>.Continuation?
-    private let callbackQueue: DispatchQueue
     private let stateQueue = DispatchQueue(label: "com.manis.websocket.state", attributes: .concurrent)
 
     private var _isManuallyDisconnected = false
@@ -73,23 +72,20 @@ final class StarscreamWebSocketStreamClient: NSObject, WebSocketStreamClient, We
     init(
         request: URLRequest,
         reconnectionConfig: WebSocketReconnectionConfig = .default,
-        clock: any Clock<Duration> = ContinuousClock(),
-        callbackQueue: DispatchQueue = .main,
+        clock: any Clock<Duration> = ContinuousClock()
         ) {
         self.request = request
         self.reconnectionConfig = reconnectionConfig
         self.clock = clock
-        self.callbackQueue = callbackQueue
         self._currentDelay = reconnectionConfig.initialDelay
         super.init()
-        setupSocket()
     }
 
-    private func setupSocket() {
-        let socket = WebSocket(request: request)
-        socket.callbackQueue = callbackQueue
-        socket.delegate = self
-        self.socket = socket
+    private func setupWebSocket() {
+        let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
+        let task = session.webSocketTask(with: request)
+        self.urlSession = session
+        self.webSocketTask = task
     }
 
     private(set) lazy var events: AsyncStream<WebSocketStreamEvent> = AsyncStream { continuation in
@@ -106,7 +102,10 @@ final class StarscreamWebSocketStreamClient: NSObject, WebSocketStreamClient, We
         stateQueue.async(flags: .barrier) {
             self._reconnectTask = nil
         }
-        socket?.connect()
+        
+        setupWebSocket()
+        webSocketTask?.resume()
+        startReceiving()
     }
 
     func disconnect(closeCode: UInt16? = nil) {
@@ -118,20 +117,52 @@ final class StarscreamWebSocketStreamClient: NSObject, WebSocketStreamClient, We
             self._reconnectTask = nil
         }
 
-        if let code = closeCode {
-            socket?.disconnect(closeCode: code)
-        } else {
-            socket?.disconnect()
-        }
+        let closeCode = closeCode.map { URLSessionWebSocketTask.CloseCode(rawValue: Int($0)) ?? .normalClosure } ?? .normalClosure
+        webSocketTask?.cancel(with: closeCode, reason: nil)
         continuation?.finish()
     }
 
     func send(text: String) {
-        socket?.write(string: text)
+        webSocketTask?.send(.string(text)) { [weak self] error in
+            if let error {
+                self?.continuation?.yield(.error(error))
+            }
+        }
     }
 
     func send(data: Data) {
-        socket?.write(data: data)
+        webSocketTask?.send(.data(data)) { [weak self] error in
+            if let error {
+                self?.continuation?.yield(.error(error))
+            }
+        }
+    }
+
+    private func startReceiving() {
+        webSocketTask?.receive { [weak self] result in
+            guard let self else { return }
+            
+            switch result {
+            case .success(let message):
+                switch message {
+                case .string(let text):
+                    self.continuation?.yield(.text(text))
+                case .data(let data):
+                    self.continuation?.yield(.data(data))
+                @unknown default:
+                    break
+                }
+                self.startReceiving()
+                
+            case .failure(let error):
+                self.continuation?.yield(.error(error))
+                if !self.isManuallyDisconnected {
+                    self.scheduleReconnect()
+                } else {
+                    self.continuation?.finish()
+                }
+            }
+        }
     }
 
     private func scheduleReconnect() {
@@ -177,8 +208,9 @@ final class StarscreamWebSocketStreamClient: NSObject, WebSocketStreamClient, We
 
             await MainActor.run { [weak self] in
                 guard let self else { return }
-                self.setupSocket()
-                self.socket?.connect()
+                self.setupWebSocket()
+                self.webSocketTask?.resume()
+                self.startReceiving()
             }
         }
 
@@ -186,59 +218,31 @@ final class StarscreamWebSocketStreamClient: NSObject, WebSocketStreamClient, We
             self._reconnectTask = task
         }
     }
+}
 
-    func didReceive(event: Starscream.WebSocketEvent, client _: Starscream.WebSocketClient) {
-        switch event {
-        case let .connected(headers):
-            stateQueue.async(flags: .barrier) {
-                self._reconnectAttempt = 0
-                self._currentDelay = self.reconnectionConfig.initialDelay
-            }
-            reconnectTask?.cancel()
-            stateQueue.async(flags: .barrier) {
-                self._reconnectTask = nil
-            }
-            continuation?.yield(.connected(headers: headers))
-
-        case let .disconnected(reason, code):
-            continuation?.yield(.disconnected(reason: reason, code: code))
-            if !isManuallyDisconnected {
-                scheduleReconnect()
-            } else {
-                continuation?.finish()
-            }
-
-        case let .text(text):
-            continuation?.yield(.text(text))
-
-        case let .binary(data):
-            continuation?.yield(.data(data))
-
-        case let .error(error):
-            if let error {
-                continuation?.yield(.error(error))
-            }
-            if !isManuallyDisconnected {
-                scheduleReconnect()
-            } else {
-                continuation?.finish()
-            }
-
-        case .cancelled:
-            continuation?.yield(.disconnected(reason: "cancelled", code: 0))
-            if !isManuallyDisconnected {
-                scheduleReconnect()
-            } else {
-                continuation?.finish()
-            }
-
-        case .reconnectSuggested:
-            if !isManuallyDisconnected {
-                scheduleReconnect()
-            }
-
-        case .viabilityChanged, .ping, .pong, .peerClosed:
-            break
+extension URLSessionWebSocketStreamClient: URLSessionWebSocketDelegate {
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
+        let headers: [String: String]? = nil
+        continuation?.yield(.connected(headers: headers))
+        
+        stateQueue.async(flags: .barrier) {
+            self._reconnectAttempt = 0
+            self._currentDelay = self.reconnectionConfig.initialDelay
+        }
+        reconnectTask?.cancel()
+        stateQueue.async(flags: .barrier) {
+            self._reconnectTask = nil
+        }
+    }
+    
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
+        let reasonString = reason.flatMap { String(data: $0, encoding: .utf8) }
+        continuation?.yield(.disconnected(reason: reasonString, code: UInt16(closeCode.rawValue)))
+        
+        if !isManuallyDisconnected {
+            scheduleReconnect()
+        } else {
+            continuation?.finish()
         }
     }
 }
@@ -246,50 +250,37 @@ final class StarscreamWebSocketStreamClient: NSObject, WebSocketStreamClient, We
 struct TrafficDataStream: AsyncSequence {
     typealias Element = TrafficSnapshot
 
-    private let events: AsyncStream<WebSocketStreamEvent>
-
-    init(events: AsyncStream<WebSocketStreamEvent>) {
-        self.events = events
-    }
+    let events: AsyncStream<WebSocketStreamEvent>
 
     func makeAsyncIterator() -> AsyncIterator {
-        AsyncIterator(baseIterator: events.makeAsyncIterator())
+        AsyncIterator(events: events)
     }
 
     struct AsyncIterator: AsyncIteratorProtocol {
-        private var baseIterator: AsyncStream<WebSocketStreamEvent>.Iterator
+        private var eventIterator: AsyncStream<WebSocketStreamEvent>.AsyncIterator
 
-        init(baseIterator: AsyncStream<WebSocketStreamEvent>.Iterator) {
-            self.baseIterator = baseIterator
+        init(events: AsyncStream<WebSocketStreamEvent>) {
+            self.eventIterator = events.makeAsyncIterator()
         }
 
         mutating func next() async throws -> TrafficSnapshot? {
-            while let event = await baseIterator.next() {
+            while let event = await eventIterator.next() {
                 switch event {
-                case let .text(text):
-                    guard let data = text.data(using: .utf8) else {
+                case .text(let text):
+                    guard let data = text.data(using: .utf8),
+                          let traffic = try? JSONDecoder().decode(TrafficSnapshot.self, from: data)
+                    else {
                         continue
                     }
-                    return try JSONDecoder().decode(TrafficSnapshot.self, from: data)
-
-                case let .data(data):
-                    return try JSONDecoder().decode(TrafficSnapshot.self, from: data)
-
-                case let .error(error):
+                    return traffic
+                case .error(let error):
                     throw error
-
-                case let .disconnected(reason, code):
-                    throw NSError(
-                        domain: "WebSocketStream",
-                        code: Int(code),
-                        userInfo: [NSLocalizedDescriptionKey: reason ?? "WebSocket disconnected"],
-                        )
-
-                case .connected:
+                case .disconnected:
+                    return nil
+                default:
                     continue
                 }
             }
-
             return nil
         }
     }
@@ -298,51 +289,32 @@ struct TrafficDataStream: AsyncSequence {
 struct WebSocketMessageStream: AsyncSequence {
     typealias Element = String
 
-    private let events: AsyncStream<WebSocketStreamEvent>
-
-    init(events: AsyncStream<WebSocketStreamEvent>) {
-        self.events = events
-    }
+    let events: AsyncStream<WebSocketStreamEvent>
 
     func makeAsyncIterator() -> AsyncIterator {
-        AsyncIterator(baseIterator: events.makeAsyncIterator())
+        AsyncIterator(events: events)
     }
 
     struct AsyncIterator: AsyncIteratorProtocol {
-        private var baseIterator: AsyncStream<WebSocketStreamEvent>.Iterator
+        private var eventIterator: AsyncStream<WebSocketStreamEvent>.AsyncIterator
 
-        init(baseIterator: AsyncStream<WebSocketStreamEvent>.Iterator) {
-            self.baseIterator = baseIterator
+        init(events: AsyncStream<WebSocketStreamEvent>) {
+            self.eventIterator = events.makeAsyncIterator()
         }
 
         mutating func next() async throws -> String? {
-            while let event = await baseIterator.next() {
+            while let event = await eventIterator.next() {
                 switch event {
-                case let .text(text):
+                case .text(let text):
                     return text
-
-                case let .data(data):
-                    if let text = String(data: data, encoding: .utf8) {
-                        return text
-                    } else {
-                        continue
-                    }
-
-                case let .error(error):
+                case .error(let error):
                     throw error
-
-                case let .disconnected(reason, code):
-                    throw NSError(
-                        domain: "WebSocketStream",
-                        code: Int(code),
-                        userInfo: [NSLocalizedDescriptionKey: reason ?? "WebSocket disconnected"],
-                        )
-
-                case .connected:
+                case .disconnected:
+                    return nil
+                default:
                     continue
                 }
             }
-
             return nil
         }
     }

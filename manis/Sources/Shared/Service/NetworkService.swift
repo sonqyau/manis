@@ -1,7 +1,7 @@
 import Foundation
 
 @MainActor
-protocol NetworkService {
+protocol NetworkService: Sendable {
     func startMonitoring()
     func stopMonitoring()
     func getPrimaryInterfaceName() -> String?
@@ -10,7 +10,7 @@ protocol NetworkService {
 }
 
 @MainActor
-struct NetworkDomainServiceAdapter: NetworkService {
+final class NetworkDomainServiceAdapter: NetworkService, @unchecked Sendable {
     private let domain: NetworkDomain
 
     init(domain: NetworkDomain = .shared) {

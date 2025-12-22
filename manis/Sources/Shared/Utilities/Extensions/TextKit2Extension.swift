@@ -37,6 +37,12 @@ public struct TextKit2Extension: NSViewRepresentable {
     let language: TextKit2Language
     var fontSize: CGFloat = 12
     var theme: TextKit2Theme = .default
+    
+    var plugins: [any STPlugin] = []
+    
+    var layoutFragmentFactory: ((NSTextElement, NSTextRange) -> NSTextLayoutFragment)?
+    
+    var enableDiagnostics: Bool = false
 
     public func makeNSView(context: Context) -> STTextView {
         let textView = STTextView()
@@ -52,8 +58,24 @@ public struct TextKit2Extension: NSViewRepresentable {
         textView.showsLineNumbers = true
 
         textView.textContainer.lineFragmentPadding = 8
-
-        setupSyntaxHighlighting(for: textView, language: language)
+        
+        
+        let syntaxPlugin = HighlightPlugin(
+            language: language,
+            theme: theme,
+            fontSize: fontSize
+        )
+        textView.addPlugin(syntaxPlugin)
+        
+        if enableDiagnostics {
+            let diagnosticPlugin = DiagnosticPlugin()
+            textView.addPlugin(diagnosticPlugin)
+            context.coordinator.diagnosticPlugin = diagnosticPlugin
+        }
+        
+        for plugin in plugins {
+            textView.addPlugin(plugin)
+        }
 
         return textView
     }
@@ -61,7 +83,6 @@ public struct TextKit2Extension: NSViewRepresentable {
     public func updateNSView(_ nsView: STTextView, context _: Context) {
         if nsView.text != text {
             nsView.text = text
-            highlightSyntax(in: nsView, language: language)
         }
 
         nsView.backgroundColor = theme.backgroundColor
@@ -75,6 +96,8 @@ public struct TextKit2Extension: NSViewRepresentable {
     @MainActor
     public class Coordinator: NSObject, STTextViewDelegate {
         var parent: TextKit2Extension
+        
+        weak var diagnosticPlugin: DiagnosticPlugin?
 
         init(_ parent: TextKit2Extension) {
             self.parent = parent
@@ -83,152 +106,15 @@ public struct TextKit2Extension: NSViewRepresentable {
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? STTextView else { return }
             parent.text = textView.text ?? ""
-            parent.highlightSyntax(in: textView, language: parent.language)
         }
-    }
-
-    private func setupSyntaxHighlighting(for textView: STTextView, language: TextKit2Language) {
-        highlightSyntax(in: textView, language: language)
-    }
-
-    private func highlightSyntax(in textView: STTextView, language: TextKit2Language) {
-        guard let text = textView.text, !text.isEmpty else { return }
-
-        let attributedString = NSMutableAttributedString(string: text)
-
-        let fullRange = NSRange(location: 0, length: attributedString.length)
-        attributedString.addAttribute(.foregroundColor, value: theme.textColor, range: fullRange)
-        attributedString.addAttribute(.font, value: NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular), range: fullRange)
-
-        switch language {
-        case .log:
-            highlightLogSyntax(attributedString: attributedString)
-        case .yaml:
-            highlightYAMLSyntax(attributedString: attributedString)
-        case .json:
-            highlightJSONSyntax(attributedString: attributedString)
-        case .plain:
-            break
+        
+        public func addDiagnostic(range: NSRange, type: DiagnosticFragment.DiagnosticType, message: String) {
+            let diagnostic = DiagnosticPlugin.Diagnostic(range: range, type: type, message: message)
+            diagnosticPlugin?.addDiagnostic(diagnostic)
         }
-
-        textView.attributedText = attributedString
-    }
-
-    private func highlightLogSyntax(attributedString: NSMutableAttributedString) {
-        let string = attributedString.string
-
-        let logLevelPatterns = [
-            "DEBUG": NSColor.gray,
-            "INFO": NSColor.blue,
-            "WARN": NSColor.orange,
-            "WARNING": NSColor.orange,
-            "ERROR": NSColor.red,
-        ]
-
-        for (level, color) in logLevelPatterns {
-            let pattern = "\\b\(level)\\b"
-            if let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) {
-                let matches = regex.matches(in: string, range: NSRange(location: 0, length: string.count))
-                for match in matches {
-                    attributedString.addAttribute(.foregroundColor, value: color, range: match.range)
-                }
-            }
-        }
-
-        let timestampPattern = "\\d{4}-\\d{2}-\\d{2}\\s+\\d{2}:\\d{2}:\\d{2}"
-        if let regex = try? NSRegularExpression(pattern: timestampPattern, options: []) {
-            let matches = regex.matches(in: string, range: NSRange(location: 0, length: string.count))
-            for match in matches {
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemGreen, range: match.range)
-            }
-        }
-
-        let ipPattern = "\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\b"
-        if let regex = try? NSRegularExpression(pattern: ipPattern, options: []) {
-            let matches = regex.matches(in: string, range: NSRange(location: 0, length: string.count))
-            for match in matches {
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemPurple, range: match.range)
-            }
-        }
-    }
-
-    private func highlightYAMLSyntax(attributedString: NSMutableAttributedString) {
-        let string = attributedString.string
-
-        let keyPattern = "^(\\s*)[^\\s#:][^#:]*\\s*:"
-        if let regex = try? NSRegularExpression(pattern: keyPattern, options: [.anchorsMatchLines]) {
-            let matches = regex.matches(in: string, range: NSRange(location: 0, length: string.count))
-            for match in matches {
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemBlue, range: match.range)
-            }
-        }
-
-        let commentPattern = "#.*$"
-        if let regex = try? NSRegularExpression(pattern: commentPattern, options: [.anchorsMatchLines]) {
-            let matches = regex.matches(in: string, range: NSRange(location: 0, length: string.count))
-            for match in matches {
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemGreen, range: match.range)
-            }
-        }
-
-        let stringPattern = ":\\s*[\"']([^\"']*)[\"']"
-        if let regex = try? NSRegularExpression(pattern: stringPattern, options: []) {
-            let matches = regex.matches(in: string, range: NSRange(location: 0, length: string.count))
-            for match in matches where match.numberOfRanges > 1 {
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemOrange, range: match.range(at: 1))
-            }
-        }
-
-        let numberPattern = ":\\s*\\d+(\\.\\d+)?"
-        if let regex = try? NSRegularExpression(pattern: numberPattern, options: []) {
-            let matches = regex.matches(in: string, range: NSRange(location: 0, length: string.count))
-            for match in matches {
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemPurple, range: match.range)
-            }
-        }
-
-        let boolPattern = ":\\s*(true|false|yes|no|on|off)"
-        if let regex = try? NSRegularExpression(pattern: boolPattern, options: [.caseInsensitive]) {
-            let matches = regex.matches(in: string, range: NSRange(location: 0, length: string.count))
-            for match in matches {
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemRed, range: match.range)
-            }
-        }
-    }
-
-    private func highlightJSONSyntax(attributedString: NSMutableAttributedString) {
-        let string = attributedString.string
-
-        let keyPattern = "\"([^\"]*)\"\\s*:"
-        if let regex = try? NSRegularExpression(pattern: keyPattern, options: []) {
-            let matches = regex.matches(in: string, range: NSRange(location: 0, length: string.count))
-            for match in matches where match.numberOfRanges > 1 {
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemBlue, range: match.range(at: 1))
-            }
-        }
-
-        let stringPattern = ":\\s*\"([^\"]*)\""
-        if let regex = try? NSRegularExpression(pattern: stringPattern, options: []) {
-            let matches = regex.matches(in: string, range: NSRange(location: 0, length: string.count))
-            for match in matches where match.numberOfRanges > 1 {
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemOrange, range: match.range(at: 1))
-            }
-        }
-
-        let numberPattern = ":\\s*(-?\\d+(\\.\\d+)?)"
-        if let regex = try? NSRegularExpression(pattern: numberPattern, options: []) {
-            let matches = regex.matches(in: string, range: NSRange(location: 0, length: string.count))
-            for match in matches {
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemPurple, range: match.range)
-            }
-        }
-
-        let valuePattern = ":\\s*(true|false|null)"
-        if let regex = try? NSRegularExpression(pattern: valuePattern, options: [.caseInsensitive]) {
-            let matches = regex.matches(in: string, range: NSRange(location: 0, length: string.count))
-            for match in matches {
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemRed, range: match.range)
-            }
+        
+        public func clearDiagnostics() {
+            diagnosticPlugin?.clearDiagnostics()
         }
     }
 }

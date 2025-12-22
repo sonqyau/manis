@@ -107,7 +107,6 @@ resources
 APP_NAME="manis.app"
 BUILD_DIR="$ROOT_DIR/.build/release"
 APP_DIR="$BUILD_DIR/$APP_NAME"
-PLIST="$APP_DIR/Contents/Info.plist"
 
 swift build --product manis --configuration release -Xswiftc -warn-concurrency
 swift build --product MainXPC --configuration release -Xswiftc -warn-concurrency

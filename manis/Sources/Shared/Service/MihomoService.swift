@@ -2,7 +2,7 @@ import Combine
 import Foundation
 
 @MainActor
-protocol MihomoService {
+protocol MihomoService: AnyObject, Sendable {
     var statePublisher: AnyPublisher<MihomoDomain.State, Never> { get }
 
     func configure(baseURL: String, secret: String?)
@@ -25,7 +25,7 @@ protocol MihomoService {
 }
 
 @MainActor
-struct APIDomainMihomoServiceAdapter: MihomoService {
+final class APIDomainMihomoServiceAdapter: MihomoService, @unchecked Sendable {
     private let domain: MihomoDomain
 
     init(domain: MihomoDomain = .shared) {

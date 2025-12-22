@@ -1,25 +1,61 @@
-import Factory
+import ComposableArchitecture
 
-struct ServiceDependency {}
+@MainActor
+enum MihomoServiceKey: @preconcurrency DependencyKey {
+    static let liveValue: any MihomoService = APIDomainMihomoServiceAdapter()
+}
 
-extension Container {
-    var mihomoService: Factory<MihomoService> {
-        self { @MainActor in APIDomainMihomoServiceAdapter() }.shared
+extension DependencyValues {
+    var mihomoService: any MihomoService {
+        get { self[MihomoServiceKey.self] }
+        set { self[MihomoServiceKey.self] = newValue }
     }
+}
 
-    var settingsService: Factory<SettingsService> {
-        self { @MainActor in SettingsManagerServiceAdapter() }.shared
+@MainActor
+enum SettingsServiceKey: @preconcurrency DependencyKey {
+    static let liveValue: any SettingsService = SettingsManagerServiceAdapter()
+}
+
+extension DependencyValues {
+    var settingsService: any SettingsService {
+        get { self[SettingsServiceKey.self] }
+        set { self[SettingsServiceKey.self] = newValue }
     }
+}
 
-    var persistenceService: Factory<PersistenceService> {
-        self { @MainActor in RemoteConfigPersistenceServiceAdapter() }.shared
+@MainActor
+enum ResourceServiceKey: @preconcurrency DependencyKey {
+    static let liveValue: any ResourceService = ResourceDomainServiceAdapter()
+}
+
+extension DependencyValues {
+    var resourceService: any ResourceService {
+        get { self[ResourceServiceKey.self] }
+        set { self[ResourceServiceKey.self] = newValue }
     }
+}
 
-    var resourceService: Factory<ResourceService> {
-        self { @MainActor in ResourceDomainServiceAdapter() }.shared
+@MainActor
+enum PersistenceServiceKey: @preconcurrency DependencyKey {
+    static let liveValue: any PersistenceService = RemoteConfigPersistenceServiceAdapter()
+}
+
+extension DependencyValues {
+    var persistenceService: any PersistenceService {
+        get { self[PersistenceServiceKey.self] }
+        set { self[PersistenceServiceKey.self] = newValue }
     }
+}
 
-    var networkService: Factory<NetworkService> {
-        self { @MainActor in NetworkDomainServiceAdapter() }.shared
+@MainActor
+enum NetworkServiceKey: @preconcurrency DependencyKey {
+    static let liveValue: any NetworkService = NetworkDomainServiceAdapter()
+}
+
+extension DependencyValues {
+    var networkService: any NetworkService {
+        get { self[NetworkServiceKey.self] }
+        set { self[NetworkServiceKey.self] = newValue }
     }
 }

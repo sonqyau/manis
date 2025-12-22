@@ -236,7 +236,7 @@ final class MihomoDomain {
             request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
         }
 
-        let client = StarscreamWebSocketStreamClient(request: request, reconnectionConfig: .default)
+        let client = URLSessionWebSocketStreamClient(request: request, reconnectionConfig: .default)
         trafficSocket = client
         client.connect()
 
@@ -278,7 +278,7 @@ final class MihomoDomain {
             request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
         }
 
-        let client = StarscreamWebSocketStreamClient(request: request, reconnectionConfig: .default)
+        let client = URLSessionWebSocketStreamClient(request: request, reconnectionConfig: .default)
         memorySocket = client
         client.connect()
 
@@ -490,7 +490,7 @@ final class MihomoDomain {
             request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
         }
 
-        let client = StarscreamWebSocketStreamClient(request: request, reconnectionConfig: .disabled)
+        let client = URLSessionWebSocketStreamClient(request: request, reconnectionConfig: .disabled)
         logSocket = client
         client.connect()
 

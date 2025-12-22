@@ -273,12 +273,10 @@ struct SettingsFeature: @preconcurrency Reducer {
         state.isProcessing = true
         state.alert = nil
 
-        let settingsContainer = SettingsServiceDependency(service: settingsService)
-
         return .run { @MainActor send in
             Bootstrap.isEnabled.toggle()
             let enabled = Bootstrap.isEnabled
-            settingsContainer.service.launchAtLogin = enabled
+            settingsService.launchAtLogin = enabled
             send(.confirmBootstrap)
             send(.operationFinished(nil))
         }

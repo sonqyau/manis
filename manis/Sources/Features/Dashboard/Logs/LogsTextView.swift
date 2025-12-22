@@ -209,10 +209,10 @@ struct LogsTextView: View {
             TextKit2Extension(
                 text: .constant(formattedLogText),
                 isEditable: false,
-                language: TextKit2Language.log,
+                language: .log,
                 fontSize: 11,
-                theme: TextKit2Theme.default,
-                )
+                theme: .default
+            )
             .frame(minHeight: 280)
             .clipShape(RoundedRectangle(cornerRadius: 8))
 

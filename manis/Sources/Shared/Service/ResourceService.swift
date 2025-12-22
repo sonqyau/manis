@@ -7,7 +7,7 @@ struct ResourceSnapshot: Equatable {
 }
 
 @MainActor
-protocol ResourceService: AnyObject {
+protocol ResourceService: AnyObject, Sendable {
     var statePublisher: AnyPublisher<ResourceSnapshot, Never> { get }
 
     func currentState() -> ResourceSnapshot
@@ -19,7 +19,7 @@ protocol ResourceService: AnyObject {
 }
 
 @MainActor
-final class ResourceDomainServiceAdapter: ResourceService {
+final class ResourceDomainServiceAdapter: ResourceService, @unchecked Sendable {
     private let domain: ResourceDomain
     private let stateSubject: CurrentValueSubject<ResourceSnapshot, Never>
 
