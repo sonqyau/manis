@@ -37,11 +37,11 @@ public struct TextKit2Extension: NSViewRepresentable {
     let language: TextKit2Language
     var fontSize: CGFloat = 12
     var theme: TextKit2Theme = .default
-    
+
     var plugins: [any STPlugin] = []
-    
+
     var layoutFragmentFactory: ((NSTextElement, NSTextRange) -> NSTextLayoutFragment)?
-    
+
     var enableDiagnostics: Bool = false
 
     public func makeNSView(context: Context) -> STTextView {
@@ -58,21 +58,20 @@ public struct TextKit2Extension: NSViewRepresentable {
         textView.showsLineNumbers = true
 
         textView.textContainer.lineFragmentPadding = 8
-        
-        
+
         let syntaxPlugin = HighlightPlugin(
             language: language,
             theme: theme,
-            fontSize: fontSize
-        )
+            fontSize: fontSize,
+            )
         textView.addPlugin(syntaxPlugin)
-        
+
         if enableDiagnostics {
             let diagnosticPlugin = DiagnosticPlugin()
             textView.addPlugin(diagnosticPlugin)
             context.coordinator.diagnosticPlugin = diagnosticPlugin
         }
-        
+
         for plugin in plugins {
             textView.addPlugin(plugin)
         }
@@ -96,7 +95,7 @@ public struct TextKit2Extension: NSViewRepresentable {
     @MainActor
     public class Coordinator: NSObject, STTextViewDelegate {
         var parent: TextKit2Extension
-        
+
         weak var diagnosticPlugin: DiagnosticPlugin?
 
         init(_ parent: TextKit2Extension) {
@@ -107,12 +106,12 @@ public struct TextKit2Extension: NSViewRepresentable {
             guard let textView = notification.object as? STTextView else { return }
             parent.text = textView.text ?? ""
         }
-        
+
         public func addDiagnostic(range: NSRange, type: DiagnosticFragment.DiagnosticType, message: String) {
             let diagnostic = DiagnosticPlugin.Diagnostic(range: range, type: type, message: message)
             diagnosticPlugin?.addDiagnostic(diagnostic)
         }
-        
+
         public func clearDiagnostics() {
             diagnosticPlugin?.clearDiagnostics()
         }

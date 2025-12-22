@@ -72,7 +72,7 @@ final class URLSessionWebSocketStreamClient: NSObject, WebSocketStreamClient, @u
     init(
         request: URLRequest,
         reconnectionConfig: WebSocketReconnectionConfig = .default,
-        clock: any Clock<Duration> = ContinuousClock()
+        clock: any Clock<Duration> = ContinuousClock(),
         ) {
         self.request = request
         self.reconnectionConfig = reconnectionConfig
@@ -102,7 +102,7 @@ final class URLSessionWebSocketStreamClient: NSObject, WebSocketStreamClient, @u
         stateQueue.async(flags: .barrier) {
             self._reconnectTask = nil
         }
-        
+
         setupWebSocket()
         webSocketTask?.resume()
         startReceiving()
@@ -141,20 +141,20 @@ final class URLSessionWebSocketStreamClient: NSObject, WebSocketStreamClient, @u
     private func startReceiving() {
         webSocketTask?.receive { [weak self] result in
             guard let self else { return }
-            
+
             switch result {
-            case .success(let message):
+            case let .success(message):
                 switch message {
-                case .string(let text):
+                case let .string(text):
                     self.continuation?.yield(.text(text))
-                case .data(let data):
+                case let .data(data):
                     self.continuation?.yield(.data(data))
                 @unknown default:
                     break
                 }
                 self.startReceiving()
-                
-            case .failure(let error):
+
+            case let .failure(error):
                 self.continuation?.yield(.error(error))
                 if !self.isManuallyDisconnected {
                     self.scheduleReconnect()
@@ -221,10 +221,10 @@ final class URLSessionWebSocketStreamClient: NSObject, WebSocketStreamClient, @u
 }
 
 extension URLSessionWebSocketStreamClient: URLSessionWebSocketDelegate {
-    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
+    func urlSession(_: URLSession, webSocketTask _: URLSessionWebSocketTask, didOpenWithProtocol _: String?) {
         let headers: [String: String]? = nil
         continuation?.yield(.connected(headers: headers))
-        
+
         stateQueue.async(flags: .barrier) {
             self._reconnectAttempt = 0
             self._currentDelay = self.reconnectionConfig.initialDelay
@@ -234,11 +234,11 @@ extension URLSessionWebSocketStreamClient: URLSessionWebSocketDelegate {
             self._reconnectTask = nil
         }
     }
-    
-    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
+
+    func urlSession(_: URLSession, webSocketTask _: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
         let reasonString = reason.flatMap { String(data: $0, encoding: .utf8) }
         continuation?.yield(.disconnected(reason: reasonString, code: UInt16(closeCode.rawValue)))
-        
+
         if !isManuallyDisconnected {
             scheduleReconnect()
         } else {
@@ -266,14 +266,14 @@ struct TrafficDataStream: AsyncSequence {
         mutating func next() async throws -> TrafficSnapshot? {
             while let event = await eventIterator.next() {
                 switch event {
-                case .text(let text):
+                case let .text(text):
                     guard let data = text.data(using: .utf8),
                           let traffic = try? JSONDecoder().decode(TrafficSnapshot.self, from: data)
                     else {
                         continue
                     }
                     return traffic
-                case .error(let error):
+                case let .error(error):
                     throw error
                 case .disconnected:
                     return nil
@@ -305,9 +305,9 @@ struct WebSocketMessageStream: AsyncSequence {
         mutating func next() async throws -> String? {
             while let event = await eventIterator.next() {
                 switch event {
-                case .text(let text):
+                case let .text(text):
                     return text
-                case .error(let error):
+                case let .error(error):
                     throw error
                 case .disconnected:
                     return nil

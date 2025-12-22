@@ -49,20 +49,20 @@ struct ConfigDetailView: View {
         }
         .sheet(isPresented: Binding(
             get: { store.showingAddConfig },
-            set: { store.send(.showAddConfig($0)) }
-        )) {
+            set: { store.send(.showAddConfig($0)) },
+            )) {
             AddRemoteConfigView()
         }
         .sheet(isPresented: Binding(
             get: { store.showingAddInstance },
-            set: { store.send(.showAddInstance($0)) }
-        )) {
+            set: { store.send(.showAddInstance($0)) },
+            )) {
             AddRemoteInstanceView()
         }
         .sheet(isPresented: Binding(
             get: { store.showingConfigEditor },
-            set: { store.send(.showConfigEditor($0)) }
-        )) {
+            set: { store.send(.showConfigEditor($0)) },
+            )) {
             ConfigEditorWindow(
                 fileName: "config.yaml",
                 fileExtension: "yaml",

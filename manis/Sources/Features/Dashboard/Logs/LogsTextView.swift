@@ -211,8 +211,8 @@ struct LogsTextView: View {
                 isEditable: false,
                 language: .log,
                 fontSize: 11,
-                theme: .default
-            )
+                theme: .default,
+                )
             .frame(minHeight: 280)
             .clipShape(RoundedRectangle(cornerRadius: 8))
 

@@ -6,7 +6,7 @@ import SwiftUI
 struct SettingsMainView: View {
     @Bindable private var store: StoreOf<SettingsFeature>
     let persistenceStore: StoreOf<PersistenceFeature>
-    
+
     @State private var showingConfigEditor = false
     @State private var configContent = ""
 
@@ -122,8 +122,8 @@ struct SettingsMainView: View {
                 fileName: "config.yaml",
                 fileExtension: "yaml",
                 language: .yaml,
-                initialContent: configContent
-            )
+                initialContent: configContent,
+                )
         }
     }
 
@@ -231,21 +231,21 @@ struct SettingsMainView: View {
             print("config.yaml not found in Resources, using default content")
             configContent = getDefaultConfigContent()
         }
-        
+
         showingConfigEditor = true
     }
-    
+
     private func getDefaultConfigContent() -> String {
-        return """
-        
+        """
+
         port: 7890
         socks-port: 7891
         allow-lan: false
         mode: rule
         log-level: info
-        
+
         external-controller: 127.0.0.1:9090
-        
+
         dns:
           enable: true
           listen: 0.0.0.0:53
@@ -255,11 +255,11 @@ struct SettingsMainView: View {
           nameserver:
             - https://doh.pub/dns-query
             - https://dns.alidns.com/dns-query
-        
+
         proxies:
-        
+
         proxy-groups:
-        
+
         rules:
           - MATCH,DIRECT
         """

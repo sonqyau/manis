@@ -1,8 +1,8 @@
 import ComposableArchitecture
 import Foundation
 import SwiftNavigation
-import SwiftUINavigation
 import SwiftUI
+import SwiftUINavigation
 
 @MainActor
 struct DashboardFeature: @preconcurrency Reducer {
