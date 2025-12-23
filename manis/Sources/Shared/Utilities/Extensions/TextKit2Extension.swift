@@ -65,7 +65,7 @@ public struct TextKit2Extension: NSViewRepresentable {
             language: language,
             theme: theme,
             fontSize: fontSize,
-            )
+        )
         textView.addPlugin(syntaxPlugin)
 
         if enableDiagnostics {
@@ -219,14 +219,14 @@ public extension TextKit2Extension {
         language: TextKit2Language = .plain,
         fontSize: CGFloat = 12,
         theme: TextKit2Theme = .default,
-        ) -> TextKit2Extension {
+    ) -> TextKit2Extension {
         var textExtension = TextKit2Extension(
             text: text,
             isEditable: isEditable,
             language: language,
             fontSize: fontSize,
             theme: theme,
-            )
+        )
         textExtension.enableDiagnostics = true
         textExtension.enableAdvancedTextProcessing = true
         return textExtension
@@ -239,14 +239,14 @@ public extension TextKit2Extension {
         fontSize: CGFloat = 12,
         theme: TextKit2Theme = .default,
         plugins: [any STPlugin] = [],
-        ) -> TextKit2Extension {
+    ) -> TextKit2Extension {
         var textExtension = TextKit2Extension(
             text: text,
             isEditable: isEditable,
             language: language,
             fontSize: fontSize,
             theme: theme,
-            )
+        )
         textExtension.enableDiagnostics = true
         textExtension.enableAdvancedTextProcessing = true
         textExtension.plugins = plugins

@@ -20,7 +20,7 @@ struct OverviewView: View {
             systemInfoSection(
                 summary: bindableStore.overviewSummary,
                 isConnected: bindableStore.isConnected,
-                )
+            )
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
@@ -37,31 +37,31 @@ struct OverviewView: View {
                     value: summary.downloadSpeed,
                     icon: "arrow.down.circle.fill",
                     tint: .blue,
-                    )
+                )
 
                 OverviewMetricRow(
                     title: "Upload",
                     value: summary.uploadSpeed,
                     icon: "arrow.up.circle.fill",
                     tint: .green,
-                    )
+                )
 
                 OverviewMetricRow(
                     title: "Connections",
                     value: "\(summary.connectionCount)",
                     icon: "network",
                     tint: .purple,
-                    )
+                )
 
                 OverviewMetricRow(
                     title: "Memory",
                     value: ByteCountFormatter.string(
                         fromByteCount: summary.memoryUsage,
                         countStyle: .memory,
-                        ),
+                    ),
                     icon: "memorychip.fill",
                     tint: .orange,
-                    )
+                )
             }
             .padding(.vertical, 6)
         } header: {
@@ -84,7 +84,7 @@ struct OverviewView: View {
     private func systemInfoSection(
         summary: OverviewFeature.State.OverviewSummary,
         isConnected: Bool,
-        ) -> some View {
+    ) -> some View {
         Section {
             VStack(alignment: .leading, spacing: 12) {
                 EmptyView()
@@ -110,7 +110,7 @@ struct OverviewView: View {
         history: Deque<TrafficPoint>,
         keyPath: KeyPath<TrafficPoint, Double>,
         color: Color,
-        ) -> some View {
+    ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
                 .font(.headline)
@@ -119,14 +119,14 @@ struct OverviewView: View {
                 LineMark(
                     x: .value("Time", point.timestamp),
                     y: .value(title, point[keyPath: keyPath]),
-                    )
+                )
                 .foregroundStyle(color.gradient)
                 .interpolationMethod(.catmullRom)
 
                 AreaMark(
                     x: .value("Time", point.timestamp),
                     y: .value(title, point[keyPath: keyPath]),
-                    )
+                )
                 .foregroundStyle(color.opacity(0.12).gradient)
                 .interpolationMethod(.catmullRom)
             }

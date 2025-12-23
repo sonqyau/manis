@@ -52,8 +52,8 @@ final class PersistenceDomain {
                 remoteInstances: [],
                 isLocalMode: true,
                 activeRemoteInstance: nil,
-                ),
-            )
+            ),
+        )
     }
 
     func statePublisher() -> AnyPublisher<State, Never> {
@@ -68,7 +68,7 @@ final class PersistenceDomain {
             remoteInstances: remoteInstances,
             isLocalMode: isLocalMode,
             activeRemoteInstance: activeRemoteInstance,
-            )
+        )
     }
 
     private func emitState() {
@@ -101,7 +101,7 @@ final class PersistenceDomain {
         let context = container.mainContext
         let descriptor = FetchDescriptor<PersistenceModel>(
             sortBy: [SortDescriptor(\.createdAt)],
-            )
+        )
 
         do {
             configs = try performDatabase {
@@ -121,7 +121,7 @@ final class PersistenceDomain {
         let context = container.mainContext
         let descriptor = FetchDescriptor<RemoteInstance>(
             sortBy: [SortDescriptor(\.createdAt)],
-            )
+        )
 
         do {
             let instances = try performDatabase {
@@ -255,7 +255,7 @@ final class PersistenceDomain {
             guard result.isValid else {
                 throw PersistenceError.validationFailed(
                     result.errorMessage ?? "Unknown configuration validation error.",
-                    )
+                )
             }
         } catch {
             throw mapError(error)
@@ -266,7 +266,7 @@ final class PersistenceDomain {
         try await apiClient.reloadConfig(
             path: resourceManager.configFilePath.path,
             payload: "",
-            )
+        )
     }
 
     func backupConfig() throws(PersistenceError) {
@@ -293,7 +293,7 @@ final class PersistenceDomain {
                 at: resourceManager.configDirectory,
                 includingPropertiesForKeys: [.creationDateKey],
                 options: [.skipsHiddenFiles],
-                )
+            )
             .filter { $0.lastPathComponent.hasPrefix("config_backup_") }
             .sorted { url1, url2 in
                 let d1 = (try? url1.resourceValues(forKeys: [.creationDateKey]))?
@@ -334,18 +334,18 @@ final class PersistenceDomain {
                     await sendNotification(
                         title: "Configuration updated",
                         body: "\(cfg.name) was updated successfully.",
-                        )
+                    )
                 }
             } catch {
                 let chain = error.errorChainDescription
                 logger.error(
                     "Failed to update configuration \(cfg.name): \(error.localizedDescription)\n\(chain)",
-                    )
+                )
                 if cfg.isActive {
                     await sendNotification(
                         title: "Configuration update failed",
                         body: "\(cfg.name): \(error.localizedDescription)",
-                        )
+                    )
                 }
             }
         }
@@ -359,7 +359,7 @@ final class PersistenceDomain {
                 let chain = error.errorChainDescription
                 logger.error(
                     "Failed to update configuration \(config.name): \(error.localizedDescription)\n\(chain)",
-                    )
+                )
             }
         }
 
@@ -449,14 +449,11 @@ final class PersistenceDomain {
     }
 
     private func sendNotification(title: String, body: String) async {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = .default
-
-        let req = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
-
-        try? await UNUserNotificationCenter.current().add(req)
+        await NotificationExtension.sendNotification(
+            title: title,
+            body: body,
+            category: "CONFIG_CHANGE",
+        )
     }
 
     private func migrateLegacySecrets(for instances: [RemoteInstance]) -> Bool {
@@ -477,7 +474,7 @@ final class PersistenceDomain {
                         "instance": instance.name,
                         "error": error.localizedDescription,
                     ],
-                    )
+                )
             }
         }
 

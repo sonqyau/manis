@@ -101,7 +101,7 @@ actor DaemonService {
             executablePath: executablePath,
             configPath: configPath,
             configContent: configContent,
-            )
+        )
 
         return .message(result)
     }
@@ -128,7 +128,7 @@ actor DaemonService {
             socksPort: socksPort,
             pacURL: request.pacURL,
             bypassList: request.bypassList ?? [],
-            )
+        )
 
         return .message("System proxy enabled successfully")
     }
@@ -174,7 +174,7 @@ actor DaemonService {
             host: host,
             port: port,
             timeout: timeout,
-            )
+        )
 
         return .connectivity(isConnected)
     }

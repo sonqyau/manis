@@ -59,7 +59,7 @@ public class TextFragmentLayer: CALayer {
         anchorPoint = CGPoint(
             x: -bounds.origin.x / bounds.size.width,
             y: -bounds.origin.y / bounds.size.height,
-            )
+        )
         position = layoutFragment.layoutFragmentFrame.origin
 
         var newBounds = bounds

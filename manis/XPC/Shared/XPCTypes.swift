@@ -33,7 +33,7 @@ struct XPCRequest: Codable, Sendable {
         timeout: TimeInterval? = nil,
         enabled: Bool = false,
         dnsServer: String? = nil,
-        ) {
+    ) {
         self.method = method
         self.executablePath = executablePath
         self.configPath = configPath
@@ -198,7 +198,7 @@ struct DaemonRequest: Codable, Sendable {
         timeout: TimeInterval? = nil,
         enabled: Bool = false,
         dnsServer: String? = nil,
-        ) {
+    ) {
         self.method = method
         self.executablePath = executablePath
         self.configPath = configPath

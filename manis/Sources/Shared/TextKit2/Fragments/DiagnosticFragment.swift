@@ -100,7 +100,7 @@ public class DiagnosticFragment: NSTextLayoutFragment {
             y: indicatorRect.midY - symbolSize.height / 2,
             width: symbolSize.width,
             height: symbolSize.height,
-            )
+        )
 
         attributedSymbol.draw(in: symbolRect)
 

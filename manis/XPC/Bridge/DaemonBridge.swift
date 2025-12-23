@@ -16,7 +16,7 @@ final class DaemonBridge: @unchecked Sendable {
             machService: serviceName,
             targetQueue: nil,
             options: [],
-            ) { [weak self] _ in
+        ) { [weak self] _ in
             self?.session = nil
             self?.logger.info("Daemon session cancelled")
         }
@@ -72,7 +72,7 @@ final class DaemonBridge: @unchecked Sendable {
             executablePath: executablePath,
             configPath: configPath,
             configContent: configContent,
-            )
+        )
         let response = try await sendRequest(request)
 
         guard case let .message(message) = response else {
@@ -109,7 +109,7 @@ final class DaemonBridge: @unchecked Sendable {
             socksPort: socksPort,
             pacURL: pacURL,
             bypassList: bypassList,
-            )
+        )
         let response = try await sendRequest(request)
 
         guard case .message = response else {
@@ -142,7 +142,7 @@ final class DaemonBridge: @unchecked Sendable {
             method: "configureDNS",
             servers: servers,
             hijackEnabled: hijackEnabled,
-            )
+        )
         let response = try await sendRequest(request)
 
         guard case .message = response else {
@@ -176,7 +176,7 @@ final class DaemonBridge: @unchecked Sendable {
             host: host,
             port: port,
             timeout: timeout,
-            )
+        )
         let response = try await sendRequest(request)
 
         guard case let .connectivity(result) = response else {
@@ -191,7 +191,7 @@ final class DaemonBridge: @unchecked Sendable {
             method: "updateTun",
             enabled: enabled,
             dnsServer: dnsServer,
-            )
+        )
         let response = try await sendRequest(request)
 
         guard case .message = response else {

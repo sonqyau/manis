@@ -14,7 +14,7 @@ enum ByteProcessor {
     static func extractSubstring(
         _ string: borrowing String,
         in range: Range<String.Index>,
-        ) -> String {
+    ) -> String {
         String(string[range])
     }
 
@@ -22,7 +22,7 @@ enum ByteProcessor {
     static func safeSubstring(
         _ string: String,
         nsRange: NSRange,
-        ) -> String? {
+    ) -> String? {
         string[nsRange].map(String.init)
     }
 
@@ -30,7 +30,7 @@ enum ByteProcessor {
     static func safeSubstring(
         _ string: String,
         range: Range<Int>,
-        ) -> String? {
+    ) -> String? {
         string[range].map(String.init)
     }
 

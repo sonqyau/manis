@@ -40,7 +40,7 @@ struct LifecycleFeature: @preconcurrency Reducer {
                     resourceService: resourceService,
                     mihomoService: mihomoService,
                     networkService: networkService,
-                    )
+                )
                 await Self.initializeApplication(context)
             }
 
@@ -81,7 +81,7 @@ struct LifecycleFeature: @preconcurrency Reducer {
                 "Remote configuration setup",
                 warning: "Remote configuration unavailable. Local mode is enabled.",
                 initializationWarnings: &initializationWarnings,
-                ) {
+            ) {
                 try context.persistenceService.initialize(container: container)
             }
         }
@@ -90,7 +90,7 @@ struct LifecycleFeature: @preconcurrency Reducer {
             "Resource initialization",
             warning: "Resource directory incomplete. Geo data or configuration synchronization may be limited.",
             initializationWarnings: &initializationWarnings,
-            ) {
+        ) {
             try await context.resourceService.initialize()
         }
 
@@ -98,7 +98,7 @@ struct LifecycleFeature: @preconcurrency Reducer {
             "Default configuration initialization",
             warning: "Failed to generate the default configuration. Verify write permissions.",
             initializationWarnings: &initializationWarnings,
-            ) {
+        ) {
             try context.resourceService.ensureDefaultConfig()
         }
 
@@ -113,25 +113,81 @@ struct LifecycleFeature: @preconcurrency Reducer {
             return
         }
 
+        let currentStatus = await getNotificationAuthorizationStatus()
+
+        switch currentStatus {
+        case .notDetermined:
+            let granted = await requestNotificationAuthorization()
+            if granted {
+                setupNotificationCategories()
+            }
+        case .denied:
+            await showPermissionDeniedWarning()
+        case .authorized, .provisional:
+            setupNotificationCategories()
+        @unknown default:
+            break
+        }
+    }
+
+    @MainActor
+    private static func getNotificationAuthorizationStatus() async -> UNAuthorizationStatus {
+        await withCheckedContinuation { continuation in
+            UNUserNotificationCenter.current().getNotificationSettings { settings in
+                continuation.resume(returning: settings.authorizationStatus)
+            }
+        }
+    }
+
+    @MainActor
+    private static func requestNotificationAuthorization() async -> Bool {
+        do {
+            return try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+        } catch {
+            return false
+        }
+    }
+
+    @MainActor
+    private static func setupNotificationCategories() {
         let center = UNUserNotificationCenter.current()
 
-        do {
-            let granted = try await center.requestAuthorization(options: [.alert, .sound])
+        let reloadAction = UNNotificationAction(
+            identifier: "RELOAD_CONFIG",
+            title: "Reload",
+            options: [.foreground],
+        )
 
-            if granted {
-                let action = UNNotificationAction(
-                    identifier: "RELOAD_CONFIG",
-                    title: "Reload",
-                    options: [.foreground],
-                    )
-                let category = UNNotificationCategory(
-                    identifier: "CONFIG_CHANGE",
-                    actions: [action],
-                    intentIdentifiers: [],
-                    )
-                center.setNotificationCategories([category])
-            }
-        } catch {}
+        let configCategory = UNNotificationCategory(
+            identifier: "CONFIG_CHANGE",
+            actions: [reloadAction],
+            intentIdentifiers: [],
+        )
+
+        center.setNotificationCategories([configCategory])
+    }
+
+    @MainActor
+    private static func showPermissionDeniedWarning() async {
+        let alert = NSAlert()
+        alert.messageText = "Notification Permission Required"
+        alert.informativeText = "Allow notifications to warn you about config changes, proxy status, and critical helper actions."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Open Settings")
+        alert.addButton(withTitle: "Continue")
+
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            openNotificationSettings()
+        }
+    }
+
+    @MainActor
+    private static func openNotificationSettings() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Notifications") else {
+            return
+        }
+        NSWorkspace.shared.open(url)
     }
 
     @MainActor
@@ -156,7 +212,7 @@ struct LifecycleFeature: @preconcurrency Reducer {
         warning: String,
         initializationWarnings: inout [String],
         operation: () async throws -> Void,
-        ) async {
+    ) async {
         do {
             try await operation()
         } catch {
@@ -164,7 +220,7 @@ struct LifecycleFeature: @preconcurrency Reducer {
                 warning,
                 error: error,
                 initializationWarnings: &initializationWarnings,
-                )
+            )
         }
     }
 
@@ -173,7 +229,7 @@ struct LifecycleFeature: @preconcurrency Reducer {
         _ message: String,
         error: any Error,
         initializationWarnings: inout [String],
-        ) {
+    ) {
         initializationWarnings.append("\(message) (Reason: \(error.applicationMessage))")
     }
 

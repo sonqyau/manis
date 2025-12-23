@@ -21,21 +21,21 @@ struct LogsTextView: View {
         Binding(
             get: { bindableStore.selectedLevel },
             set: { bindableStore.send(.selectLevel($0)) },
-            )
+        )
     }
 
     private var searchBinding: Binding<String> {
         Binding(
             get: { bindableStore.searchText },
             set: { bindableStore.send(.updateSearch($0)) },
-            )
+        )
     }
 
     private var autoScrollBinding: Binding<Bool> {
         Binding(
             get: { bindableStore.autoScroll },
             set: { bindableStore.send(.toggleAutoScroll($0)) },
-            )
+        )
     }
 
     private var formattedLogText: String {
@@ -61,8 +61,8 @@ struct LogsTextView: View {
             Binding<AlertState<LogsFeature.AlertAction>?>(
                 get: { bindableStore.alert },
                 set: { _ in },
-                ),
-            ) { action in
+            ),
+        ) { action in
             if let action {
                 bindableStore.send(.alert(action))
             }
@@ -117,7 +117,7 @@ struct LogsTextView: View {
                         Label(
                             bindableStore.isStreaming ? "Stop streaming" : "Start streaming",
                             systemImage: bindableStore.isStreaming ? "stop.fill" : "play.fill",
-                            )
+                        )
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -164,7 +164,7 @@ struct LogsTextView: View {
                             Label(
                                 "No matching log entries",
                                 systemImage: "doc.text.magnifyingglass",
-                                )
+                            )
                         } description: {
                             Text("Try adjusting your search filter")
                         }
@@ -174,13 +174,13 @@ struct LogsTextView: View {
                             Label(
                                 bindableStore.isStreaming ? "No log entries available" : "Log stream inactive",
                                 systemImage: "doc.text.magnifyingglass",
-                                )
+                            )
                         } description: {
                             Text(
                                 bindableStore.isStreaming
                                     ? "Waiting for incoming log messages"
                                     : "Enable streaming to receive log data",
-                                )
+                            )
                         }
                         .frame(maxWidth: .infinity, minHeight: 200)
                     } else {
@@ -212,7 +212,7 @@ struct LogsTextView: View {
                 language: .log,
                 fontSize: 11,
                 theme: .default,
-                )
+            )
             .frame(minHeight: 280)
             .clipShape(RoundedRectangle(cornerRadius: 8))
 
@@ -221,13 +221,13 @@ struct LogsTextView: View {
                     Label(
                         bindableStore.isStreaming ? "No log entries available" : "Log stream inactive",
                         systemImage: "doc.text.magnifyingglass",
-                        )
+                    )
                 } description: {
                     Text(
                         bindableStore.isStreaming
                             ? "Waiting for incoming log messages"
                             : "Enable streaming to receive log data",
-                        )
+                    )
                 }
                 .frame(maxWidth: .infinity, minHeight: 200)
             }
@@ -281,6 +281,6 @@ private struct LogRow: View {
         .background(
             logColor.opacity(0.05),
             in: RoundedRectangle(cornerRadius: 8),
-            )
+        )
     }
 }

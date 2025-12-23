@@ -106,6 +106,8 @@ final class Keychain: @unchecked Sendable {
 enum KeychainError: MainError {
     case unexpectedStatus(OSStatus)
     case stringEncodingFailure
+    case permissionDenied
+    case keychainUnavailable
 
     var category: ErrorCategory { .permission }
 
@@ -113,6 +115,8 @@ enum KeychainError: MainError {
         switch self {
         case let .unexpectedStatus(status): Int(status)
         case .stringEncodingFailure: 8001
+        case .permissionDenied: 8002
+        case .keychainUnavailable: 8003
         }
     }
 
@@ -124,6 +128,10 @@ enum KeychainError: MainError {
             "Unable to access secure storage. Please check your system permissions."
         case .stringEncodingFailure:
             "Unable to process the secret for secure storage."
+        case .permissionDenied:
+            "Access to secure storage was denied. Please grant keychain access."
+        case .keychainUnavailable:
+            "Secure storage is not available on this system."
         }
     }
 
@@ -134,9 +142,12 @@ enum KeychainError: MainError {
                 return "Keychain operation failed: \(message)"
             }
             return "Keychain operation failed with status code \(status)"
-
         case .stringEncodingFailure:
             return "Unable to encode secret for secure storage"
+        case .permissionDenied:
+            return "Keychain access permission denied"
+        case .keychainUnavailable:
+            return "Keychain service is not available"
         }
     }
 
@@ -146,6 +157,10 @@ enum KeychainError: MainError {
             "The keychain operation returned an unexpected status"
         case .stringEncodingFailure:
             "The secret could not be encoded to UTF-8 format"
+        case .permissionDenied:
+            "The system denied access to the keychain"
+        case .keychainUnavailable:
+            "The keychain service is not accessible"
         }
     }
 
@@ -155,15 +170,21 @@ enum KeychainError: MainError {
             "Check system permissions and keychain access settings"
         case .stringEncodingFailure:
             "Ensure the secret contains valid text characters"
+        case .permissionDenied:
+            "Grant keychain access in System Preferences > Security & Privacy"
+        case .keychainUnavailable:
+            "Restart the application or check system keychain service"
         }
     }
 
     var recoveryOptions: [String]? {
         switch self {
-        case .unexpectedStatus:
+        case .unexpectedStatus, .permissionDenied:
             ["Retry", "Check Permissions", "Cancel"]
         case .stringEncodingFailure:
             ["Try Different Text", "Cancel"]
+        case .keychainUnavailable:
+            ["Retry", "Cancel"]
         }
     }
 

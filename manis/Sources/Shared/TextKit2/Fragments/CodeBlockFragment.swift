@@ -78,7 +78,7 @@ public class CodeBlockFragment: NSTextLayoutFragment {
             cornerWidth: cornerRadius,
             cornerHeight: cornerRadius,
             transform: nil,
-            )
+        )
 
         ctx.addPath(path)
         ctx.setFillColor(codeBlockBackgroundColor.cgColor)
@@ -111,7 +111,7 @@ public class CodeBlockFragment: NSTextLayoutFragment {
             y: rect.minY + 4,
             width: labelSize.width,
             height: labelSize.height,
-            )
+        )
 
         attributedLanguage.draw(in: labelRect)
     }

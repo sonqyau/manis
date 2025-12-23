@@ -15,7 +15,7 @@ enum NetworkInspectorClientKey: DependencyKey {
                     httpPort: httpPort,
                     socksPort: socksPort,
                     strict: strict,
-                    )
+                )
             }
         },
         getPrimaryInterfaceName: {
@@ -28,7 +28,7 @@ enum NetworkInspectorClientKey: DependencyKey {
                 NetworkDomain.shared.getPrimaryIPAddress(allowIPv6: allowIPv6)
             }
         },
-        )
+    )
 }
 
 extension DependencyValues {
