@@ -1,5 +1,6 @@
 import Foundation
 import OSLog
+import Rearrange
 import Yams
 
 enum ConfigValidationError: MainError {
@@ -204,10 +205,10 @@ final class ConfigValidation {
 
         for line in lines {
             if line.contains("level=error") || line.contains("level=fatal") {
-                if let range = line.range(of: "msg=") {
-                    return String(line[range.upperBound...]).trimmingCharacters(
-                        in: CharacterSet(charactersIn: "\""),
-                    )
+                if let msgRange = line.range(of: "msg=") {
+                    let messageStart = msgRange.upperBound
+                    let remainingText = String(line[messageStart...])
+                    return remainingText.trimmingCharacters(in: CharacterSet(charactersIn: "\""))
                 }
             }
 
@@ -218,5 +219,35 @@ final class ConfigValidation {
 
         return lines.reversed().first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             ?? "Configuration validation failed with an unknown error"
+    }
+
+    private func extractLogLevel(from line: String) -> String? {
+        let levelPatterns = ["level=error", "level=fatal", "level=warn", "level=info", "level=debug"]
+        
+        for pattern in levelPatterns {
+            if let range = line.range(of: pattern) {
+                let levelStart = line.index(range.lowerBound, offsetBy: 6)
+                let levelEnd = range.upperBound
+                return String(line[levelStart..<levelEnd])
+            }
+        }
+        
+        return nil
+    }
+
+    private func parseStructuredLog(_ line: String) -> (level: String?, message: String?) {
+        guard line.range(of: "level=") != nil else {
+            return (nil, nil)
+        }
+        
+        let level = extractLogLevel(from: line)
+        
+        if let msgRange = line.range(of: "msg=") {
+            let messageStart = msgRange.upperBound
+            let message = String(line[messageStart...]).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+            return (level, message)
+        }
+        
+        return (level, nil)
     }
 }

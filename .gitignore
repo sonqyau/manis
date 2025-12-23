@@ -50,9 +50,6 @@ fastlane/test_output
 
 # Others
 
-manis/Resources/config.yaml
-manis/Resources/Country.mmdb
-manis/Resources/Country.mmdb.lzfse
-manis/Resources/geosite.dat
-manis/Resources/geosite.dat.lzfse
-manis/Resources/Kernel/
+manis/Resources/
+!manis/Resources/Assets.xcassets/
+!manis/Resources/Localizations/

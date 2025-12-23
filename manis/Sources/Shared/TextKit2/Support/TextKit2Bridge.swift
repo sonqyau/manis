@@ -1,6 +1,7 @@
 import AppKit
 import Cocoa
 import Foundation
+import Rearrange
 import STTextView
 import SwiftUI
 
@@ -62,7 +63,8 @@ public enum TextKit2Bridge {
             from nsRange: NSRange,
             in textContentManager: NSTextContentManager,
         ) -> NSTextRange? {
-            NSTextRange(nsRange, in: textContentManager)
+            let clampedRange = nsRange.clamped(to: 1000000)
+            return NSTextRange(clampedRange, in: textContentManager)
         }
 
         public static func nsRange(
@@ -70,6 +72,16 @@ public enum TextKit2Bridge {
             in textContentManager: NSTextContentManager,
         ) -> NSRange {
             NSRange(textRange, in: textContentManager)
+        }
+
+        public static func safeNSRange(
+            from textRange: NSTextRange,
+            in textContentManager: NSTextContentManager,
+            limit: Int? = nil,
+        ) -> NSRange {
+            let range = NSRange(textRange, in: textContentManager)
+            let maxLength = limit ?? 1000000
+            return range.clamped(to: maxLength)
         }
 
         public static func visibleRange(
@@ -91,6 +103,26 @@ public enum TextKit2Bridge {
                 options: .ensuresLayout,
                 using: block,
             )
+        }
+
+        public static func applyMutation(
+            _ mutation: RangeMutation,
+            to ranges: [NSRange],
+        ) -> [NSRange] {
+            ranges.compactMap { $0.apply(mutation) }
+        }
+
+        public static func shiftRanges(
+            _ ranges: [NSRange],
+            by delta: Int,
+            after location: Int,
+        ) -> [NSRange] {
+            ranges.compactMap { range in
+                if range.location >= location {
+                    return range.shifted(by: delta)
+                }
+                return range
+            }
         }
     }
 }

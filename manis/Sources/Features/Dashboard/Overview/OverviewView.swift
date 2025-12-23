@@ -1,4 +1,5 @@
 import Charts
+import Collections
 import ComposableArchitecture
 import Perception
 import SwiftUI
@@ -68,7 +69,7 @@ struct OverviewView: View {
         }
     }
 
-    private func trafficSection(history: [TrafficPoint]) -> some View {
+    private func trafficSection(history: Deque<TrafficPoint>) -> some View {
         Section {
             VStack(spacing: 20) {
                 trafficChart(title: "Download", history: history, keyPath: \.download, color: .blue)
@@ -106,7 +107,7 @@ struct OverviewView: View {
 
     private func trafficChart(
         title: String,
-        history: [TrafficPoint],
+        history: Deque<TrafficPoint>,
         keyPath: KeyPath<TrafficPoint, Double>,
         color: Color,
     ) -> some View {

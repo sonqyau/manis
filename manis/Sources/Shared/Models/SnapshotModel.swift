@@ -1,19 +1,20 @@
+import Collections
 import Foundation
 
 struct SnapshotModel {}
 
 struct MihomoSnapshot {
-    var trafficHistory: [TrafficPoint]
+    var trafficHistory: Deque<TrafficPoint>
     var currentTraffic: TrafficSnapshot?
     var connections: [ConnectionSnapshot.Connection]
     var memoryUsage: Int64
     var version: String
-    var logs: [LogMessage]
-    var proxies: [String: ProxyInfo]
-    var groups: [String: GroupInfo]
+    var logs: Deque<LogMessage>
+    var proxies: OrderedDictionary<String, ProxyInfo>
+    var groups: OrderedDictionary<String, GroupInfo>
     var rules: [RuleInfo]
-    var proxyProviders: [String: ProxyProviderInfo]
-    var ruleProviders: [String: RuleProviderInfo]
+    var proxyProviders: OrderedDictionary<String, ProxyProviderInfo>
+    var ruleProviders: OrderedDictionary<String, RuleProviderInfo>
     var config: ClashConfig?
     var isConnected: Bool
 

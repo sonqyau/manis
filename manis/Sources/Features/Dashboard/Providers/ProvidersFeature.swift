@@ -1,4 +1,5 @@
 @preconcurrency import Combine
+import Collections
 import ComposableArchitecture
 import Foundation
 
@@ -11,11 +12,11 @@ struct ProvidersFeature: @preconcurrency Reducer {
         }
 
         var selectedSegment: Int = 0
-        var proxyProviders: [String: ProxyProviderInfo] = [:]
-        var ruleProviders: [String: RuleProviderInfo] = [:]
-        var refreshingProxyProviders: Set<String> = []
-        var healthCheckingProxyProviders: Set<String> = []
-        var refreshingRuleProviders: Set<String> = []
+        var proxyProviders: OrderedDictionary<String, ProxyProviderInfo> = [:]
+        var ruleProviders: OrderedDictionary<String, RuleProviderInfo> = [:]
+        var refreshingProxyProviders: OrderedSet<String> = []
+        var healthCheckingProxyProviders: OrderedSet<String> = []
+        var refreshingRuleProviders: OrderedSet<String> = []
         var alerts: Alerts = .init()
     }
 
@@ -117,7 +118,7 @@ struct ProvidersFeature: @preconcurrency Reducer {
         guard !state.refreshingProxyProviders.contains(name) else {
             return .none
         }
-        state.refreshingProxyProviders.insert(name)
+        state.refreshingProxyProviders.append(name)
 
         let service = mihomoService
         return .run { @MainActor send in
@@ -138,7 +139,7 @@ struct ProvidersFeature: @preconcurrency Reducer {
         guard !state.healthCheckingProxyProviders.contains(name) else {
             return .none
         }
-        state.healthCheckingProxyProviders.insert(name)
+        state.healthCheckingProxyProviders.append(name)
 
         let service = mihomoService
         return .run { @MainActor send in
@@ -159,7 +160,7 @@ struct ProvidersFeature: @preconcurrency Reducer {
         guard !state.refreshingRuleProviders.contains(name) else {
             return .none
         }
-        state.refreshingRuleProviders.insert(name)
+        state.refreshingRuleProviders.append(name)
 
         let service = mihomoService
         return .run { @MainActor send in

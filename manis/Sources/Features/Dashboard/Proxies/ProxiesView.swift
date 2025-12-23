@@ -1,3 +1,4 @@
+import Collections
 import ComposableArchitecture
 import Perception
 import SwiftNavigation
@@ -113,7 +114,7 @@ struct ProxiesView: View {
 private struct ProxyGroupCard: View {
     let name: String
     let group: GroupInfo
-    let proxies: [String: ProxyInfo]
+    let proxies: OrderedDictionary<String, ProxyInfo>
     let onSelectProxy: (String) -> Void
     let onTestDelay: () -> Void
 

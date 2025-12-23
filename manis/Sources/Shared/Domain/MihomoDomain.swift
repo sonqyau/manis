@@ -1,5 +1,6 @@
 import Clocks
 @preconcurrency import Combine
+import Collections
 import Foundation
 import Observation
 import OSLog
@@ -9,17 +10,17 @@ import Perception
 @Observable
 final class MihomoDomain {
     struct State {
-        var trafficHistory: [TrafficPoint]
+        var trafficHistory: Deque<TrafficPoint>
         var currentTraffic: TrafficSnapshot?
         var connections: [ConnectionSnapshot.Connection]
         var memoryUsage: Int64
         var version: String
-        var logs: [LogMessage]
-        var proxies: [String: ProxyInfo]
-        var groups: [String: GroupInfo]
+        var logs: Deque<LogMessage>
+        var proxies: OrderedDictionary<String, ProxyInfo>
+        var groups: OrderedDictionary<String, GroupInfo>
         var rules: [RuleInfo]
-        var proxyProviders: [String: ProxyProviderInfo]
-        var ruleProviders: [String: RuleProviderInfo]
+        var proxyProviders: OrderedDictionary<String, ProxyProviderInfo>
+        var ruleProviders: OrderedDictionary<String, RuleProviderInfo>
         var config: ClashConfig?
         var isConnected: Bool
     }
@@ -31,7 +32,7 @@ final class MihomoDomain {
 
     private let stateSubject: CurrentValueSubject<State, Never>
 
-    private(set) var trafficHistory: [TrafficPoint] = [] {
+    private(set) var trafficHistory: Deque<TrafficPoint> = [] {
         didSet { emitState() }
     }
 
@@ -51,15 +52,15 @@ final class MihomoDomain {
         didSet { emitState() }
     }
 
-    private(set) var logs: [LogMessage] = [] {
+    private(set) var logs: Deque<LogMessage> = [] {
         didSet { emitState() }
     }
 
-    private(set) var proxies: [String: ProxyInfo] = [:] {
+    private(set) var proxies: OrderedDictionary<String, ProxyInfo> = [:] {
         didSet { emitState() }
     }
 
-    private(set) var groups: [String: GroupInfo] = [:] {
+    private(set) var groups: OrderedDictionary<String, GroupInfo> = [:] {
         didSet { emitState() }
     }
 
@@ -67,11 +68,11 @@ final class MihomoDomain {
         didSet { emitState() }
     }
 
-    private(set) var proxyProviders: [String: ProxyProviderInfo] = [:] {
+    private(set) var proxyProviders: OrderedDictionary<String, ProxyProviderInfo> = [:] {
         didSet { emitState() }
     }
 
-    private(set) var ruleProviders: [String: RuleProviderInfo] = [:] {
+    private(set) var ruleProviders: OrderedDictionary<String, RuleProviderInfo> = [:] {
         didSet { emitState() }
     }
 
@@ -255,7 +256,7 @@ final class MihomoDomain {
                 trafficHistory.append(point)
 
                 if trafficHistory.count > Self.maxTrafficPoints {
-                    trafficHistory.removeFirst(trafficHistory.count - Self.maxTrafficPoints)
+                    trafficHistory.removeFirst()
                 }
             }
         } catch {
@@ -418,7 +419,7 @@ final class MihomoDomain {
         do {
             let (data, _) = try await makeRequest(path: "/proxies")
             let response = try JSONDecoder().decode(ProxiesResponse.self, from: data)
-            proxies = response.proxies
+            proxies = OrderedDictionary(uniqueKeysWithValues: response.proxies)
         } catch {
             logger.error("Failed to fetch proxies from API.", error: error)
         }
@@ -428,7 +429,7 @@ final class MihomoDomain {
         do {
             let (data, _) = try await makeRequest(path: "/group")
             let response = try JSONDecoder().decode(GroupsResponse.self, from: data)
-            groups = response.proxies
+            groups = OrderedDictionary(uniqueKeysWithValues: response.proxies)
         } catch {
             logger.error("Failed to fetch proxy groups from API.", error: error)
         }
@@ -448,7 +449,7 @@ final class MihomoDomain {
         do {
             let (data, _) = try await makeRequest(path: "/providers/proxies")
             let response = try JSONDecoder().decode(ProxyProvidersResponse.self, from: data)
-            proxyProviders = response.providers
+            proxyProviders = OrderedDictionary(uniqueKeysWithValues: response.providers)
         } catch {
             logger.error("Failed to fetch proxy providers from API.", error: error)
         }
@@ -458,7 +459,7 @@ final class MihomoDomain {
         do {
             let (data, _) = try await makeRequest(path: "/providers/rules")
             let response = try JSONDecoder().decode(RuleProvidersResponse.self, from: data)
-            ruleProviders = response.providers
+            ruleProviders = OrderedDictionary(uniqueKeysWithValues: response.providers)
         } catch {
             logger.error("Failed to fetch rule providers from API.", error: error)
         }
@@ -507,7 +508,7 @@ final class MihomoDomain {
                 logs.append(log)
 
                 if logs.count > Self.maxLogEntries {
-                    logs.removeFirst(logs.count - Self.maxLogEntries)
+                    logs.removeFirst()
                 }
             }
         } catch {

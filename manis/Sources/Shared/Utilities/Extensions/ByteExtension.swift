@@ -1,4 +1,5 @@
 import Foundation
+import Rearrange
 
 enum ByteProcessor {
     @inlinable
@@ -18,6 +19,22 @@ enum ByteProcessor {
     }
 
     @inlinable
+    static func safeSubstring(
+        _ string: String,
+        nsRange: NSRange,
+    ) -> String? {
+        string[nsRange].map(String.init)
+    }
+
+    @inlinable
+    static func safeSubstring(
+        _ string: String,
+        range: Range<Int>,
+    ) -> String? {
+        string[range].map(String.init)
+    }
+
+    @inlinable
     static func processValidatedCString(_ cString: UnsafePointer<CChar>) throws -> String {
         guard let str = String(validatingCString: cString) else {
             throw ByteProcessingError.invalidCString
@@ -28,6 +45,16 @@ enum ByteProcessor {
     @inlinable
     static func processBuffer<T>(_ buffer: UnsafeBufferPointer<T>) -> [T] {
         Array(buffer)
+    }
+
+    @inlinable
+    static func clampedRange(_ range: NSRange, to limit: Int) -> NSRange {
+        range.clamped(to: limit)
+    }
+
+    @inlinable
+    static func shiftedRange(_ range: NSRange, by delta: Int) -> NSRange? {
+        range.shifted(by: delta)
     }
 }
 

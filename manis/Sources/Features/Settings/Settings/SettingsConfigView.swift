@@ -1,3 +1,4 @@
+import Rearrange
 import STTextView
 import SwiftUI
 import UniformTypeIdentifiers
@@ -12,6 +13,8 @@ struct SettingsConfigView: View {
     @State private var findText = ""
     @State private var replaceText = ""
     @State private var isDarkTheme = false
+    @State private var searchResults: [NSRange] = []
+    @State private var currentSearchIndex = 0
 
     let fileName: String
     let fileExtension: String
@@ -137,18 +140,82 @@ struct SettingsConfigView: View {
     }
 
     private func performFind() {
-        print("Find: \(findText)")
+        searchResults = findAllOccurrences(of: findText, in: text)
+        currentSearchIndex = 0
+        print("Found \(searchResults.count) occurrences of '\(findText)'")
     }
 
     private func performReplace() {
-        if !findText.isEmpty, !replaceText.isEmpty {
-            text = text.replacingOccurrences(of: findText, with: replaceText, options: .caseInsensitive)
+        guard !findText.isEmpty, !replaceText.isEmpty else { return }
+        
+        if let currentRange = getCurrentSearchResult() {
+            let mutation = RangeMutation(range: currentRange, delta: replaceText.count - findText.count)
+            text = replaceOccurrence(in: text, range: currentRange, with: replaceText)
+            
+            updateSearchResults(after: mutation)
         }
     }
 
     private func performReplaceAll() {
-        if !findText.isEmpty {
-            text = text.replacingOccurrences(of: findText, with: replaceText, options: .caseInsensitive)
+        guard !findText.isEmpty else { return }
+        
+        let allRanges = findAllOccurrences(of: findText, in: text)
+        var mutations: [RangeMutation] = []
+        
+        for range in allRanges.reversed() {
+            let mutation = RangeMutation(range: range, delta: replaceText.count - findText.count)
+            mutations.append(mutation)
+            text = replaceOccurrence(in: text, range: range, with: replaceText)
+        }
+        
+        searchResults.removeAll()
+        currentSearchIndex = 0
+    }
+
+    private func findAllOccurrences(of searchText: String, in content: String) -> [NSRange] {
+        guard !searchText.isEmpty else { return [] }
+        
+        var ranges: [NSRange] = []
+        var searchRange = NSRange(location: 0, length: content.count)
+        
+        while searchRange.location < content.count {
+            let foundRange = (content as NSString).range(
+                of: searchText,
+                options: [.caseInsensitive],
+                range: searchRange
+            )
+            
+            if foundRange.location == NSNotFound {
+                break
+            }
+            
+            ranges.append(foundRange)
+            searchRange = NSRange(
+                location: foundRange.max,
+                length: content.count - foundRange.max
+            )
+        }
+        
+        return ranges
+    }
+
+    private func replaceOccurrence(in content: String, range: NSRange, with replacement: String) -> String {
+        guard let substring = content[range] else { return content }
+        return content.replacingOccurrences(of: String(substring), with: replacement)
+    }
+
+    private func getCurrentSearchResult() -> NSRange? {
+        guard !searchResults.isEmpty, currentSearchIndex < searchResults.count else { return nil }
+        return searchResults[currentSearchIndex]
+    }
+
+    private func updateSearchResults(after mutation: RangeMutation) {
+        searchResults = searchResults.compactMap { range in
+            range.apply(mutation)
+        }
+        
+        if currentSearchIndex >= searchResults.count {
+            currentSearchIndex = max(0, searchResults.count - 1)
         }
     }
 }

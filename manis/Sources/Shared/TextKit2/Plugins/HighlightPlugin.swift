@@ -1,6 +1,7 @@
 import AppKit
 import Cocoa
 import Foundation
+import Rearrange
 import STTextView
 
 @MainActor
@@ -72,7 +73,7 @@ public class HighlightPlugin: STPlugin {
 
     private func applySyntaxHighlighting(to attributedString: NSAttributedString) -> NSAttributedString {
         let mutableString = NSMutableAttributedString(attributedString: attributedString)
-        let fullRange = NSRange(location: 0, length: mutableString.length)
+        let fullRange = NSRange(location: 0, length: mutableString.length).clamped(to: mutableString.length)
 
         mutableString.addAttribute(.foregroundColor, value: theme.textColor, range: fullRange)
 
@@ -145,15 +146,17 @@ private func highlightPattern(
     }
 
     let string = attributedString.string
-    let matches = regex.matches(in: string, range: NSRange(location: 0, length: string.count))
+    let searchRange = NSRange(location: 0, length: string.count).clamped(to: string.count)
+    let matches = regex.matches(in: string, range: searchRange)
 
     for match in matches {
         let range = captureGroup > 0 && match.numberOfRanges > captureGroup
             ? match.range(at: captureGroup)
             : match.range
 
-        if range.location != NSNotFound {
-            attributedString.addAttribute(.foregroundColor, value: color, range: range)
+        if range != .notFound {
+            let clampedRange = range.clamped(to: string.count)
+            attributedString.addAttribute(.foregroundColor, value: color, range: clampedRange)
         }
     }
 }

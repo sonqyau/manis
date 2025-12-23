@@ -1,4 +1,5 @@
 @preconcurrency import Combine
+import Collections
 import ComposableArchitecture
 import Foundation
 
@@ -16,7 +17,7 @@ struct OverviewFeature: @preconcurrency Reducer {
 
         var isConnected: Bool = false
         var overviewSummary: OverviewSummary = .init()
-        var trafficHistory: [TrafficPoint] = []
+        var trafficHistory: Deque<TrafficPoint> = []
     }
 
     @Dependency(\.mihomoService)

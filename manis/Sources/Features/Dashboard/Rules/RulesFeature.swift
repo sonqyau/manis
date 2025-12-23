@@ -1,6 +1,8 @@
 @preconcurrency import Combine
+import AppKit
 import ComposableArchitecture
 import Foundation
+import Rearrange
 
 @MainActor
 struct RulesFeature: @preconcurrency Reducer {
@@ -127,7 +129,9 @@ struct RulesFeature: @preconcurrency Reducer {
 
         let search = state.searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         if !search.isEmpty {
-            results = results.filter { $0.rule.localizedCaseInsensitiveContains(search) }
+            results = results.filter { stat in
+                matchesSearchQuery(stat.rule, query: search)
+            }
         }
 
         state.rules = results
@@ -136,5 +140,39 @@ struct RulesFeature: @preconcurrency Reducer {
             totalConnections: results.reduce(into: 0) { $0 += $1.count },
             filteredRules: search.isEmpty ? 0 : results.count,
         )
+    }
+
+    private func matchesSearchQuery(_ text: String, query: String) -> Bool {
+        let searchResults = TextComposer.findAll(
+            query,
+            in: text,
+            options: [.caseInsensitive, .diacriticInsensitive]
+        )
+        return !searchResults.isEmpty
+    }
+
+    private func highlightSearchMatches(in text: String, query: String) -> NSAttributedString {
+        let attributedString = NSMutableAttributedString(string: text)
+        
+        guard !query.isEmpty else { return attributedString }
+        
+        let searchResults = TextComposer.findAll(
+            query,
+            in: text,
+            options: [.caseInsensitive, .diacriticInsensitive]
+        )
+        
+        let highlightAttributes: [NSAttributedString.Key: Any] = [
+            .backgroundColor: NSColor.systemYellow.withAlphaComponent(0.3),
+            .foregroundColor: NSColor.controlTextColor
+        ]
+        
+        TextComposer.highlightRanges(
+            searchResults.map(\.range),
+            in: attributedString,
+            with: highlightAttributes
+        )
+        
+        return attributedString
     }
 }

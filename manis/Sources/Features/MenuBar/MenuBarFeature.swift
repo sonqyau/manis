@@ -1,4 +1,5 @@
 @preconcurrency import Combine
+import Collections
 import ComposableArchitecture
 import Foundation
 import SwiftNavigation
@@ -18,7 +19,7 @@ struct MenuBarFeature: @preconcurrency Reducer {
         var downloadSpeed: String = "--"
         var uploadSpeed: String = "--"
         var selectorGroups: [ProxySelectorGroup] = []
-        var proxies: [String: ProxyInfo] = [:]
+        var proxies: OrderedDictionary<String, ProxyInfo> = [:]
         var networkInterface: String?
         var ipAddress: String?
         var alert: AlertState<AlertAction>?
@@ -175,7 +176,7 @@ struct MenuBarFeature: @preconcurrency Reducer {
     }
 
     private static func buildSelectorGroups(
-        from groups: [String: GroupInfo],
+        from groups: OrderedDictionary<String, GroupInfo>
     ) -> [State.ProxySelectorGroup] {
         groups
             .filter { $0.value.type.lowercased() == "selector" }

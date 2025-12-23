@@ -16,6 +16,8 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/jpsim/Yams", from: "6.2.0"),
+        .package(url: "https://github.com/ChimeHQ/Rearrange", from: "2.0.0"),
+        .package(url: "https://github.com/apple/swift-collections", from: "1.3.0"),
         .package(url: "https://github.com/krzyzanowskim/STTextView", from: "2.2.6"),
         .package(url: "https://github.com/siteline/swiftui-introspect", from: "26.0.0"),
         .package(url: "https://github.com/pointfreeco/swift-tagged", from: "0.10.0"),
@@ -34,6 +36,8 @@ let package = Package(
             name: "manis",
             dependencies: [
                 .product(name: "Yams", package: "Yams"),
+                .product(name: "Rearrange", package: "Rearrange"),
+                .product(name: "Collections", package: "swift-collections"),
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
                 .product(name: "SwiftUIIntrospect", package: "swiftui-introspect"),
                 .product(name: "Dependencies", package: "swift-dependencies"),
@@ -80,6 +84,7 @@ let package = Package(
             name: "MainDaemon",
             dependencies: [
                 .product(name: "Yams", package: "Yams"),
+                .product(name: "Collections", package: "swift-collections"),
                 .product(name: "ConcurrencyExtras", package: "swift-concurrency-extras"),
             ],
             path: "manis/Daemon",

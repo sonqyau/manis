@@ -1,3 +1,4 @@
+import Collections
 import Foundation
 import OSLog
 
@@ -34,7 +35,7 @@ final class PortValidation {
     }
 
     func getUsedPorts() -> [Int] {
-        var ports: Set<Int> = []
+        var ports: OrderedSet<Int> = []
 
         let proc = Process()
         proc.executableURL = URL(fileURLWithPath: "/usr/bin/lsof")
@@ -59,14 +60,14 @@ final class PortValidation {
                    let idx = comps[8].lastIndex(of: ":"),
                    let port = Int(comps[8][comps[8].index(after: idx)...])
                 {
-                    ports.insert(port)
+                    ports.append(port)
                 }
             }
         } catch {
             logger.debug("Failed to get used ports: \(error.localizedDescription)")
         }
 
-        return ports.sorted()
+        return Array(ports.sorted())
     }
 
     func isPortInUse(_ port: Int) -> Bool {

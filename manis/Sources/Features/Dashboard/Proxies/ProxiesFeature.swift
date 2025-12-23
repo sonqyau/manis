@@ -1,4 +1,5 @@
 @preconcurrency import Combine
+import Collections
 import ComposableArchitecture
 import Foundation
 import SwiftNavigation
@@ -8,10 +9,10 @@ struct ProxiesFeature: @preconcurrency Reducer {
     @ObservableState
     struct State {
         var searchText: String = ""
-        var groups: [String: GroupInfo] = [:]
-        var proxies: [String: ProxyInfo] = [:]
-        var selectingProxies: Set<String> = []
-        var testingGroups: Set<String> = []
+        var groups: OrderedDictionary<String, GroupInfo> = [:]
+        var proxies: OrderedDictionary<String, ProxyInfo> = [:]
+        var selectingProxies: OrderedSet<String> = []
+        var testingGroups: OrderedSet<String> = []
         var alert: AlertState<AlertAction>?
     }
 
@@ -125,7 +126,7 @@ struct ProxiesFeature: @preconcurrency Reducer {
         guard !state.selectingProxies.contains(key) else {
             return .none
         }
-        state.selectingProxies.insert(key)
+        state.selectingProxies.append(key)
 
         let service = mihomoService
         return .run { @MainActor send in
@@ -146,7 +147,7 @@ struct ProxiesFeature: @preconcurrency Reducer {
         guard !state.testingGroups.contains(group) else {
             return .none
         }
-        state.testingGroups.insert(group)
+        state.testingGroups.append(group)
 
         let service = mihomoService
         return .run { @MainActor send in

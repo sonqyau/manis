@@ -1,3 +1,4 @@
+import Collections
 import ComposableArchitecture
 import Perception
 import SwiftNavigation
@@ -291,7 +292,7 @@ struct MenuBarNavigationButton: View {
 
 private struct MenuBarProxyGroupRow: View {
     let group: MenuBarFeature.State.ProxySelectorGroup
-    let proxies: [String: ProxyInfo]
+    let proxies: OrderedDictionary<String, ProxyInfo>
     let onSelect: (String, String) -> Void
 
     @State private var isExpanded = false

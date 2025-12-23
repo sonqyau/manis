@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import Rearrange
 import STTextView
 
 @MainActor
@@ -18,6 +19,7 @@ public class DiagnosticPlugin: STPlugin {
 
     private weak var textView: STTextView?
     private var diagnostics: [Diagnostic] = []
+    private var pendingMutations: [RangeMutation] = []
 
     public init() {}
 
@@ -32,6 +34,7 @@ public class DiagnosticPlugin: STPlugin {
     public func tearDown() {
         textView = nil
         diagnostics.removeAll()
+        pendingMutations.removeAll()
     }
 
     public func addDiagnostic(_ diagnostic: Diagnostic) {
@@ -41,7 +44,7 @@ public class DiagnosticPlugin: STPlugin {
 
     public func removeDiagnostics(in range: NSRange) {
         diagnostics.removeAll { diagnostic in
-            NSIntersectionRange(diagnostic.range, range).length > 0
+            range.intersects(diagnostic.range)
         }
         invalidateLayout(for: range)
     }
@@ -57,7 +60,7 @@ public class DiagnosticPlugin: STPlugin {
 
     public func diagnostic(at location: Int) -> Diagnostic? {
         diagnostics.first { diagnostic in
-            NSLocationInRange(location, diagnostic.range)
+            diagnostic.range.contains(location)
         }
     }
 
@@ -68,6 +71,32 @@ public class DiagnosticPlugin: STPlugin {
 
         let layoutManager = textView.textLayoutManager
         layoutManager.invalidateLayout(for: layoutManager.documentRange)
+    }
+
+    public func applyTextMutation(_ mutation: RangeMutation) {
+        pendingMutations.append(mutation)
+        
+        var updatedDiagnostics: [Diagnostic] = []
+        
+        for diagnostic in diagnostics {
+            if let updatedRange = diagnostic.range.apply(mutation) {
+                let updatedDiagnostic = Diagnostic(
+                    range: updatedRange,
+                    type: diagnostic.type,
+                    message: diagnostic.message
+                )
+                updatedDiagnostics.append(updatedDiagnostic)
+            }
+        }
+        
+        diagnostics = updatedDiagnostics
+        invalidateLayout(for: mutation.range)
+    }
+
+    public func diagnosticsInRange(_ range: NSRange) -> [Diagnostic] {
+        diagnostics.filter { diagnostic in
+            range.intersects(diagnostic.range)
+        }
     }
 }
 
