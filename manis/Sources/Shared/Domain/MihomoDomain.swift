@@ -1,6 +1,6 @@
 import Clocks
-@preconcurrency import Combine
 import Collections
+@preconcurrency import Combine
 import Foundation
 import Observation
 import OSLog
@@ -112,8 +112,8 @@ final class MihomoDomain {
                 ruleProviders: [:],
                 config: nil,
                 isConnected: false,
-            ),
-        )
+                ),
+            )
         baseURL = "http://127.0.0.1:9090"
         secret = nil
     }
@@ -189,7 +189,7 @@ final class MihomoDomain {
             ruleProviders: ruleProviders,
             config: config,
             isConnected: isConnected,
-        )
+            )
     }
 
     private func emitState() {
@@ -232,7 +232,7 @@ final class MihomoDomain {
             url: url,
             cachePolicy: .reloadIgnoringLocalCacheData,
             timeoutInterval: 30,
-        )
+            )
         if let secret {
             request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
         }
@@ -251,7 +251,7 @@ final class MihomoDomain {
                     timestamp: Date(),
                     upload: Double(traffic.up),
                     download: Double(traffic.down),
-                )
+                    )
 
                 trafficHistory.append(point)
 
@@ -274,7 +274,7 @@ final class MihomoDomain {
             url: url,
             cachePolicy: .reloadIgnoringLocalCacheData,
             timeoutInterval: 30,
-        )
+            )
         if let secret {
             request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
         }
@@ -323,7 +323,7 @@ final class MihomoDomain {
             url: url,
             cachePolicy: .reloadIgnoringLocalCacheData,
             timeoutInterval: 5,
-        )
+            )
         if let secret {
             request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
         }
@@ -340,7 +340,7 @@ final class MihomoDomain {
                 throw DecodingError.dataCorruptedError(
                     in: container,
                     debugDescription: "Invalid date format.",
-                )
+                    )
             }
             let snapshot = try decoder.decode(ConnectionSnapshot.self, from: data)
             connections = snapshot.connections
@@ -378,7 +378,7 @@ final class MihomoDomain {
         method: String = "GET",
         body: Data? = nil,
         queryItems: [URLQueryItem] = [],
-    ) async throws -> (Data, HTTPURLResponse) {
+        ) async throws -> (Data, HTTPURLResponse) {
         var components = URLComponents(string: "\(baseURL)\(path)")
         components?.queryItems = queryItems.isEmpty ? nil : queryItems
 
@@ -534,7 +534,7 @@ final class MihomoDomain {
             method: "PUT",
             body: body,
             queryItems: [URLQueryItem(name: "force", value: "true")],
-        )
+            )
         logger.info("Reloaded Config")
         await fetchConfig()
     }
@@ -602,7 +602,7 @@ final class MihomoDomain {
         name: String,
         url: String = "https://www.apple.com/library/test/success.html",
         timeout: Int = 5000,
-    ) async throws -> ProxyDelayTest {
+        ) async throws -> ProxyDelayTest {
         let encodedName = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
         let queryItems = [
             URLQueryItem(name: "url", value: url),
@@ -611,7 +611,7 @@ final class MihomoDomain {
         let (data, _) = try await makeRequest(
             path: "/proxies/\(encodedName)/delay",
             queryItems: queryItems,
-        )
+            )
         return try JSONDecoder().decode(ProxyDelayTest.self, from: data)
     }
 
@@ -619,7 +619,7 @@ final class MihomoDomain {
         name: String,
         url: String = "https://www.apple.com/library/test/success.html",
         timeout: Int = 5000,
-    ) async throws {
+        ) async throws {
         let encodedName = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
         let queryItems = [
             URLQueryItem(name: "url", value: url),
@@ -636,7 +636,7 @@ final class MihomoDomain {
             path: "/providers/proxies/\(encodedName)",
             method: "PUT",
             body: Data(),
-        )
+            )
         logger.info("Updated proxy provider: \(name)")
         await fetchProxyProviders()
     }

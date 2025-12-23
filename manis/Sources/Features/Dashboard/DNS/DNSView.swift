@@ -16,7 +16,7 @@ struct DNSView: View {
         Binding(
             get: { bindableStore.domain },
             set: { bindableStore.send(.updateDomain($0)) },
-        )
+            )
     }
 
     var body: some View {
@@ -48,8 +48,8 @@ struct DNSView: View {
                     selection: Binding(
                         get: { bindableStore.recordType },
                         set: { bindableStore.send(.selectRecordType($0)) },
-                    ),
-                ) {
+                        ),
+                    ) {
                     ForEach(bindableStore.recordTypes, id: \.self) { type in
                         Text(type).tag(type)
                     }

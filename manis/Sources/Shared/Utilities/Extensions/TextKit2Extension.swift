@@ -65,7 +65,7 @@ public struct TextKit2Extension: NSViewRepresentable {
             language: language,
             theme: theme,
             fontSize: fontSize,
-        )
+            )
         textView.addPlugin(syntaxPlugin)
 
         if enableDiagnostics {
@@ -113,7 +113,7 @@ public struct TextKit2Extension: NSViewRepresentable {
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? STTextView else { return }
             let newText = textView.text ?? ""
-            
+
             if parent.text != newText {
                 trackTextMutation(from: parent.text, to: newText)
                 parent.text = newText
@@ -138,16 +138,16 @@ public struct TextKit2Extension: NSViewRepresentable {
 
         private func trackTextMutation(from oldText: String, to newText: String) {
             guard parent.enableAdvancedTextProcessing else { return }
-            
+
             let oldLength = oldText.count
             let newLength = newText.count
             let delta = newLength - oldLength
-            
+
             if delta != 0 {
                 let changeRange = findChangeRange(from: oldText, to: newText)
                 let mutation = RangeMutation(range: changeRange, delta: delta)
                 mutationTracker.addMutation(mutation)
-                
+
                 diagnosticPlugin?.applyTextMutation(mutation)
             }
         }
@@ -155,15 +155,15 @@ public struct TextKit2Extension: NSViewRepresentable {
         private func findChangeRange(from oldText: String, to newText: String) -> NSRange {
             let commonPrefix = oldText.commonPrefix(with: newText)
             let prefixLength = commonPrefix.count
-            
+
             let oldSuffix = String(oldText.dropFirst(prefixLength))
             let newSuffix = String(newText.dropFirst(prefixLength))
-            
+
             let commonSuffix = String(oldSuffix.reversed()).commonPrefix(with: String(newSuffix.reversed()))
             let suffixLength = commonSuffix.count
-            
+
             let changeLength = oldText.count - prefixLength - suffixLength
-            
+
             return NSRange(location: prefixLength, length: max(0, changeLength))
         }
 
@@ -173,40 +173,40 @@ public struct TextKit2Extension: NSViewRepresentable {
 
         public func replaceText(_ searchText: String, with replacement: String) -> Bool {
             let (newText, operations) = TextComposer.replaceAll(searchText, with: replacement, in: parent.text)
-            
+
             if !operations.isEmpty {
                 parent.text = newText
-                
+
                 for operation in operations {
                     mutationTracker.addMutation(operation.mutation)
                     diagnosticPlugin?.applyTextMutation(operation.mutation)
                 }
-                
+
                 return true
             }
-            
+
             return false
         }
 
         public func insertText(_ text: String, at location: Int) -> Bool {
             let clampedLocation = max(0, min(location, parent.text.count))
             let (newText, mutation) = TextComposer.insertText(text, at: clampedLocation, in: parent.text)
-            
+
             parent.text = newText
             mutationTracker.addMutation(mutation)
             diagnosticPlugin?.applyTextMutation(mutation)
-            
+
             return true
         }
 
         public func deleteText(in range: NSRange) -> Bool {
             let clampedRange = range.clamped(to: parent.text.count)
             let (newText, mutation) = TextComposer.deleteText(in: clampedRange, from: parent.text)
-            
+
             parent.text = newText
             mutationTracker.addMutation(mutation)
             diagnosticPlugin?.applyTextMutation(mutation)
-            
+
             return true
         }
     }
@@ -219,14 +219,14 @@ public extension TextKit2Extension {
         language: TextKit2Language = .plain,
         fontSize: CGFloat = 12,
         theme: TextKit2Theme = .default,
-    ) -> TextKit2Extension {
+        ) -> TextKit2Extension {
         var textExtension = TextKit2Extension(
             text: text,
             isEditable: isEditable,
             language: language,
             fontSize: fontSize,
             theme: theme,
-        )
+            )
         textExtension.enableDiagnostics = true
         textExtension.enableAdvancedTextProcessing = true
         return textExtension
@@ -239,14 +239,14 @@ public extension TextKit2Extension {
         fontSize: CGFloat = 12,
         theme: TextKit2Theme = .default,
         plugins: [any STPlugin] = [],
-    ) -> TextKit2Extension {
+        ) -> TextKit2Extension {
         var textExtension = TextKit2Extension(
             text: text,
             isEditable: isEditable,
             language: language,
             fontSize: fontSize,
             theme: theme,
-        )
+            )
         textExtension.enableDiagnostics = true
         textExtension.enableAdvancedTextProcessing = true
         textExtension.plugins = plugins

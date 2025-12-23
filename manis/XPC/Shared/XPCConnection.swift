@@ -43,7 +43,7 @@ final class XPCConnection: @unchecked Sendable {
             service: "com.manis.XPC",
             targetQueue: nil,
             options: [],
-        ) { [weak self] request in
+            ) { [weak self] request in
             guard let self else {
                 return request.reject(reason: "Service unavailable")
             }
@@ -60,7 +60,7 @@ final class XPCConnection: @unchecked Sendable {
                     self?.setShouldQuit(true)
                     self?.logger.info("XPC connection cancelled, shutting down")
                 },
-            )
+                )
             return decision
         }
     }

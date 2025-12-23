@@ -76,9 +76,9 @@ struct XPCClient: XPC {
         }
     }
 
-    private nonisolated func makeConnection(
+    nonisolated private func makeConnection(
         continuationBox: ContinuationBox<some Sendable>,
-    ) -> (MainXPCProtocol, NSXPCConnection) {
+        ) -> (MainXPCProtocol, NSXPCConnection) {
         let conn = NSXPCConnection(machServiceName: machServiceName)
         conn.remoteObjectInterface = NSXPCInterface(with: MainXPCProtocol.self)
 
@@ -191,7 +191,7 @@ struct XPCClient: XPC {
         configPath _: String,
         configContent _: String,
         reply: @escaping (String?, MainXPCError?) -> Void,
-    ) { reply(nil, MainXPCError(domain: "com.manis.XPC", code: -1, message: "XPC service unavailable")) }
+        ) { reply(nil, MainXPCError(domain: "com.manis.XPC", code: -1, message: "XPC service unavailable")) }
 
     func stopKernel(reply: @escaping (MainXPCError?) -> Void) {
         reply(MainXPCError(domain: "com.manis.XPC", code: -1, message: "XPC service unavailable"))

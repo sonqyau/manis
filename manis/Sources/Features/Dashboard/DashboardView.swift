@@ -58,7 +58,7 @@ struct DashboardView: View {
             set: { path in
                 bindableStore.send(.navigationPathChanged(path))
             },
-        )
+            )
     }
 
     private var sidebar: some View {

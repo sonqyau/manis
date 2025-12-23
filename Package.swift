@@ -20,6 +20,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-collections", from: "1.3.0"),
         .package(url: "https://github.com/krzyzanowskim/STTextView", from: "2.2.6"),
         .package(url: "https://github.com/siteline/swiftui-introspect", from: "26.0.0"),
+        .package(url: "https://github.com/christophhagen/BinaryCodable", from: "3.1.1"),
         .package(url: "https://github.com/pointfreeco/swift-tagged", from: "0.10.0"),
         .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.7.4"),
         .package(url: "https://github.com/pointfreeco/swift-nonempty", from: "0.5.0"),

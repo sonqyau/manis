@@ -148,7 +148,7 @@ enum InputValidation {
         if string.count <= maxLength {
             return string
         }
-        
+
         let endIndex = string.index(string.startIndex, offsetBy: maxLength)
         return String(string[..<endIndex])
     }

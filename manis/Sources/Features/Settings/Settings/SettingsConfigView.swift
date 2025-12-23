@@ -38,7 +38,7 @@ struct SettingsConfigView: View {
             document: ConfigDocument(text: text),
             contentType: UTType(filenameExtension: fileExtension) ?? .plainText,
             defaultFilename: displayName,
-        ) { result in
+            ) { result in
             switch result {
             case let .success(url):
                 currentFileURL = url
@@ -50,7 +50,7 @@ struct SettingsConfigView: View {
         .fileImporter(
             isPresented: $showOpenDialog,
             allowedContentTypes: [UTType(filenameExtension: fileExtension) ?? .plainText],
-        ) { result in
+            ) { result in
             switch result {
             case let .success(url):
                 loadFile(from: url)
@@ -65,7 +65,7 @@ struct SettingsConfigView: View {
                 onFind: performFind,
                 onReplace: performReplace,
                 onReplaceAll: performReplaceAll,
-            )
+                )
         }
     }
 
@@ -120,7 +120,7 @@ struct SettingsConfigView: View {
             language: language,
             fontSize: 12,
             theme: isDarkTheme ? TextKit2Theme.dark : TextKit2Theme.light,
-        )
+            )
         .onChange(of: text) { _, _ in
             if !isEdited {
                 isEdited = true
@@ -147,55 +147,55 @@ struct SettingsConfigView: View {
 
     private func performReplace() {
         guard !findText.isEmpty, !replaceText.isEmpty else { return }
-        
+
         if let currentRange = getCurrentSearchResult() {
             let mutation = RangeMutation(range: currentRange, delta: replaceText.count - findText.count)
             text = replaceOccurrence(in: text, range: currentRange, with: replaceText)
-            
+
             updateSearchResults(after: mutation)
         }
     }
 
     private func performReplaceAll() {
         guard !findText.isEmpty else { return }
-        
+
         let allRanges = findAllOccurrences(of: findText, in: text)
         var mutations: [RangeMutation] = []
-        
+
         for range in allRanges.reversed() {
             let mutation = RangeMutation(range: range, delta: replaceText.count - findText.count)
             mutations.append(mutation)
             text = replaceOccurrence(in: text, range: range, with: replaceText)
         }
-        
+
         searchResults.removeAll()
         currentSearchIndex = 0
     }
 
     private func findAllOccurrences(of searchText: String, in content: String) -> [NSRange] {
         guard !searchText.isEmpty else { return [] }
-        
+
         var ranges: [NSRange] = []
         var searchRange = NSRange(location: 0, length: content.count)
-        
+
         while searchRange.location < content.count {
             let foundRange = (content as NSString).range(
                 of: searchText,
                 options: [.caseInsensitive],
-                range: searchRange
-            )
-            
+                range: searchRange,
+                )
+
             if foundRange.location == NSNotFound {
                 break
             }
-            
+
             ranges.append(foundRange)
             searchRange = NSRange(
                 location: foundRange.max,
-                length: content.count - foundRange.max
-            )
+                length: content.count - foundRange.max,
+                )
         }
-        
+
         return ranges
     }
 
@@ -213,7 +213,7 @@ struct SettingsConfigView: View {
         searchResults = searchResults.compactMap { range in
             range.apply(mutation)
         }
-        
+
         if currentSearchIndex >= searchResults.count {
             currentSearchIndex = max(0, searchResults.count - 1)
         }
@@ -332,6 +332,6 @@ struct ConfigEditorWindow: View {
             fileName: fileName,
             fileExtension: fileExtension,
             language: language,
-        )
+            )
     }
 }

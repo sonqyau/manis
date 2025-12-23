@@ -1,5 +1,5 @@
-@preconcurrency import Combine
 import Collections
+@preconcurrency import Combine
 import ComposableArchitecture
 import Foundation
 
@@ -60,7 +60,7 @@ struct OverviewFeature: @preconcurrency Reducer {
                     connectionCount: snapshot.connections.count,
                     version: snapshot.version,
                     memoryUsage: snapshot.memoryUsage,
-                )
+                    )
                 state.trafficHistory = snapshot.trafficHistory
                 return .none
             }

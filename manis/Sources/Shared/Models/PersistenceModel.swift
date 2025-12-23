@@ -91,14 +91,14 @@ final class RemoteInstance: Identifiable {
             let dependencies = RemoteInstanceDependencies()
             if let keychainSecret = try dependencies.keychain.secret(
                 RemoteInstanceKeychain.key(for: id),
-            ) {
+                ) {
                 return keychainSecret
             }
         } catch {
             Self.logger.error(
                 "Unable to read secret from Keychain",
                 metadata: ["error": String(describing: error)],
-            )
+                )
         }
 
         return persistedSecret
@@ -110,11 +110,11 @@ final class RemoteInstance: Identifiable {
             try dependencies.keychain.setSecret(
                 secret,
                 RemoteInstanceKeychain.key(for: id),
-            )
+                )
         } else {
             try dependencies.keychain.deleteSecret(
                 RemoteInstanceKeychain.key(for: id),
-            )
+                )
         }
         persistedSecret = nil
     }

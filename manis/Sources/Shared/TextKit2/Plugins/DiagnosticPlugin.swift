@@ -75,20 +75,20 @@ public class DiagnosticPlugin: STPlugin {
 
     public func applyTextMutation(_ mutation: RangeMutation) {
         pendingMutations.append(mutation)
-        
+
         var updatedDiagnostics: [Diagnostic] = []
-        
+
         for diagnostic in diagnostics {
             if let updatedRange = diagnostic.range.apply(mutation) {
                 let updatedDiagnostic = Diagnostic(
                     range: updatedRange,
                     type: diagnostic.type,
-                    message: diagnostic.message
-                )
+                    message: diagnostic.message,
+                    )
                 updatedDiagnostics.append(updatedDiagnostic)
             }
         }
-        
+
         diagnostics = updatedDiagnostics
         invalidateLayout(for: mutation.range)
     }
@@ -106,7 +106,7 @@ extension DiagnosticPlugin: @MainActor ManisTextLayoutManagerDelegate {
         _ textLayoutManager: TextLayout,
         customLayoutFragmentFor _: NSTextLocation,
         in textElement: NSTextElement,
-    ) -> NSTextLayoutFragment? {
+        ) -> NSTextLayoutFragment? {
         guard textLayoutManager.textContentManager != nil,
               let elementRange = textElement.elementRange
         else {

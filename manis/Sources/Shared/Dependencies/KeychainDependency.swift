@@ -17,7 +17,7 @@ enum KeychainClientKey: DependencyKey {
         deleteSecret: { key in
             try Keychain.shared.deleteSecret(for: key)
         },
-    )
+        )
 }
 
 extension DependencyValues {

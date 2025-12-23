@@ -10,7 +10,7 @@ actor ConnectService {
             throw DaemonError.invalidStateTransition(
                 from: String(describing: state),
                 to: "enabling",
-            )
+                )
         }
 
         state = .enabling
@@ -22,7 +22,7 @@ actor ConnectService {
                 socksPort: socksPort,
                 pacURL: pacURL,
                 bypassList: bypassList,
-            )
+                )
 
             try await enableConnect(config: config)
             state = .enabled(config)
@@ -64,7 +64,7 @@ actor ConnectService {
                 socksProxy: nil,
                 pacURL: nil,
                 bypassList: [],
-            )
+                )
 
         case .enabling, .disabling:
             ConnectStatus(
@@ -74,7 +74,7 @@ actor ConnectService {
                 socksProxy: nil,
                 pacURL: nil,
                 bypassList: [],
-            )
+                )
 
         case let .enabled(config):
             ConnectStatus(
@@ -84,7 +84,7 @@ actor ConnectService {
                 socksProxy: ConnectInfo(host: "127.0.0.1", port: Int32(config.socksPort)),
                 pacURL: config.pacURL,
                 bypassList: config.bypassList,
-            )
+                )
 
         case .error:
             ConnectStatus(
@@ -94,7 +94,7 @@ actor ConnectService {
                 socksProxy: nil,
                 pacURL: nil,
                 bypassList: [],
-            )
+                )
         }
     }
 
@@ -141,7 +141,7 @@ actor ConnectService {
         }
     }
 
-    private nonisolated func setHTTPProxy(host: String, port: Int) throws {
+    nonisolated private func setHTTPProxy(host: String, port: Int) throws {
         let result = executeNetworkSetup([
             "-setwebproxy", "Wi-Fi", host, "\(port)",
         ])
@@ -151,7 +151,7 @@ actor ConnectService {
         }
     }
 
-    private nonisolated func setHTTPSProxy(host: String, port: Int) throws {
+    nonisolated private func setHTTPSProxy(host: String, port: Int) throws {
         let result = executeNetworkSetup([
             "-setsecurewebproxy", "Wi-Fi", host, "\(port)",
         ])
@@ -161,7 +161,7 @@ actor ConnectService {
         }
     }
 
-    private nonisolated func setSOCKSProxy(host: String, port: Int) throws {
+    nonisolated private func setSOCKSProxy(host: String, port: Int) throws {
         let result = executeNetworkSetup([
             "-setsocksfirewallproxy", "Wi-Fi", host, "\(port)",
         ])
@@ -171,7 +171,7 @@ actor ConnectService {
         }
     }
 
-    private nonisolated func setPACURL(_ url: String) throws {
+    nonisolated private func setPACURL(_ url: String) throws {
         let result = executeNetworkSetup([
             "-setautoproxyurl", "Wi-Fi", url,
         ])
@@ -181,7 +181,7 @@ actor ConnectService {
         }
     }
 
-    private nonisolated func setBypassList(_ bypassList: [String]) throws {
+    nonisolated private func setBypassList(_ bypassList: [String]) throws {
         let bypassString = bypassList.joined(separator: " ")
         let result = executeNetworkSetup([
             "-setproxybypassdomains", "Wi-Fi", bypassString,
@@ -192,7 +192,7 @@ actor ConnectService {
         }
     }
 
-    private nonisolated func disableHTTPProxy() throws {
+    nonisolated private func disableHTTPProxy() throws {
         let result = executeNetworkSetup([
             "-setwebproxystate", "Wi-Fi", "off",
         ])
@@ -202,7 +202,7 @@ actor ConnectService {
         }
     }
 
-    private nonisolated func disableHTTPSProxy() throws {
+    nonisolated private func disableHTTPSProxy() throws {
         let result = executeNetworkSetup([
             "-setsecurewebproxystate", "Wi-Fi", "off",
         ])
@@ -212,7 +212,7 @@ actor ConnectService {
         }
     }
 
-    private nonisolated func disableSOCKSProxy() throws {
+    nonisolated private func disableSOCKSProxy() throws {
         let result = executeNetworkSetup([
             "-setsocksfirewallproxystate", "Wi-Fi", "off",
         ])
@@ -222,7 +222,7 @@ actor ConnectService {
         }
     }
 
-    private nonisolated func disablePAC() throws {
+    nonisolated private func disablePAC() throws {
         let result = executeNetworkSetup([
             "-setautoproxystate", "Wi-Fi", "off",
         ])
@@ -232,7 +232,7 @@ actor ConnectService {
         }
     }
 
-    private nonisolated func executeNetworkSetup(_ arguments: [String]) -> Int32 {
+    nonisolated private func executeNetworkSetup(_ arguments: [String]) -> Int32 {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/sbin/networksetup")
         process.arguments = arguments

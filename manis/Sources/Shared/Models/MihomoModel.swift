@@ -39,7 +39,7 @@ struct ClashConfig: Codable {
         externalController: String? = nil,
         externalUI: String? = nil,
         secret: String? = nil,
-    ) {
+        ) {
         self.port = port
         self.socksPort = socksPort
         self.mixedPort = mixedPort
@@ -78,7 +78,7 @@ struct ProxyInfo: Codable {
         now: String? = nil,
         all: [String] = [],
         history: [ProxyDelay] = [],
-    ) {
+        ) {
         self.name = name
         self.type = type
         self.udp = udp
@@ -116,7 +116,7 @@ struct GroupInfo: Codable {
         type: String,
         now: String? = nil,
         all: [String] = [],
-    ) {
+        ) {
         self.name = name
         self.type = type
         self.now = now
@@ -209,7 +209,7 @@ struct DNSQueryResponse: Codable {
         status: Int,
         question: [DNSQuestion],
         answer: [DNSAnswer] = [],
-    ) {
+        ) {
         self.status = status
         self.question = question
         self.answer = answer

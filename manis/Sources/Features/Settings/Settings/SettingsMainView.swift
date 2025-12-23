@@ -111,8 +111,8 @@ struct SettingsMainView: View {
             Binding<AlertState<SettingsFeature.AlertAction>?>(
                 get: { store.alert },
                 set: { _ in },
-            ),
-        ) { action in
+                ),
+            ) { action in
             if let action {
                 store.send(.alert(action))
             }
@@ -123,7 +123,7 @@ struct SettingsMainView: View {
                 fileExtension: "yaml",
                 language: .yaml,
                 initialContent: configContent,
-            )
+                )
         }
     }
 
@@ -163,8 +163,8 @@ struct SettingsMainView: View {
                 isOn: Binding(
                     get: { store.state.launchAtLogin.isEnabled },
                     set: { _ in store.send(.toggleBootstrap) },
-                ),
-            )
+                    ),
+                )
             .toggleStyle(.switch)
             .disabled(store.state.isProcessing)
 
@@ -274,9 +274,9 @@ struct SettingsMainView: View {
 
             Link(
                 destination:
-                URL(string: "https://github.com/sonqyau/manis") ??
+                    URL(string: "https://github.com/sonqyau/manis") ??
                     URL(string: "https://github.com/sonqyau") ?? URL(fileURLWithPath: "/"),
-            ) {
+                ) {
                 HStack {
                     Label("GitHub Repository", systemImage: "link")
                     Spacer()
@@ -316,7 +316,7 @@ struct SettingsMainView: View {
 
     private func helperApprovalNotice(
         text: String = "Allow the helper under Privacy & Security → Developer Tools",
-    ) -> some View {
+        ) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .accessibilityHidden(true)
@@ -328,7 +328,7 @@ struct SettingsMainView: View {
         .padding(12)
         .background(
             Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous),
-        )
+            )
     }
 
     private func helperApprovalActions(needsStatusRefresh: Bool = false) -> some View {
@@ -348,7 +348,7 @@ struct SettingsMainView: View {
             } label: {
                 Label(
                     needsStatusRefresh ? "Refresh Status" : "Check Status", systemImage: "arrow.clockwise",
-                )
+                    )
             }
             .buttonStyle(.bordered)
             .disabled(store.state.isProcessing)

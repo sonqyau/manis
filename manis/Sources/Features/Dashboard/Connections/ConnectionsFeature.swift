@@ -126,7 +126,7 @@ struct ConnectionsFeature: @preconcurrency Reducer {
     private func closeConnectionEffect(
         state: inout State,
         id: String,
-    ) -> Effect<Action> {
+        ) -> Effect<Action> {
         guard !state.closingConnections.contains(id) else {
             return .none
         }

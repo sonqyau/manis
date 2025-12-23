@@ -58,7 +58,7 @@ struct TunConfig: Codable {
         dnsHijack: [String] = [],
         autoRoute: Bool = false,
         autoDetectInterface: Bool = false,
-    ) {
+        ) {
         self.enable = enable
         self.stack = stack
         self.dnsHijack = dnsHijack
