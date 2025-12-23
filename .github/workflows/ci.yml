@@ -18,12 +18,12 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Install SwiftFormat and SwiftLint
+      - name: Install SwiftFormat, SwiftLint and create-dmg
         run: |
-          brew install swiftformat swiftlint
+          brew install swiftformat swiftlint create-dmg
 
       - name: Linting
         run: swiftlint --fix --format && swiftlint --strict
@@ -36,7 +36,7 @@ jobs:
       - name: Get Swift version
         run: swift --version
 
-      - name: Build
+      - name: Build Binary
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -50,19 +50,37 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Build
+      - name: Build Binary
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           chmod +x build.sh
           ./build.sh
 
-      - name: Upload
+      - name: Create DMG
+        run: |
+          create-dmg --volname "manis" --skip-jenkins --no-internet-enable --filesystem APFS --icon "manis.app" 0 0 --hide-extension "manis.app" --app-drop-link 0 0 "manis.dmg" ".build/release/manis.app"
+
+      - name: Upload Binary
+        uses: actions/upload-artifact@v6
+        with:
+          name: manis-binary
+          path: .build/release/manis
+          if-no-files-found: error
+
+      - name: Upload Bundle
         uses: actions/upload-artifact@v6
         with:
           name: manis-app
           path: .build/release/manis.app
+          if-no-files-found: error
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v6
+        with:
+          name: manis-dmg
+          path: manis.dmg
           if-no-files-found: error
