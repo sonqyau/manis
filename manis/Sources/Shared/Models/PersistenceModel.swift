@@ -70,7 +70,6 @@ final class RemoteInstance: Identifiable {
     var id: UUID
     var name: String
     var apiURL: String
-    var persistedSecret: String?
     var isActive: Bool
 
     var createdAt: Date
@@ -81,27 +80,38 @@ final class RemoteInstance: Identifiable {
         id = dependencies.uuid()
         self.name = name
         self.apiURL = apiURL
-        persistedSecret = secret
         isActive = false
         createdAt = dependencies.date()
+        
+        if let secret = secret, !secret.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            do {
+                let keychainDeps = RemoteInstanceDependencies()
+                try keychainDeps.keychain.setSecret(
+                    secret,
+                    RemoteInstanceKeychain.key(for: self.id)
+                )
+            } catch {
+                Self.logger.error(
+                    "Failed to store secret in Keychain during initialization",
+                    metadata: ["error": String(describing: error)]
+                )
+            }
+        }
     }
 
     @Transient var secret: String? {
         do {
             let dependencies = RemoteInstanceDependencies()
-            if let keychainSecret = try dependencies.keychain.secret(
-                RemoteInstanceKeychain.key(for: id),
-            ) {
-                return keychainSecret
-            }
+            return try dependencies.keychain.secret(
+                RemoteInstanceKeychain.key(for: id)
+            )
         } catch {
             Self.logger.error(
                 "Unable to read secret from Keychain",
-                metadata: ["error": String(describing: error)],
+                metadata: ["error": String(describing: error)]
             )
+            return nil
         }
-
-        return persistedSecret
     }
 
     func updateSecret(_ newSecret: String?) throws {
@@ -109,14 +119,13 @@ final class RemoteInstance: Identifiable {
         if let secret = newSecret, !secret.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             try dependencies.keychain.setSecret(
                 secret,
-                RemoteInstanceKeychain.key(for: id),
+                RemoteInstanceKeychain.key(for: id)
             )
         } else {
             try dependencies.keychain.deleteSecret(
-                RemoteInstanceKeychain.key(for: id),
+                RemoteInstanceKeychain.key(for: id)
             )
         }
-        persistedSecret = nil
     }
 
     func clearSecret() throws {

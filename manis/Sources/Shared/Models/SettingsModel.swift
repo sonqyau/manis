@@ -21,6 +21,12 @@ final class SettingsModel {
     var autoUpdateInterval: TimeInterval = 86400
     var lastSelectedTab = "overview"
     var dashboardRefreshInterval: TimeInterval = 5.0
+    
+    var selectedProxies: [String: String] = [:]
+    
+    var dashboardWindowFrame: String?
+    var settingsWindowFrame: String?
+    var configWindowFrame: String?
 
     var createdAt = Date()
     var updatedAt = Date()
@@ -123,6 +129,74 @@ final class SettingsManager {
             try? save()
         }
     }
+
+    var benchmarkURL: String {
+        get { settings?.benchmarkURL ?? "https://www.apple.com/library/test/success.html" }
+        set {
+            settings?.benchmarkURL = newValue
+            try? save()
+        }
+    }
+
+    var benchmarkTimeout: Int {
+        get { settings?.benchmarkTimeout ?? 5000 }
+        set {
+            settings?.benchmarkTimeout = newValue
+            try? save()
+        }
+    }
+
+    var logLevel: String {
+        get { settings?.logLevel ?? "info" }
+        set {
+            settings?.logLevel = newValue
+            try? save()
+        }
+    }
+
+    var lastSelectedDashboardTab: String {
+        get { settings?.lastSelectedTab ?? "overview" }
+        set {
+            settings?.lastSelectedTab = newValue
+            try? save()
+        }
+    }
+
+    var selectedProxies: [String: String] {
+        get { settings?.selectedProxies ?? [:] }
+        set {
+            settings?.selectedProxies = newValue
+            try? save()
+        }
+    }
+
+    func saveWindowFrame(_ frame: NSRect, for window: WindowIdentifier) {
+        let frameString = NSStringFromRect(frame)
+        switch window {
+        case .dashboard:
+            settings?.dashboardWindowFrame = frameString
+        case .settings:
+            settings?.settingsWindowFrame = frameString
+        case .config:
+            settings?.configWindowFrame = frameString
+        }
+        try? save()
+    }
+
+    func loadWindowFrame(for window: WindowIdentifier) -> NSRect? {
+        guard let frameString = switch window {
+        case .dashboard: settings?.dashboardWindowFrame
+        case .settings: settings?.settingsWindowFrame
+        case .config: settings?.configWindowFrame
+        } else { return nil }
+        return NSRectFromString(frameString)
+    }
+}
+
+enum WindowIdentifier {
+    case dashboard
+    case settings
+    case config
 }
 
 enum SettingsError: MainError {

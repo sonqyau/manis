@@ -37,11 +37,22 @@ final class PersistenceDomain {
     private let defaultUpdateInterval: TimeInterval = 7200
 
     var isLocalMode: Bool {
-        !remoteInstances.contains(where: \.isActive)
+        guard let container = modelContainer else { return true }
+        let context = container.mainContext
+        let activeInstanceDescriptor = FetchDescriptor<RemoteInstance>(
+            predicate: #Predicate<RemoteInstance> { $0.isActive == true }
+        )
+        let activeInstances = try? context.fetch(activeInstanceDescriptor)
+        return activeInstances?.isEmpty ?? true
     }
 
     var activeRemoteInstance: RemoteInstance? {
-        remoteInstances.first { $0.isActive }
+        guard let container = modelContainer else { return nil }
+        let context = container.mainContext
+        let activeInstanceDescriptor = FetchDescriptor<RemoteInstance>(
+            predicate: #Predicate<RemoteInstance> { $0.isActive == true }
+        )
+        return try? context.fetch(activeInstanceDescriptor).first
     }
 
     private init(clock: any Clock<Duration> = ContinuousClock()) {
@@ -82,8 +93,12 @@ final class PersistenceDomain {
         return .validationFailed(error.applicationMessage)
     }
 
-    private func performDatabase<T>(_ operation: () throws -> T) throws -> T {
-        try operation()
+    private func performDatabase<T>(_ operation: () throws -> T) throws(PersistenceError) -> T {
+        do {
+            return try operation()
+        } catch {
+            throw mapError(error)
+        }
     }
 
     func initialize(container: ModelContainer) throws(PersistenceError) {
@@ -127,12 +142,9 @@ final class PersistenceDomain {
             let instances = try performDatabase {
                 try context.fetch(descriptor)
             }
-            let didMigrateSecrets = migrateLegacySecrets(for: instances)
             remoteInstances = instances
-            if didMigrateSecrets {
-                try performDatabase {
-                    try context.save()
-                }
+            try performDatabase {
+                try context.save()
             }
             logger.info("Loaded \(remoteInstances.count) remote instances")
         } catch {
@@ -143,7 +155,15 @@ final class PersistenceDomain {
     func addConfig(name: String, url: String) async throws(PersistenceError) {
         guard let container = modelContainer else { throw PersistenceError.notInitialized }
         guard URL(string: url) != nil else { throw PersistenceError.invalidURL }
-        guard !configs.contains(where: { $0.url == url }) else { throw PersistenceError.duplicateURL }
+        
+        let context = container.mainContext
+        let duplicateDescriptor = FetchDescriptor<PersistenceModel>(
+            predicate: #Predicate<PersistenceModel> { $0.url == url }
+        )
+        let existingConfigs = try performDatabase {
+            try context.fetch(duplicateDescriptor)
+        }
+        guard existingConfigs.isEmpty else { throw PersistenceError.duplicateURL }
 
         do {
             let cfg = PersistenceModel(name: name, url: url)
@@ -219,7 +239,18 @@ final class PersistenceDomain {
     }
 
     func activateConfig(_ config: PersistenceModel) async throws(PersistenceError) {
-        configs.forEach { $0.isActive = false }
+        guard let container = modelContainer else { throw PersistenceError.notInitialized }
+        let context = container.mainContext
+        
+        let deactivateDescriptor = FetchDescriptor<PersistenceModel>(
+            predicate: #Predicate<PersistenceModel> { $0.isActive == true }
+        )
+        let activeConfigs = try performDatabase {
+            try context.fetch(deactivateDescriptor)
+        }
+        for activeConfig in activeConfigs {
+            activeConfig.isActive = false
+        }
 
         config.isActive = true
 
@@ -278,7 +309,7 @@ final class PersistenceDomain {
         do {
             let ts = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
             let backup = resourceManager.configDirectory
-                .appendingPathComponent("config_backup_\(ts).yaml")
+                .appendingPathComponent("config_bak_\(ts).yaml")
 
             try FileManager.default.copyItem(at: path, to: backup)
             try cleanupOldBackups()
@@ -294,7 +325,7 @@ final class PersistenceDomain {
                 includingPropertiesForKeys: [.creationDateKey],
                 options: [.skipsHiddenFiles],
             )
-            .filter { $0.lastPathComponent.hasPrefix("config_backup_") }
+            .filter { $0.lastPathComponent.hasPrefix("config_bak_") }
             .sorted { url1, url2 in
                 let d1 = (try? url1.resourceValues(forKeys: [.creationDateKey]))?
                     .creationDate ?? .distantPast
@@ -327,27 +358,41 @@ final class PersistenceDomain {
     }
 
     private func performAutoUpdate() async {
-        for cfg in configs where cfg.autoUpdate {
-            do {
-                try await updateConfig(cfg)
-                if cfg.isActive {
-                    await sendNotification(
-                        title: "Configuration updated",
-                        body: "\(cfg.name) was updated successfully.",
+        guard let container = modelContainer else { return }
+        let context = container.mainContext
+        
+        let autoUpdateDescriptor = FetchDescriptor<PersistenceModel>(
+            predicate: #Predicate<PersistenceModel> { $0.autoUpdate == true }
+        )
+        
+        do {
+            let autoUpdateConfigs = try performDatabase {
+                try context.fetch(autoUpdateDescriptor)
+            }
+            for cfg in autoUpdateConfigs {
+                do {
+                    try await updateConfig(cfg)
+                    if cfg.isActive {
+                        await sendNotification(
+                            title: "Configuration updated",
+                            body: "\(cfg.name) was updated successfully.",
+                        )
+                    }
+                } catch {
+                    let chain = error.errorChainDescription
+                    logger.error(
+                        "Failed to update configuration \(cfg.name): \(error.localizedDescription)\n\(chain)",
                     )
-                }
-            } catch {
-                let chain = error.errorChainDescription
-                logger.error(
-                    "Failed to update configuration \(cfg.name): \(error.localizedDescription)\n\(chain)",
-                )
-                if cfg.isActive {
-                    await sendNotification(
-                        title: "Configuration update failed",
-                        body: "\(cfg.name): \(error.localizedDescription)",
-                    )
+                    if cfg.isActive {
+                        await sendNotification(
+                            title: "Configuration update failed",
+                            body: "\(cfg.name): \(error.localizedDescription)",
+                        )
+                    }
                 }
             }
+        } catch {
+            logger.error("Failed to fetch auto-update configs: \(error.localizedDescription)")
         }
     }
 
@@ -383,16 +428,9 @@ final class PersistenceDomain {
             throw PersistenceError.validationFailed(error.applicationMessage)
         }
 
-        let instance = RemoteInstance(name: sanitizedName, apiURL: sanitizedURL)
+        let instance = RemoteInstance(name: sanitizedName, apiURL: sanitizedURL, secret: sanitizedSecret)
         let context = container.mainContext
         context.insert(instance)
-
-        do {
-            try instance.updateSecret(sanitizedSecret)
-        } catch {
-            context.delete(instance)
-            throw PersistenceError.secretStorageFailed(error.applicationMessage)
-        }
 
         do {
             try context.save()
@@ -400,6 +438,7 @@ final class PersistenceDomain {
 
             logger.info("Added remote instance: \(sanitizedName).")
         } catch {
+            try? instance.clearSecret()
             throw mapError(error)
         }
     }
@@ -424,7 +463,14 @@ final class PersistenceDomain {
     }
 
     func activateRemoteInstance(_ instance: RemoteInstance?) async {
-        for inst in remoteInstances {
+        guard let container = modelContainer else { return }
+        let context = container.mainContext
+        
+        let deactivateDescriptor = FetchDescriptor<RemoteInstance>(
+            predicate: #Predicate<RemoteInstance> { $0.isActive == true }
+        )
+        let activeInstances = try? context.fetch(deactivateDescriptor)
+        for inst in activeInstances ?? [] {
             inst.isActive = false
         }
 
@@ -456,30 +502,6 @@ final class PersistenceDomain {
         )
     }
 
-    private func migrateLegacySecrets(for instances: [RemoteInstance]) -> Bool {
-        var didMigrate = false
-
-        for instance in instances {
-            guard let legacySecret = instance.persistedSecret, !legacySecret.isEmpty else {
-                continue
-            }
-
-            do {
-                try instance.updateSecret(legacySecret)
-                didMigrate = true
-            } catch {
-                logger.error(
-                    "Failed migrating secret for instance \(instance.name): \(error.localizedDescription)",
-                    metadata: [
-                        "instance": instance.name,
-                        "error": error.localizedDescription,
-                    ],
-                )
-            }
-        }
-
-        return didMigrate
-    }
 }
 
 enum PersistenceError: MainError {
