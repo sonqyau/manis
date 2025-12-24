@@ -14,6 +14,7 @@ struct DNSFeature: @preconcurrency Reducer {
         var recordTypes: [String] = ["A", "AAAA", "CNAME", "MX", "TXT", "NS"]
         var queryResult: DNSQueryResponse?
         var isQuerying: Bool = false
+        var isFlushingCache: Bool = false
         var alerts: Alerts = .init()
     }
 
@@ -23,6 +24,8 @@ struct DNSFeature: @preconcurrency Reducer {
         case selectRecordType(String)
         case performQuery
         case queryFinished(Result<DNSQueryResponse, Error>)
+        case flushDNSCache
+        case flushDNSCacheFinished(Result<Void, Error>)
         case dismissError
     }
 
@@ -71,6 +74,35 @@ struct DNSFeature: @preconcurrency Reducer {
                 case let .failure(error):
                     state.alerts.errorMessage = (error as NSError).localizedDescription
                     state.queryResult = nil
+                }
+                return .none
+
+            case .flushDNSCache:
+                guard !state.isFlushingCache else {
+                    return .none
+                }
+                state.isFlushingCache = true
+                state.alerts.errorMessage = nil
+
+                let service = mihomoService
+
+                return .run { @MainActor send in
+                    do {
+                        try await service.flushDNSCache()
+                        send(.flushDNSCacheFinished(.success(())))
+                    } catch {
+                        send(.flushDNSCacheFinished(.failure(error)))
+                    }
+                }
+
+            case let .flushDNSCacheFinished(result):
+                state.isFlushingCache = false
+                switch result {
+                case .success:
+                    break
+
+                case let .failure(error):
+                    state.alerts.errorMessage = (error as NSError).localizedDescription
                 }
                 return .none
 

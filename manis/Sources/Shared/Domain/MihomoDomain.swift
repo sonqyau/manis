@@ -222,6 +222,50 @@ final class MihomoDomain {
         await fetchConfig()
     }
 
+    private func makeRequest(
+        path: String,
+        method: String = "GET",
+        body: Data? = nil,
+        queryItems: [URLQueryItem] = [],
+        ) async throws -> (Data, HTTPURLResponse) {
+        var components = URLComponents(string: "\(baseURL)\(path)")
+        components?.queryItems = queryItems.isEmpty ? nil : queryItems
+
+        guard let url = components?.url else {
+            throw URLError(.badURL)
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.httpBody = body
+
+        if let secret {
+            request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
+        }
+
+        if body != nil {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
+
+        let capturedRequest = request
+        let (data, response) = try await URLSession.shared.data(for: capturedRequest)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        if httpResponse.statusCode >= 400 {
+            if let error = try? JSONDecoder().decode(APIError.self, from: data) {
+                throw error
+            }
+            throw URLError(.badServerResponse)
+        }
+
+        return (data, httpResponse)
+    }
+
+
+
     private func startTrafficStream() async {
         guard let url = URL(string: "\(baseURL)/traffic".replacingOccurrences(of: "http", with: "ws"))
         else {
@@ -264,6 +308,20 @@ final class MihomoDomain {
         }
     }
 
+    private func startConnectionPolling() {
+        connectionTask?.cancel()
+        connectionTask = Task(priority: .utility) { [weak self] in
+            guard let self else {
+                return
+            }
+
+            while !Task.isCancelled {
+                await fetchConnections()
+                try? await clock.sleep(for: .seconds(1))
+            }
+        }
+    }
+
     private func startMemoryStream() async {
         guard let url = URL(string: "\(baseURL)/memory".replacingOccurrences(of: "http", with: "ws"))
         else {
@@ -297,20 +355,6 @@ final class MihomoDomain {
             }
         } catch {
             logger.notice("Memory stream ended", error: error)
-        }
-    }
-
-    private func startConnectionPolling() {
-        connectionTask?.cancel()
-        connectionTask = Task(priority: .utility) { [weak self] in
-            guard let self else {
-                return
-            }
-
-            while !Task.isCancelled {
-                await fetchConnections()
-                try? await clock.sleep(for: .seconds(1))
-            }
         }
     }
 
@@ -371,48 +415,6 @@ final class MihomoDomain {
                 self.logger.error("Failed to fetch Mihomo version.", error: error)
             }
         }
-    }
-
-    private func makeRequest(
-        path: String,
-        method: String = "GET",
-        body: Data? = nil,
-        queryItems: [URLQueryItem] = [],
-        ) async throws -> (Data, HTTPURLResponse) {
-        var components = URLComponents(string: "\(baseURL)\(path)")
-        components?.queryItems = queryItems.isEmpty ? nil : queryItems
-
-        guard let url = components?.url else {
-            throw URLError(.badURL)
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = method
-        request.httpBody = body
-
-        if let secret {
-            request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
-        }
-
-        if body != nil {
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        }
-
-        let capturedRequest = request
-        let (data, response) = try await URLSession.shared.data(for: capturedRequest)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw URLError(.badServerResponse)
-        }
-
-        if httpResponse.statusCode >= 400 {
-            if let error = try? JSONDecoder().decode(APIError.self, from: data) {
-                throw error
-            }
-            throw URLError(.badServerResponse)
-        }
-
-        return (data, httpResponse)
     }
 
     private func fetchProxies() async {
@@ -667,5 +669,10 @@ final class MihomoDomain {
     func triggerGC() async throws {
         _ = try await makeRequest(path: "/debug/gc", method: "PUT", body: Data())
         logger.info("Triggered garbage collection")
+    }
+
+    func flushDNSCache() async throws {
+        _ = try await makeRequest(path: "/cache/dns/flush", method: "POST", body: Data())
+        logger.info("Flushed DNS cache")
     }
 }

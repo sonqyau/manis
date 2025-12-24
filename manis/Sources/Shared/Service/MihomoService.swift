@@ -22,6 +22,14 @@ protocol MihomoService: AnyObject, Sendable {
     func updateProxyProvider(name: String) async throws
     func healthCheckProxyProvider(name: String) async throws
     func updateRuleProvider(name: String) async throws
+    func flushDNSCache() async throws
+    func flushFakeIPCache() async throws
+    func restart() async throws
+    func upgradeCore() async throws
+    func upgradeUI() async throws
+    func upgradeGeo1() async throws
+    func upgradeGeo2() async throws
+    func triggerGC() async throws
 }
 
 @MainActor
@@ -102,5 +110,37 @@ final class APIDomainMihomoServiceAdapter: MihomoService, @unchecked Sendable {
 
     func updateRuleProvider(name: String) async throws {
         try await domain.updateRuleProvider(name: name)
+    }
+
+    func flushDNSCache() async throws {
+        try await domain.flushDNSCache()
+    }
+
+    func restart() async throws {
+        try await domain.restart()
+    }
+
+    func upgradeCore() async throws {
+        try await domain.upgradeCore()
+    }
+
+    func upgradeUI() async throws {
+        try await domain.upgradeUI()
+    }
+
+    func upgradeGeo1() async throws {
+        try await domain.upgradeGeo1()
+    }
+
+    func upgradeGeo2() async throws {
+        try await domain.upgradeGeo2()
+    }
+
+    func flushFakeIPCache() async throws {
+        try await domain.flushFakeIPCache()
+    }
+
+    func triggerGC() async throws {
+        try await domain.triggerGC()
     }
 }

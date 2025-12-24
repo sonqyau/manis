@@ -84,6 +84,64 @@ struct SettingsMainView: View {
         }
     }
 
+    private var systemManagementSection: some View {
+        Section {
+            VStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    Button {
+                        store.send(.restartCore)
+                    } label: {
+                        Label("Restart Core", systemImage: "arrow.clockwise")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(store.state.isPerformingSystemOperation || !store.state.kernelIsRunning)
+
+                    Button {
+                        store.send(.upgradeCore)
+                    } label: {
+                        Label("Upgrade Core", systemImage: "arrow.up.circle")
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(store.state.isPerformingSystemOperation || !store.state.kernelIsRunning)
+                }
+
+                HStack(spacing: 12) {
+                    Button {
+                        store.send(.upgradeUI)
+                    } label: {
+                        Label("Upgrade UI", systemImage: "paintbrush")
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(store.state.isPerformingSystemOperation || !store.state.kernelIsRunning)
+
+                    Button {
+                        store.send(.upgradeGeo)
+                    } label: {
+                        Label("Upgrade GEO", systemImage: "globe")
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(store.state.isPerformingSystemOperation || !store.state.kernelIsRunning)
+                }
+
+                if store.state.isPerformingSystemOperation {
+                    HStack {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text("Performing system operation...")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.top, 4)
+                }
+            }
+        } header: {
+            Label("System Management", systemImage: "wrench.and.screwdriver")
+        } footer: {
+            Text("Manage core system operations. These operations require an active kernel connection.")
+                .foregroundStyle(.secondary)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -91,6 +149,7 @@ struct SettingsMainView: View {
                 launchAtLoginSection
                 daemonSection
                 kernelSection
+                systemManagementSection
                 configurationSection
                 aboutSection
             }

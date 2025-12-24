@@ -72,6 +72,23 @@ struct DNSView: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .disabled(bindableStore.domain.isEmpty || bindableStore.isQuerying)
+
+                Button {
+                    bindableStore.send(.flushDNSCache)
+                } label: {
+                    HStack {
+                        if bindableStore.isFlushingCache {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Label("Clear DNS Cache", systemImage: "trash")
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .disabled(bindableStore.isFlushingCache)
             }
             .padding(.vertical, 4)
         } header: {

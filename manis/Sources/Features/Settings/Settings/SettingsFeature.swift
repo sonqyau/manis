@@ -36,12 +36,14 @@ struct SettingsFeature: @preconcurrency Reducer {
 
         var alert: AlertState<AlertAction>?
         var isProcessing: Bool = false
+        var isPerformingSystemOperation: Bool = false
     }
 
     enum AlertAction: Equatable {
         case dismissError
     }
 
+    @CasePathable
     enum Action: Equatable {
         case onAppear
         case alert(AlertAction)
@@ -57,10 +59,45 @@ struct SettingsFeature: @preconcurrency Reducer {
         case startKernel
         case stopKernel
 
+        case restartCore
+        case upgradeCore
+        case upgradeUI
+        case upgradeGeo
+        case systemOperationFinished(Bool, String?)
+
         case kernelStatusUpdated(State.KernelStatusSnapshot)
         case kernelStatusFailed(String)
 
         case operationFinished(String?)
+        
+        static func == (lhs: Action, rhs: Action) -> Bool {
+            switch (lhs, rhs) {
+            case (.onAppear, .onAppear),
+                 (.alert, .alert),
+                 (.openSystemSettings, .openSystemSettings),
+                 (.confirmBootstrap, .confirmBootstrap),
+                 (.refreshDaemonStatus, .refreshDaemonStatus),
+                 (.installDaemon, .installDaemon),
+                 (.uninstallDaemon, .uninstallDaemon),
+                 (.refreshKernelStatus, .refreshKernelStatus),
+                 (.startKernel, .startKernel),
+                 (.stopKernel, .stopKernel),
+                 (.restartCore, .restartCore),
+                 (.upgradeCore, .upgradeCore),
+                 (.upgradeUI, .upgradeUI),
+                 (.upgradeGeo, .upgradeGeo),
+                 (.kernelStatusUpdated, .kernelStatusUpdated),
+                 (.kernelStatusFailed, .kernelStatusFailed),
+                 (.operationFinished, .operationFinished):
+                return true
+            case (.toggleBootstrap, .toggleBootstrap):
+                return true
+            case let (.systemOperationFinished(lhsSuccess, lhsError), .systemOperationFinished(rhsSuccess, rhsError)):
+                return lhsSuccess == rhsSuccess && lhsError == rhsError
+            default:
+                return false
+            }
+        }
     }
 
     @Dependency(\.settingsService)
@@ -75,7 +112,7 @@ struct SettingsFeature: @preconcurrency Reducer {
     init() {}
 
     var body: some ReducerOf<Self> {
-        Reduce { state, action in
+        Reduce { (state: inout State, action: Action) -> Effect<Action> in
             switch action {
             case .onAppear:
                 return onAppearEffect(state: &state)
@@ -158,6 +195,21 @@ struct SettingsFeature: @preconcurrency Reducer {
 
             case .stopKernel:
                 return stopKernelEffect(state: &state)
+
+            case .restartCore:
+                return restartCoreEffect(state: &state)
+
+            case .upgradeCore:
+                return upgradeCoreEffect(state: &state)
+
+            case .upgradeUI:
+                return upgradeUIEffect(state: &state)
+
+            case .upgradeGeo:
+                return upgradeGeoEffect(state: &state)
+
+            case let .systemOperationFinished(success, errorMessage):
+                return systemOperationFinishedEffect(state: &state, success: success, errorMessage: errorMessage)
             }
         }
     }
@@ -398,5 +450,106 @@ struct SettingsFeature: @preconcurrency Reducer {
 
         mihomoService.disconnect()
         mihomoService.configure(baseURL: baseURL, secret: secret)
+    }
+
+    private func restartCoreEffect(state: inout State) -> Effect<Action> {
+        guard !state.isPerformingSystemOperation else {
+            return .none
+        }
+        state.isPerformingSystemOperation = true
+        state.alert = nil
+
+        return .run { @MainActor send in
+            do {
+                try await mihomoService.restart()
+                send(.systemOperationFinished(true, nil))
+            } catch {
+                send(.systemOperationFinished(false, (error as NSError).localizedDescription))
+            }
+        }
+    }
+
+    private func upgradeCoreEffect(state: inout State) -> Effect<Action> {
+        guard !state.isPerformingSystemOperation else {
+            return .none
+        }
+        state.isPerformingSystemOperation = true
+        state.alert = nil
+
+        return .run { @MainActor send in
+            do {
+                try await mihomoService.upgradeCore()
+                send(.systemOperationFinished(true, nil))
+            } catch {
+                send(.systemOperationFinished(false, (error as NSError).localizedDescription))
+            }
+        }
+    }
+
+    private func upgradeUIEffect(state: inout State) -> Effect<Action> {
+        guard !state.isPerformingSystemOperation else {
+            return .none
+        }
+        state.isPerformingSystemOperation = true
+        state.alert = nil
+
+        return .run { @MainActor send in
+            do {
+                try await mihomoService.upgradeUI()
+                send(.systemOperationFinished(true, nil))
+            } catch {
+                send(.systemOperationFinished(false, (error as NSError).localizedDescription))
+            }
+        }
+    }
+
+    private func upgradeGeoEffect(state: inout State) -> Effect<Action> {
+        guard !state.isPerformingSystemOperation else {
+            return .none
+        }
+        state.isPerformingSystemOperation = true
+        state.alert = nil
+
+        return .run { @MainActor send in
+            do {
+                try await mihomoService.upgradeGeo2()
+                send(.systemOperationFinished(true, nil))
+            } catch {
+                try await mihomoService.upgradeGeo1()
+                send(.systemOperationFinished(false, (error as NSError).localizedDescription))
+            }
+        }
+    }
+
+    private func systemOperationFinishedEffect(
+        state: inout State,
+        success: Bool,
+        errorMessage: String?
+    ) -> Effect<Action> {
+        state.isPerformingSystemOperation = false
+        
+        if success {
+            state.alert = AlertState {
+                TextState("Success")
+            } actions: {
+                ButtonState(action: .dismissError) {
+                    TextState("OK")
+                }
+            } message: {
+                TextState("Operation completed successfully")
+            }
+        } else if let errorMessage = errorMessage {
+            state.alert = AlertState {
+                TextState("Error")
+            } actions: {
+                ButtonState(action: .dismissError) {
+                    TextState("OK")
+                }
+            } message: {
+                TextState(errorMessage)
+            }
+        }
+        
+        return .none
     }
 }
