@@ -20,7 +20,7 @@ struct PersistenceFeature: @preconcurrency Reducer {
         var alert: AlertState<AlertAction>?
     }
 
-    enum AlertAction: Equatable {
+    enum AlertAction: Equatable, DismissibleAlertAction {
         case dismissError
     }
 
@@ -106,15 +106,7 @@ struct PersistenceFeature: @preconcurrency Reducer {
             case let .operationFinished(error):
                 state.isUpdatingAll = false
                 if let error {
-                    state.alert = AlertState {
-                        TextState("Error")
-                    } actions: {
-                        ButtonState(action: .dismissError) {
-                            TextState("OK")
-                        }
-                    } message: {
-                        TextState(error)
-                    }
+                    state.alert = .error(error)
                 }
                 return .none
 

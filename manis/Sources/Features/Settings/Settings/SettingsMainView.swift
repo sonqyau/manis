@@ -149,7 +149,10 @@ struct SettingsMainView: View {
                 launchAtLoginSection
                 daemonSection
                 kernelSection
+                proxySettingsSection
                 systemManagementSection
+                cacheManagementSection
+                systemInfoSection
                 configurationSection
                 aboutSection
             }
@@ -348,6 +351,110 @@ struct SettingsMainView: View {
             .buttonStyle(.plain)
         } header: {
             Label("About", systemImage: "info.circle")
+        }
+    }
+
+    private var proxySettingsSection: some View {
+        Section {
+            Toggle(
+                "System Proxy",
+                isOn: Binding(
+                    get: { store.state.systemProxyEnabled },
+                    set: { _ in store.send(.toggleSystemProxy) }
+                )
+            )
+            .toggleStyle(.switch)
+            .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
+
+            Toggle(
+                "TUN Mode",
+                isOn: Binding(
+                    get: { store.state.tunModeEnabled },
+                    set: { _ in store.send(.toggleTunMode) }
+                )
+            )
+            .toggleStyle(.switch)
+            .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
+
+            if store.state.mixedPort != nil || store.state.httpPort != nil || store.state.socksPort != nil {
+                VStack(alignment: .leading, spacing: 8) {
+                    if let mixedPort = store.state.mixedPort {
+                        portInfoRow(title: "Mixed Port", value: "\(mixedPort)", detail: "HTTP(S) and SOCKS proxy mixed port")
+                    }
+                    if let httpPort = store.state.httpPort {
+                        portInfoRow(title: "HTTP Port", value: "\(httpPort)", detail: "HTTP(S) proxy server port")
+                    }
+                    if let socksPort = store.state.socksPort {
+                        portInfoRow(title: "SOCKS Port", value: "\(socksPort)", detail: "SOCKS5 proxy server port")
+                    }
+                }
+            }
+        } header: {
+            Label("Proxy Settings", systemImage: "network")
+        } footer: {
+            Text("Configure proxy modes and view port information. System proxy enables ordinary HTTP proxies that only support TCP.")
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var cacheManagementSection: some View {
+        Section {
+            VStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    Button {
+                        store.send(.flushFakeIPCache)
+                    } label: {
+                        Label("Flush Fake IP Cache", systemImage: "trash.circle")
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
+
+                    Button {
+                        store.send(.flushDNSCache)
+                    } label: {
+                        Label("Flush DNS Cache", systemImage: "trash.circle.fill")
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
+                }
+
+                Button {
+                    store.send(.triggerGC)
+                } label: {
+                    Label("Trigger Garbage Collection", systemImage: "memorychip")
+                }
+                .buttonStyle(.bordered)
+                .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
+            }
+        } header: {
+            Label("Cache Management", systemImage: "externaldrive")
+        } footer: {
+            Text("Manage DNS and Fake IP caches, and trigger memory garbage collection.")
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var systemInfoSection: some View {
+        Section {
+            LabeledContent("Memory Usage") {
+                Text(store.state.memoryUsage)
+                    .font(.system(.body, design: .monospaced))
+            }
+
+            LabeledContent("Traffic") {
+                Text(store.state.trafficInfo)
+                    .font(.system(.body, design: .monospaced))
+            }
+
+            LabeledContent("Core Version") {
+                Text(store.state.version.isEmpty ? "--" : store.state.version)
+                    .font(.system(.body, design: .monospaced))
+            }
+        } header: {
+            Label("System Information", systemImage: "info.circle.fill")
+        } footer: {
+            Text("Real-time system information from the Mihomo core.")
+                .foregroundStyle(.secondary)
         }
     }
 

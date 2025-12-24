@@ -16,7 +16,7 @@ struct ProxiesFeature: @preconcurrency Reducer {
         var alert: AlertState<AlertAction>?
     }
 
-    enum AlertAction: Equatable {
+    enum AlertAction: Equatable, DismissibleAlertAction {
         case dismissError
     }
 
@@ -71,30 +71,14 @@ struct ProxiesFeature: @preconcurrency Reducer {
             case let .selectProxyFinished(key, error):
                 state.selectingProxies.remove(key)
                 if let error {
-                    state.alert = AlertState {
-                        TextState("Error")
-                    } actions: {
-                        ButtonState(action: .dismissError) {
-                            TextState("OK")
-                        }
-                    } message: {
-                        TextState(error)
-                    }
+                    state.alert = .error(error)
                 }
                 return .none
 
             case let .testGroupDelayFinished(group, error):
                 state.testingGroups.remove(group)
                 if let error {
-                    state.alert = AlertState {
-                        TextState("Error")
-                    } actions: {
-                        ButtonState(action: .dismissError) {
-                            TextState("OK")
-                        }
-                    } message: {
-                        TextState(error)
-                    }
+                    state.alert = .error(error)
                 }
                 return .none
 

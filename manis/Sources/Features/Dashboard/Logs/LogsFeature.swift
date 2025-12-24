@@ -23,7 +23,7 @@ struct LogsFeature: @preconcurrency Reducer {
         var alert: AlertState<AlertAction>?
     }
 
-    enum AlertAction: Equatable {
+    enum AlertAction: Equatable, DismissibleAlertAction {
         case dismissError
     }
 

@@ -16,7 +16,7 @@ struct ConnectionsFeature: @preconcurrency Reducer {
         var alert: AlertState<AlertAction>?
     }
 
-    enum AlertAction: Equatable {
+    enum AlertAction: Equatable, DismissibleAlertAction {
         case dismissError
     }
 
@@ -77,30 +77,14 @@ struct ConnectionsFeature: @preconcurrency Reducer {
             case let .closeConnectionFinished(id, error):
                 state.closingConnections.remove(id)
                 if let error {
-                    state.alert = AlertState {
-                        TextState("Error")
-                    } actions: {
-                        ButtonState(action: .dismissError) {
-                            TextState("OK")
-                        }
-                    } message: {
-                        TextState(error)
-                    }
+                    state.alert = .error(error)
                 }
                 return .none
 
             case let .closeAllFinished(error):
                 state.isClosingAll = false
                 if let error {
-                    state.alert = AlertState {
-                        TextState("Error")
-                    } actions: {
-                        ButtonState(action: .dismissError) {
-                            TextState("OK")
-                        }
-                    } message: {
-                        TextState(error)
-                    }
+                    state.alert = .error(error)
                 }
                 return .none
 

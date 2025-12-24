@@ -131,14 +131,14 @@ cp "$BIN_DIR/MainDaemon" "$APP_STAGING/Contents/Library/LaunchServices/com.manis
 
 APP_BUNDLE_FOR_LAUNCHD="${APP_BUNDLE_FOR_LAUNCHD:-$APP_DIR}"
 
-PRIV_HELPER_PLIST_PATH="$APP_STAGING/Contents/Library/LaunchDaemons/com.manis.Daemon"
+PRIV_HELPER_PLIST_PATH="$APP_STAGING/Contents/Library/LaunchDaemons/com.manis.Daemon.plist"
 cp "$ROOT_DIR/manis/Daemon/Launchd.plist" "$PRIV_HELPER_PLIST_PATH"
 
-PRIV_HELPER_BIN="$APP_BUNDLE_FOR_LAUNCHD/Contents/Library/LaunchServices/com.manis.Daemon"
-/usr/libexec/PlistBuddy -c "Set :Program $PRIV_HELPER_BIN" "$PRIV_HELPER_PLIST_PATH" 2>/dev/null || true
+PRIV_HELPER_BIN_RELATIVE="Contents/Library/LaunchServices/com.manis.Daemon"
+/usr/libexec/PlistBuddy -c "Set :Program $PRIV_HELPER_BIN_RELATIVE" "$PRIV_HELPER_PLIST_PATH" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Delete :ProgramArguments" "$PRIV_HELPER_PLIST_PATH" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Add :ProgramArguments array" "$PRIV_HELPER_PLIST_PATH" 2>/dev/null || true
-/usr/libexec/PlistBuddy -c "Add :ProgramArguments:0 string $PRIV_HELPER_BIN" "$PRIV_HELPER_PLIST_PATH"
+/usr/libexec/PlistBuddy -c "Add :ProgramArguments:0 string $PRIV_HELPER_BIN_RELATIVE" "$PRIV_HELPER_PLIST_PATH"
 
 USER_XPC_PLIST_PATH="$BUILD_DIR/com.manis.XPC.plist"
 cp "$ROOT_DIR/manis/XPC/com.manis.XPC.plist" "$USER_XPC_PLIST_PATH"

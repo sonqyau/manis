@@ -18,10 +18,6 @@ struct RulesFeature: @preconcurrency Reducer {
             var id: String { rule }
         }
 
-        struct Alerts: Equatable {
-            var errorMessage: String?
-        }
-
         struct Summary: Equatable {
             var activeRules: Int = 0
             var totalConnections: Int = 0
@@ -32,9 +28,13 @@ struct RulesFeature: @preconcurrency Reducer {
         var searchText: String = ""
         var isSearchFocused: Bool = false
         var summary: Summary = .init()
-        var alerts: Alerts = .init()
+        var alert: AlertState<AlertAction>?
 
         var allConnections: [ConnectionSnapshot.Connection] = []
+    }
+
+    enum AlertAction: Equatable, DismissibleAlertAction {
+        case dismissError
     }
 
     @Dependency(\.mihomoService)
@@ -47,7 +47,7 @@ struct RulesFeature: @preconcurrency Reducer {
         case updateSearch(String)
         case setSearchFocus(Bool)
         case mihomoSnapshotUpdated(MihomoSnapshot)
-        case dismissError
+        case alert(AlertAction)
     }
 
     private enum CancelID {
@@ -89,8 +89,8 @@ struct RulesFeature: @preconcurrency Reducer {
                 state.isSearchFocused = isFocused
                 return .none
 
-            case .dismissError:
-                state.alerts.errorMessage = nil
+            case .alert(.dismissError):
+                state.alert = nil
                 return .none
             }
         }

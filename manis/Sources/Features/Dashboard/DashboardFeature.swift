@@ -8,7 +8,7 @@ import SwiftUINavigation
 struct DashboardFeature: @preconcurrency Reducer {
     @ObservableState
     struct State {
-        var navigationPath = NavigationPath()
+        var selectedTab: DashboardTab?
         var overview: OverviewFeature.State = .init()
         var proxies: ProxiesFeature.State = .init()
         var connections: ConnectionsFeature.State = .init()
@@ -22,8 +22,7 @@ struct DashboardFeature: @preconcurrency Reducer {
     enum Action {
         case onAppear
         case onDisappear
-        case navigateToTab(DashboardTab)
-        case navigationPathChanged(NavigationPath)
+        case selectTab(DashboardTab)
         case overview(OverviewFeature.Action)
         case proxies(ProxiesFeature.Action)
         case connections(ConnectionsFeature.Action)
@@ -59,18 +58,16 @@ struct DashboardFeature: @preconcurrency Reducer {
         Reduce { state, action in
             switch action {
             case .onAppear:
+                if state.selectedTab == nil {
+                    state.selectedTab = .overview
+                }
                 return .none
 
             case .onDisappear:
                 return .none
 
-            case let .navigateToTab(tab):
-                state.navigationPath.removeLast(state.navigationPath.count)
-                state.navigationPath.append(tab)
-                return .none
-
-            case let .navigationPathChanged(path):
-                state.navigationPath = path
+            case let .selectTab(tab):
+                state.selectedTab = tab
                 return .none
 
             case .overview:

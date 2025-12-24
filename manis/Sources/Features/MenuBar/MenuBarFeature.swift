@@ -23,9 +23,18 @@ struct MenuBarFeature: @preconcurrency Reducer {
         var networkInterface: String?
         var ipAddress: String?
         var alert: AlertState<AlertAction>?
+
+        var systemProxyEnabled: Bool = false
+        var tunModeEnabled: Bool = false
+
+        var mixedPort: Int?
+        var httpPort: Int?
+        var socksPort: Int?
+
+        var memoryUsage: String = "--"
     }
 
-    enum AlertAction: Equatable {
+    enum AlertAction: Equatable, DismissibleAlertAction {
         case dismissError
     }
 
@@ -40,6 +49,14 @@ struct MenuBarFeature: @preconcurrency Reducer {
         case selectProxyFinished(error: String?)
         case operationFinished(String?)
         case alert(AlertAction)
+
+        case toggleSystemProxy
+        case toggleTunMode
+        case reloadConfig
+
+        case systemProxyToggled(Bool, String?)
+        case tunModeToggled(Bool, String?)
+        case configReloaded(String?)
     }
 
     private enum CancelID {
@@ -84,6 +101,20 @@ struct MenuBarFeature: @preconcurrency Reducer {
             state.selectorGroups = Self.buildSelectorGroups(from: snapshot.groups)
             state.proxies = snapshot.proxies
             state.statusDescription = snapshot.isConnected ? "Connected" : "Disconnected"
+
+            if let config = snapshot.config {
+                state.mixedPort = config.mixedPort
+                state.httpPort = config.port
+                state.socksPort = config.socksPort
+            }
+
+            if let config = snapshot.config {
+                state.systemProxyEnabled = snapshot.isConnected && (config.port != nil || config.mixedPort != nil)
+                state.tunModeEnabled = false
+            }
+
+            state.memoryUsage = Self.formatMemory(snapshot.memoryUsage)
+
             return .none
 
         case let .selectProxy(group, proxy):
@@ -91,29 +122,42 @@ struct MenuBarFeature: @preconcurrency Reducer {
 
         case let .selectProxyFinished(error):
             if let error {
-                state.alert = AlertState {
-                    TextState("Error")
-                } actions: {
-                    ButtonState(action: .dismissError) {
-                        TextState("OK")
-                    }
-                } message: {
-                    TextState(error)
-                }
+                state.alert = .error(error)
             }
             return .none
 
         case let .operationFinished(errorMessage):
             if let errorMessage {
-                state.alert = AlertState {
-                    TextState("Error")
-                } actions: {
-                    ButtonState(action: .dismissError) {
-                        TextState("OK")
-                    }
-                } message: {
-                    TextState(errorMessage)
-                }
+                state.alert = .error(errorMessage)
+            }
+            return .none
+
+        case .toggleSystemProxy:
+            return toggleSystemProxyEffect(currentState: state.systemProxyEnabled)
+
+        case .toggleTunMode:
+            return toggleTunModeEffect(currentState: state.tunModeEnabled)
+
+        case .reloadConfig:
+            return reloadConfigEffect()
+
+        case let .systemProxyToggled(enabled, error):
+            state.systemProxyEnabled = enabled
+            if let error {
+                state.alert = .error(error)
+            }
+            return .none
+
+        case let .tunModeToggled(enabled, error):
+            state.tunModeEnabled = enabled
+            if let error {
+                state.alert = .error(error)
+            }
+            return .none
+
+        case let .configReloaded(error):
+            if let error {
+                state.alert = .error(error)
             }
             return .none
         }
@@ -175,6 +219,13 @@ struct MenuBarFeature: @preconcurrency Reducer {
         value ?? "0 B/s"
     }
 
+    private static func formatMemory(_ bytes: Int64) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useMB, .useGB]
+        formatter.countStyle = .memory
+        return formatter.string(fromByteCount: bytes)
+    }
+
     private static func buildSelectorGroups(
         from groups: OrderedDictionary<String, GroupInfo>,
         ) -> [State.ProxySelectorGroup] {
@@ -184,5 +235,59 @@ struct MenuBarFeature: @preconcurrency Reducer {
             .map { key, info in
                 State.ProxySelectorGroup(id: key, info: info)
             }
+    }
+
+    private func toggleSystemProxyEffect(currentState: Bool) -> Effect<Action> {
+        let service = mihomoService
+        return .run { @MainActor send in
+            do {
+                let newState = !currentState
+                let updates: [String: Any] = [
+                    "port": newState ? 7890 : 0,
+                    "mixed-port": newState ? 7890 : 0,
+                ]
+
+                try await service.updateConfig(updates)
+                send(.systemProxyToggled(newState, nil))
+            } catch {
+                let message = (error as NSError).localizedDescription
+                send(.systemProxyToggled(currentState, message))
+            }
+        }
+    }
+
+    private func toggleTunModeEffect(currentState: Bool) -> Effect<Action> {
+        let service = mihomoService
+        return .run { @MainActor send in
+            do {
+                let newState = !currentState
+                let tunConfig: [String: Any] = [
+                    "enable": newState,
+                    "stack": "system",
+                    "auto-route": newState,
+                    "auto-detect-interface": newState,
+                ]
+                let updates: [String: Any] = ["tun": tunConfig]
+
+                try await service.updateConfig(updates)
+                send(.tunModeToggled(newState, nil))
+            } catch {
+                let message = (error as NSError).localizedDescription
+                send(.tunModeToggled(currentState, message))
+            }
+        }
+    }
+
+    private func reloadConfigEffect() -> Effect<Action> {
+        let service = mihomoService
+        return .run { @MainActor send in
+            do {
+                try await service.reloadConfig(path: "", payload: "")
+                send(.configReloaded(nil))
+            } catch {
+                let message = (error as NSError).localizedDescription
+                send(.configReloaded(message))
+            }
+        }
     }
 }

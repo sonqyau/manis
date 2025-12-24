@@ -264,8 +264,6 @@ final class MihomoDomain {
         return (data, httpResponse)
     }
 
-
-
     private func startTrafficStream() async {
         guard let url = URL(string: "\(baseURL)/traffic".replacingOccurrences(of: "http", with: "ws"))
         else {

@@ -23,10 +23,6 @@ struct DNSView: View {
         Form {
             querySection
 
-            if let error = bindableStore.alerts.errorMessage {
-                errorSection(error: error)
-            }
-
             if let result = bindableStore.queryResult {
                 resultsSection(result: result)
             }
@@ -34,6 +30,16 @@ struct DNSView: View {
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
         .navigationTitle("DNS Lookup")
+        .alert(
+            Binding<AlertState<DNSFeature.AlertAction>?>(
+                get: { bindableStore.alert },
+                set: { _ in }
+            )
+        ) { action in
+            if let action {
+                bindableStore.send(.alert(action))
+            }
+        }
     }
 
     private var querySection: some View {
@@ -93,26 +99,6 @@ struct DNSView: View {
             .padding(.vertical, 4)
         } header: {
             Label("DNS Lookup", systemImage: "globe")
-        }
-    }
-
-    private func errorSection(error: String) -> some View {
-        Section {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(error)
-                    .font(.callout)
-                    .foregroundStyle(.primary)
-
-                Button("Dismiss Alert") {
-                    bindableStore.send(.dismissError)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-            }
-            .padding(.vertical, 4)
-        } header: {
-            Label("Lookup error", systemImage: "exclamationmark.triangle.fill")
-                .foregroundStyle(.red)
         }
     }
 

@@ -5,17 +5,17 @@ import Foundation
 struct DNSFeature: @preconcurrency Reducer {
     @ObservableState
     struct State {
-        struct Alerts: Equatable {
-            var errorMessage: String?
-        }
-
         var domain: String = ""
         var recordType: String = "A"
         var recordTypes: [String] = ["A", "AAAA", "CNAME", "MX", "TXT", "NS"]
         var queryResult: DNSQueryResponse?
         var isQuerying: Bool = false
         var isFlushingCache: Bool = false
-        var alerts: Alerts = .init()
+        var alert: AlertState<AlertAction>?
+    }
+
+    enum AlertAction: Equatable, DismissibleAlertAction {
+        case dismissError
     }
 
     @CasePathable
@@ -26,7 +26,7 @@ struct DNSFeature: @preconcurrency Reducer {
         case queryFinished(Result<DNSQueryResponse, Error>)
         case flushDNSCache
         case flushDNSCacheFinished(Result<Void, Error>)
-        case dismissError
+        case alert(AlertAction)
     }
 
     @Dependency(\.mihomoService)
@@ -50,7 +50,7 @@ struct DNSFeature: @preconcurrency Reducer {
                     return .none
                 }
                 state.isQuerying = true
-                state.alerts.errorMessage = nil
+                state.alert = nil
 
                 let domain = state.domain
                 let recordType = state.recordType
@@ -72,7 +72,7 @@ struct DNSFeature: @preconcurrency Reducer {
                     state.queryResult = response
 
                 case let .failure(error):
-                    state.alerts.errorMessage = (error as NSError).localizedDescription
+                    state.alert = .error(error)
                     state.queryResult = nil
                 }
                 return .none
@@ -82,7 +82,7 @@ struct DNSFeature: @preconcurrency Reducer {
                     return .none
                 }
                 state.isFlushingCache = true
-                state.alerts.errorMessage = nil
+                state.alert = nil
 
                 let service = mihomoService
 
@@ -102,12 +102,12 @@ struct DNSFeature: @preconcurrency Reducer {
                     break
 
                 case let .failure(error):
-                    state.alerts.errorMessage = (error as NSError).localizedDescription
+                    state.alert = .error(error)
                 }
                 return .none
 
-            case .dismissError:
-                state.alerts.errorMessage = nil
+            case .alert(.dismissError):
+                state.alert = nil
                 return .none
             }
         }

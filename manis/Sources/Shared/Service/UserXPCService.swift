@@ -1,5 +1,6 @@
 import ConcurrencyExtras
 import Foundation
+import OSLog
 
 private final class XPCConnectionBox: @unchecked Sendable {
     let connection: NSXPCConnection
@@ -55,13 +56,23 @@ enum KernelControlError: Error, LocalizedError {
 @MainActor
 struct XPCClient: XPC {
     private let machServiceName = "com.manis.XPC"
+    private let logger = Logger(subsystem: "com.manis.app", category: "XPCClient")
 
     private func isRetryableXPCError(_ error: any Error) -> Bool {
         let ns = error as NSError
+
+        logger.debug("XPC Error - Domain: \(ns.domain), Code: \(ns.code), Description: \(ns.localizedDescription)")
+
         if ns.domain == NSCocoaErrorDomain, ns.code == 4097 {
+            logger.warning("XPC connection invalidated (NSCocoaErrorDomain 4097)")
             return true
         }
         if ns.domain == "com.manis.XPC", ns.code == -1 {
+            logger.warning("XPC service unavailable")
+            return true
+        }
+        if ns.domain == "com.manis.XPC", ns.code == -4097 {
+            logger.warning("XPC connection invalidated (custom domain)")
             return true
         }
         return false

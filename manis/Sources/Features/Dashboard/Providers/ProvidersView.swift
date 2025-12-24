@@ -27,16 +27,13 @@ struct ProvidersView: View {
         .task { bindableStore.send(.onAppear) }
         .onDisappear { bindableStore.send(.onDisappear) }
         .alert(
-            "Error",
-            isPresented: Binding(
-                get: { bindableStore.alerts.errorMessage != nil },
-                set: { presented in if !presented { bindableStore.send(.dismissError) } },
-                ),
-            ) {
-            Button("OK") { bindableStore.send(.dismissError) }
-        } message: {
-            if let message = bindableStore.alerts.errorMessage {
-                Text(message)
+            Binding<AlertState<ProvidersFeature.AlertAction>?>(
+                get: { bindableStore.alert },
+                set: { _ in }
+            )
+        ) { action in
+            if let action {
+                bindableStore.send(.alert(action))
             }
         }
     }

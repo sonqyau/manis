@@ -78,6 +78,8 @@ struct MenuBarContentView: View {
                 proxyGroupsSection
             }
 
+            quickActionsSection
+
             navigationSection
         }
         .formStyle(.grouped)
@@ -139,6 +141,22 @@ struct MenuBarContentView: View {
                 }
             }
 
+            if bindableStore.mixedPort != nil || bindableStore.httpPort != nil || bindableStore.socksPort != nil {
+                VStack(spacing: 8) {
+                    HStack(spacing: 16) {
+                        if let mixedPort = bindableStore.mixedPort {
+                            portInfo(title: "Mixed", port: mixedPort, color: .blue)
+                        }
+                        if let httpPort = bindableStore.httpPort {
+                            portInfo(title: "HTTP", port: httpPort, color: .green)
+                        }
+                        if let socksPort = bindableStore.socksPort {
+                            portInfo(title: "SOCKS", port: socksPort, color: .orange)
+                        }
+                    }
+                }
+            }
+
             VStack(spacing: 12) {
                 HStack(spacing: 16) {
                     trafficStat(
@@ -152,10 +170,36 @@ struct MenuBarContentView: View {
                         value: bindableStore.uploadSpeed,
                         color: .green,
                         )
+                    Divider().frame(height: 20)
+                    memoryStat(value: bindableStore.memoryUsage)
                 }
             }
         }
         .padding(.vertical, 4)
+    }
+
+    private func portInfo(title: String, port: Int, color: Color) -> some View {
+        VStack(spacing: 2) {
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(color)
+            Text("\(port)")
+                .font(.system(.caption2, design: .monospaced))
+                .foregroundStyle(.primary)
+        }
+    }
+
+    private func memoryStat(value: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "memorychip")
+                .foregroundColor(.purple)
+                .font(.caption)
+                .accessibilityHidden(true)
+            Text(value)
+                .font(.system(.caption2, design: .monospaced))
+                .contentTransition(.numericText())
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private func trafficStat(icon: String, value: String, color: Color) -> some View {
@@ -209,6 +253,88 @@ struct MenuBarContentView: View {
         } header: {
             Label("Proxy groups", systemImage: "server.rack")
         }
+    }
+
+    private var quickActionsSection: some View {
+        Section {
+            VStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    Button {
+                        bindableStore.send(.toggleSystemProxy)
+                    } label: {
+                        quickActionTile(
+                            title: "System Proxy",
+                            icon: "network",
+                            isActive: bindableStore.systemProxyEnabled,
+                            activeColor: .blue
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        bindableStore.send(.toggleTunMode)
+                    } label: {
+                        quickActionTile(
+                            title: "TUN Mode",
+                            icon: "shield.fill",
+                            isActive: bindableStore.tunModeEnabled,
+                            activeColor: .green
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Button {
+                    bindableStore.send(.reloadConfig)
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.body)
+                            .foregroundStyle(.orange)
+                            .accessibilityHidden(true)
+                        Text("Reload Config")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        Color.orange.opacity(0.08),
+                        in: RoundedRectangle(cornerRadius: 10)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        } header: {
+            Label("Actions", systemImage: "bolt.circle")
+        }
+    }
+
+    private func quickActionTile(
+        title: String,
+        icon: String,
+        isActive: Bool = false,
+        activeColor: Color = .blue
+    ) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.body)
+                .foregroundStyle(isActive ? activeColor : .primary)
+                .accessibilityHidden(true)
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(isActive ? activeColor : .primary)
+            Spacer()
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity)
+        .background(
+            isActive ? activeColor.opacity(0.15) : Color.secondary.opacity(0.08),
+            in: RoundedRectangle(cornerRadius: 10)
+        )
     }
 
     private var navigationSection: some View {

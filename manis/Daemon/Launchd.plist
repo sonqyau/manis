@@ -15,5 +15,7 @@
     <array>
         <string>/Library/Daemons/com.manis.Daemon</string>
     </array>
+    <key>AssociatedBundleIdentifiers</key>
+    <string>com.manis.app</string>
 </dict>
 </plist>

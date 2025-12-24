@@ -37,9 +37,18 @@ struct SettingsFeature: @preconcurrency Reducer {
         var alert: AlertState<AlertAction>?
         var isProcessing: Bool = false
         var isPerformingSystemOperation: Bool = false
+
+        var systemProxyEnabled: Bool = false
+        var tunModeEnabled: Bool = false
+        var mixedPort: Int?
+        var httpPort: Int?
+        var socksPort: Int?
+        var memoryUsage: String = "--"
+        var trafficInfo: String = "--"
+        var version: String = "--"
     }
 
-    enum AlertAction: Equatable {
+    enum AlertAction: Equatable, DismissibleAlertAction {
         case dismissError
     }
 
@@ -54,6 +63,7 @@ struct SettingsFeature: @preconcurrency Reducer {
         case refreshDaemonStatus
         case installDaemon
         case uninstallDaemon
+        case diagnoseDaemon
 
         case refreshKernelStatus
         case startKernel
@@ -69,8 +79,19 @@ struct SettingsFeature: @preconcurrency Reducer {
         case kernelStatusFailed(String)
 
         case operationFinished(String?)
-        
-        static func == (lhs: Action, rhs: Action) -> Bool {
+
+        case toggleSystemProxy
+        case toggleTunMode
+        case flushFakeIPCache
+        case flushDNSCache
+        case triggerGC
+        case mihomoSnapshotUpdated(MihomoSnapshot)
+
+        case systemProxyToggled(Bool, String?)
+        case tunModeToggled(Bool, String?)
+        case cacheOperationFinished(String?)
+
+        static func == (lhs: Self, rhs: Self) -> Bool {
             switch (lhs, rhs) {
             case (.onAppear, .onAppear),
                  (.alert, .alert),
@@ -88,7 +109,16 @@ struct SettingsFeature: @preconcurrency Reducer {
                  (.upgradeGeo, .upgradeGeo),
                  (.kernelStatusUpdated, .kernelStatusUpdated),
                  (.kernelStatusFailed, .kernelStatusFailed),
-                 (.operationFinished, .operationFinished):
+                 (.operationFinished, .operationFinished),
+                 (.toggleSystemProxy, .toggleSystemProxy),
+                 (.toggleTunMode, .toggleTunMode),
+                 (.flushFakeIPCache, .flushFakeIPCache),
+                 (.flushDNSCache, .flushDNSCache),
+                 (.triggerGC, .triggerGC),
+                 (.mihomoSnapshotUpdated, .mihomoSnapshotUpdated),
+                 (.systemProxyToggled, .systemProxyToggled),
+                 (.tunModeToggled, .tunModeToggled),
+                 (.cacheOperationFinished, .cacheOperationFinished):
                 return true
             case (.toggleBootstrap, .toggleBootstrap):
                 return true
@@ -147,6 +177,8 @@ struct SettingsFeature: @preconcurrency Reducer {
 
             case .uninstallDaemon:
                 return uninstallDaemonEffect(state: &state)
+            case .diagnoseDaemon:
+                return diagnoseDaemonEffect(state: &state)
 
             case .refreshKernelStatus:
                 return refreshKernelStatusEffect(state: &state)
@@ -179,15 +211,7 @@ struct SettingsFeature: @preconcurrency Reducer {
 
             case let .kernelStatusFailed(message):
                 state.isProcessing = false
-                state.alert = AlertState {
-                    TextState("Error")
-                } actions: {
-                    ButtonState(action: .dismissError) {
-                        TextState("OK")
-                    }
-                } message: {
-                    TextState(message)
-                }
+                state.alert = .error(message)
                 return .none
 
             case .startKernel:
@@ -210,6 +234,54 @@ struct SettingsFeature: @preconcurrency Reducer {
 
             case let .systemOperationFinished(success, errorMessage):
                 return systemOperationFinishedEffect(state: &state, success: success, errorMessage: errorMessage)
+
+            case .toggleSystemProxy:
+                return toggleSystemProxyEffect(state: &state)
+
+            case .toggleTunMode:
+                return toggleTunModeEffect(state: &state)
+
+            case .flushFakeIPCache:
+                return flushFakeIPCacheEffect(state: &state)
+
+            case .flushDNSCache:
+                return flushDNSCacheEffect(state: &state)
+
+            case .triggerGC:
+                return triggerGCEffect(state: &state)
+
+            case let .mihomoSnapshotUpdated(snapshot):
+                if let config = snapshot.config {
+                    state.mixedPort = config.mixedPort
+                    state.httpPort = config.port
+                    state.socksPort = config.socksPort
+                    state.systemProxyEnabled = snapshot.isConnected && (config.port != nil || config.mixedPort != nil)
+                    state.tunModeEnabled = false
+                }
+                state.memoryUsage = formatMemory(snapshot.memoryUsage)
+                state.trafficInfo = formatTraffic(snapshot.currentTraffic)
+                state.version = snapshot.version
+                return .none
+
+            case let .systemProxyToggled(enabled, error):
+                state.systemProxyEnabled = enabled
+                if let error {
+                    state.alert = .error(error)
+                }
+                return .none
+
+            case let .tunModeToggled(enabled, error):
+                state.tunModeEnabled = enabled
+                if let error {
+                    state.alert = .error(error)
+                }
+                return .none
+
+            case let .cacheOperationFinished(error):
+                if let error {
+                    state.alert = .error(error)
+                }
+                return .none
             }
         }
     }
@@ -230,7 +302,16 @@ struct SettingsFeature: @preconcurrency Reducer {
 
         state.daemonStatus = describeDaemonStatus()
 
-        return .none
+        let mihomo = mihomoService
+        let mihomoEffect: Effect<Action> = .run { @MainActor send in
+            for await domainState in mihomo.statePublisher.values {
+                let snapshot = MihomoSnapshot(domainState)
+                send(.mihomoSnapshotUpdated(snapshot))
+            }
+        }
+        .cancellable(id: "mihomoStream", cancelInFlight: true)
+
+        return mihomoEffect
     }
 
     private func refreshDaemonStatusEffect(state: inout State) -> Effect<Action> {
@@ -247,12 +328,44 @@ struct SettingsFeature: @preconcurrency Reducer {
 
         return .run { @MainActor send in
             do {
-                try DaemonManager.shared.register()
+                let daemonManager = DaemonManager.shared
+                let currentStatus = daemonManager.status
+
+                switch currentStatus {
+                case .requiresApproval:
+                    send(.operationFinished("Daemon requires approval in System Settings. Opening Login Items..."))
+                    daemonManager.openSystemSettingsForApproval()
+                    return
+
+                case .enabled:
+                    send(.refreshDaemonStatus)
+                    send(.operationFinished(nil))
+                    return
+
+                case .notRegistered, .notFound:
+                    let newStatus = daemonManager.status
+                    if newStatus == .requiresApproval {
+                        send(.operationFinished("Daemon installed but requires approval. Opening System Settings..."))
+                        daemonManager.openSystemSettingsForApproval()
+                    } else if newStatus == .enabled {
+                        send(.operationFinished("Daemon installed successfully"))
+                    } else {
+                        send(.operationFinished("Daemon installed but status unclear. Please check System Settings."))
+                    }
+
+                @unknown default:
+                    throw NSError(
+                        domain: "com.manis.app",
+                        code: -1,
+                        userInfo: [NSLocalizedDescriptionKey: "Unknown daemon status"]
+                    )
+                }
+
                 send(.refreshDaemonStatus)
-                send(.operationFinished(nil))
             } catch {
                 send(.refreshDaemonStatus)
-                send(.operationFinished((error as NSError).localizedDescription))
+                let errorMessage = (error as NSError).localizedDescription
+                send(.operationFinished("Installation failed: \(errorMessage)"))
             }
         }
     }
@@ -279,15 +392,39 @@ struct SettingsFeature: @preconcurrency Reducer {
     private func describeDaemonStatus() -> String {
         switch DaemonManager.shared.status {
         case .enabled:
-            return "Installed"
+            return "Installed & Enabled"
         case .requiresApproval:
-            return "Requires Approval"
+            return "Requires User Approval"
         case .notRegistered:
             return "Not Installed"
         case .notFound:
-            return "Not Found"
+            return "Not Found in Bundle"
         @unknown default:
-            return "Unknown"
+            return "Unknown Status"
+        }
+    }
+
+    private func diagnoseDaemonEffect(state: inout State) -> Effect<Action> {
+        guard !state.isProcessing else {
+            return .none
+        }
+        state.isProcessing = true
+        state.alert = nil
+
+        return .run { @MainActor send in
+            let diagnostics = DaemonDiagnostics()
+            let report = diagnostics.diagnose()
+
+            let message = """
+            Daemon Diagnostics:
+
+            \(report.summary)
+
+            Recommendations:
+            \(report.recommendations.isEmpty ? "No issues found" : report.recommendations.joined(separator: "\n"))
+            """
+
+            send(.operationFinished(message))
         }
     }
 
@@ -297,15 +434,7 @@ struct SettingsFeature: @preconcurrency Reducer {
         ) -> Effect<Action> {
         state.isProcessing = false
         if let errorMessage {
-            state.alert = AlertState {
-                TextState("Error")
-            } actions: {
-                ButtonState(action: .dismissError) {
-                    TextState("OK")
-                }
-            } message: {
-                TextState(errorMessage)
-            }
+            state.alert = .error(errorMessage)
         }
 
         state.daemonStatus = describeDaemonStatus()
@@ -375,6 +504,27 @@ struct SettingsFeature: @preconcurrency Reducer {
 
         return .run { @MainActor send in
             do {
+                let daemonManager = DaemonManager.shared
+                let daemonStatus = daemonManager.status
+
+                switch daemonStatus {
+                case .notRegistered, .notFound:
+                    send(.operationFinished("Daemon not installed. Please install daemon first."))
+                    return
+
+                case .requiresApproval:
+                    send(.operationFinished("Daemon requires approval in System Settings. Please enable it in Login Items."))
+                    daemonManager.openSystemSettingsForApproval()
+                    return
+
+                case .enabled:
+                    break
+
+                @unknown default:
+                    send(.operationFinished("Unknown daemon status. Please reinstall daemon."))
+                    return
+                }
+
                 let configContent = try String(contentsOf: configURL, encoding: .utf8)
                 let executablePath = try findMihomoExecutablePath()
                 try await XPCClient().startKernel(
@@ -527,29 +677,112 @@ struct SettingsFeature: @preconcurrency Reducer {
         errorMessage: String?
     ) -> Effect<Action> {
         state.isPerformingSystemOperation = false
-        
+
         if success {
-            state.alert = AlertState {
-                TextState("Success")
-            } actions: {
-                ButtonState(action: .dismissError) {
-                    TextState("OK")
-                }
-            } message: {
-                TextState("Operation completed successfully")
-            }
+            state.alert = .success("Operation completed successfully")
         } else if let errorMessage = errorMessage {
-            state.alert = AlertState {
-                TextState("Error")
-            } actions: {
-                ButtonState(action: .dismissError) {
-                    TextState("OK")
-                }
-            } message: {
-                TextState(errorMessage)
+            state.alert = .error(errorMessage)
+        }
+
+        return .none
+    }
+
+    private func toggleSystemProxyEffect(state: inout State) -> Effect<Action> {
+        let service = mihomoService
+        let currentState = state.systemProxyEnabled
+        return .run { @MainActor send in
+            do {
+                let newState = !currentState
+                let updates: [String: Any] = [
+                    "port": newState ? 7890 : 0,
+                    "mixed-port": newState ? 7890 : 0,
+                ]
+
+                try await service.updateConfig(updates)
+                send(.systemProxyToggled(newState, nil))
+            } catch {
+                let message = (error as NSError).localizedDescription
+                send(.systemProxyToggled(currentState, message))
             }
         }
-        
-        return .none
+    }
+
+    private func toggleTunModeEffect(state: inout State) -> Effect<Action> {
+        let service = mihomoService
+        let currentState = state.tunModeEnabled
+        return .run { @MainActor send in
+            do {
+                let newState = !currentState
+                let tunConfig: [String: Any] = [
+                    "enable": newState,
+                    "stack": "system",
+                    "auto-route": newState,
+                    "auto-detect-interface": newState,
+                ]
+                let updates: [String: Any] = ["tun": tunConfig]
+
+                try await service.updateConfig(updates)
+                send(.tunModeToggled(newState, nil))
+            } catch {
+                let message = (error as NSError).localizedDescription
+                send(.tunModeToggled(currentState, message))
+            }
+        }
+    }
+
+    private func flushFakeIPCacheEffect(state: inout State) -> Effect<Action> {
+        let service = mihomoService
+        return .run { @MainActor send in
+            do {
+                try await service.flushFakeIPCache()
+                send(.cacheOperationFinished(nil))
+            } catch {
+                let message = (error as NSError).localizedDescription
+                send(.cacheOperationFinished(message))
+            }
+        }
+    }
+
+    private func flushDNSCacheEffect(state: inout State) -> Effect<Action> {
+        let service = mihomoService
+        return .run { @MainActor send in
+            do {
+                try await service.flushDNSCache()
+                send(.cacheOperationFinished(nil))
+            } catch {
+                let message = (error as NSError).localizedDescription
+                send(.cacheOperationFinished(message))
+            }
+        }
+    }
+
+    private func triggerGCEffect(state: inout State) -> Effect<Action> {
+        let service = mihomoService
+        return .run { @MainActor send in
+            do {
+                try await service.triggerGC()
+                send(.cacheOperationFinished(nil))
+            } catch {
+                let message = (error as NSError).localizedDescription
+                send(.cacheOperationFinished(message))
+            }
+        }
+    }
+
+    private func formatMemory(_ bytes: Int64) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useMB, .useGB]
+        formatter.countStyle = .memory
+        return formatter.string(fromByteCount: bytes)
+    }
+
+    private func formatTraffic(_ traffic: TrafficSnapshot?) -> String {
+        guard let traffic = traffic else { return "--" }
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useKB, .useMB, .useGB]
+        formatter.countStyle = .binary
+        let down = formatter.string(fromByteCount: Int64(traffic.down))
+        let up = formatter.string(fromByteCount: Int64(traffic.up))
+        return "↓\(down) ↑\(up)"
     }
 }

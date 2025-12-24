@@ -52,39 +52,31 @@ struct DashboardView: View {
         _bindableStore = Bindable(wrappedValue: store)
     }
 
-    private var navigationPathBinding: Binding<NavigationPath> {
-        Binding(
-            get: { bindableStore.navigationPath },
-            set: { path in
-                bindableStore.send(.navigationPathChanged(path))
-            },
-            )
-    }
-
     private var sidebar: some View {
         List(DashboardTab.allCases) { tab in
-            NavigationLink(value: tab) {
+            Button {
+                bindableStore.send(.selectTab(tab))
+            } label: {
                 Label(tab.title, systemImage: tab.icon)
+                    .foregroundColor(bindableStore.selectedTab == tab ? .accentColor : .primary)
             }
+            .buttonStyle(.plain)
         }
         .navigationTitle("Dashboard")
         .frame(minWidth: 200)
     }
 
     private var detail: some View {
-        NavigationStack(path: navigationPathBinding) {
-            VStack {
-                if bindableStore.navigationPath.isEmpty {
-                    Text("Select a tab to get started")
-                        .foregroundColor(.secondary)
-                        .font(.title2)
-                }
-            }
-            .frame(minWidth: 600, minHeight: 400)
-            .navigationDestination(for: DashboardTab.self) { tab in
-                destinationView(for: tab)
+        VStack {
+            if let selectedTab = bindableStore.selectedTab {
+                destinationView(for: selectedTab)
+            } else {
+                Text("Select a tab to get started")
+                    .foregroundColor(.secondary)
+                    .font(.title2)
             }
         }
+        .frame(minWidth: 600, minHeight: 400)
     }
 
     @ViewBuilder
@@ -119,7 +111,16 @@ struct DashboardView: View {
         } detail: {
             detail
         }
-        .onAppear { bindableStore.send(.onAppear) }
+        .onAppear {
+            bindableStore.send(.onAppear)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                NSApp.activate(ignoringOtherApps: true)
+                if let window = NSApp.keyWindow ?? NSApp.mainWindow {
+                    window.makeKeyAndOrderFront(nil)
+                    window.orderFrontRegardless()
+                }
+            }
+        }
         .onDisappear {
             bindableStore.send(.onDisappear)
             if let monitor = keyboardMonitor {
@@ -135,19 +136,19 @@ struct DashboardView: View {
 
                     switch event.keyCode {
                     case 18:
-                        bindableStore.send(.navigateToTab(.overview))
+                        bindableStore.send(.selectTab(.overview))
                     case 19:
-                        bindableStore.send(.navigateToTab(.proxies))
+                        bindableStore.send(.selectTab(.proxies))
                     case 20:
-                        bindableStore.send(.navigateToTab(.connections))
+                        bindableStore.send(.selectTab(.connections))
                     case 21:
-                        bindableStore.send(.navigateToTab(.rules))
+                        bindableStore.send(.selectTab(.rules))
                     case 23:
-                        bindableStore.send(.navigateToTab(.providers))
+                        bindableStore.send(.selectTab(.providers))
                     case 22:
-                        bindableStore.send(.navigateToTab(.dns))
+                        bindableStore.send(.selectTab(.dns))
                     case 26:
-                        bindableStore.send(.navigateToTab(.logs))
+                        bindableStore.send(.selectTab(.logs))
                     default:
                         return event
                     }

@@ -30,6 +30,7 @@ protocol MihomoService: AnyObject, Sendable {
     func upgradeGeo1() async throws
     func upgradeGeo2() async throws
     func triggerGC() async throws
+    func updateConfig(_ updates: [String: Any]) async throws
 }
 
 @MainActor
@@ -142,5 +143,9 @@ final class APIDomainMihomoServiceAdapter: MihomoService, @unchecked Sendable {
 
     func triggerGC() async throws {
         try await domain.triggerGC()
+    }
+
+    func updateConfig(_ updates: [String: Any]) async throws {
+        try await domain.updateConfig(updates)
     }
 }

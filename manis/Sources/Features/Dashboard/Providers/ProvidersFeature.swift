@@ -7,17 +7,17 @@ import Foundation
 struct ProvidersFeature: @preconcurrency Reducer {
     @ObservableState
     struct State {
-        struct Alerts: Equatable {
-            var errorMessage: String?
-        }
-
         var selectedSegment: Int = 0
         var proxyProviders: OrderedDictionary<String, ProxyProviderInfo> = [:]
         var ruleProviders: OrderedDictionary<String, RuleProviderInfo> = [:]
         var refreshingProxyProviders: OrderedSet<String> = []
         var healthCheckingProxyProviders: OrderedSet<String> = []
         var refreshingRuleProviders: OrderedSet<String> = []
-        var alerts: Alerts = .init()
+        var alert: AlertState<AlertAction>?
+    }
+
+    enum AlertAction: Equatable, DismissibleAlertAction {
+        case dismissError
     }
 
     @CasePathable
@@ -32,7 +32,7 @@ struct ProvidersFeature: @preconcurrency Reducer {
         case refreshProxyFinished(name: String, error: String?)
         case healthCheckProxyFinished(name: String, error: String?)
         case refreshRuleFinished(name: String, error: String?)
-        case dismissError
+        case alert(AlertAction)
     }
 
     private enum CancelID {
@@ -74,26 +74,26 @@ struct ProvidersFeature: @preconcurrency Reducer {
             case let .refreshProxyFinished(name, error):
                 state.refreshingProxyProviders.remove(name)
                 if let error {
-                    state.alerts.errorMessage = error
+                    state.alert = .error(error)
                 }
                 return .none
 
             case let .healthCheckProxyFinished(name, error):
                 state.healthCheckingProxyProviders.remove(name)
                 if let error {
-                    state.alerts.errorMessage = error
+                    state.alert = .error(error)
                 }
                 return .none
 
             case let .refreshRuleFinished(name, error):
                 state.refreshingRuleProviders.remove(name)
                 if let error {
-                    state.alerts.errorMessage = error
+                    state.alert = .error(error)
                 }
                 return .none
 
-            case .dismissError:
-                state.alerts.errorMessage = nil
+            case .alert(.dismissError):
+                state.alert = nil
                 return .none
             }
         }
