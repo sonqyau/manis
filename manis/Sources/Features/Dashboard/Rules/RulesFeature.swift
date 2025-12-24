@@ -116,7 +116,7 @@ struct RulesFeature: @preconcurrency Reducer {
                     totalDownload: connection.download,
                     totalUpload: connection.upload,
                     connections: [connection],
-                )
+                    )
             }
         }
 
@@ -139,7 +139,7 @@ struct RulesFeature: @preconcurrency Reducer {
             activeRules: results.count,
             totalConnections: results.reduce(into: 0) { $0 += $1.count },
             filteredRules: search.isEmpty ? 0 : results.count,
-        )
+            )
     }
 
     private func matchesSearchQuery(_ text: String, query: String) -> Bool {
@@ -147,7 +147,7 @@ struct RulesFeature: @preconcurrency Reducer {
             query,
             in: text,
             options: [.caseInsensitive, .diacriticInsensitive],
-        )
+            )
         return !searchResults.isEmpty
     }
 
@@ -160,7 +160,7 @@ struct RulesFeature: @preconcurrency Reducer {
             query,
             in: text,
             options: [.caseInsensitive, .diacriticInsensitive],
-        )
+            )
 
         let highlightAttributes: [NSAttributedString.Key: Any] = [
             .backgroundColor: NSColor.systemYellow.withAlphaComponent(0.3),
@@ -171,7 +171,7 @@ struct RulesFeature: @preconcurrency Reducer {
             searchResults.map(\.range),
             in: attributedString,
             with: highlightAttributes,
-        )
+            )
 
         return attributedString
     }

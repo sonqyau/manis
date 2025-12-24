@@ -58,8 +58,7 @@ final class PortValidation {
                 let comps = line.split(separator: " ").map(String.init)
                 if comps.count >= 9,
                    let idx = comps[8].lastIndex(of: ":"),
-                   let port = Int(comps[8][comps[8].index(after: idx)...])
-                {
+                   let port = Int(comps[8][comps[8].index(after: idx)...]) {
                     ports.append(port)
                 }
             }

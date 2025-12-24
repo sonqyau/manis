@@ -18,7 +18,7 @@ enum NotificationExtension {
             identifier: UUID().uuidString,
             content: content,
             trigger: nil,
-        )
+            )
 
         try? await UNUserNotificationCenter.current().add(request)
     }

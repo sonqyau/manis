@@ -9,7 +9,7 @@ public extension View {
     func `if`(
         _ condition: @autoclosure @escaping () -> Bool,
         @ViewBuilder content: (Self) -> some View,
-    ) -> some View {
+        ) -> some View {
         if condition() {
             content(self)
         } else {
@@ -21,7 +21,7 @@ public extension View {
     func `if`<Value>(
         `let` value: Value?,
         @ViewBuilder content: (_ view: Self, _ value: Value) -> some View,
-    ) -> some View {
+        ) -> some View {
         if let value {
             content(self, value)
         } else {
@@ -33,7 +33,7 @@ public extension View {
     func ifNot(
         _ notCondition: @autoclosure @escaping () -> Bool,
         @ViewBuilder content: (Self) -> some View,
-    ) -> some View {
+        ) -> some View {
         if notCondition() {
             self
         } else {

@@ -31,7 +31,7 @@ final class XPCBridge: @unchecked Sendable {
             service: "com.manis.Daemon",
             targetQueue: nil,
             options: [],
-        ) { [weak self] request in
+            ) { [weak self] request in
             guard let self else {
                 return request.reject(reason: "Service unavailable")
             }
@@ -48,7 +48,7 @@ final class XPCBridge: @unchecked Sendable {
                     self?.shouldQuit.setValue(true)
                     self?.logger.info("XPC connection cancelled, shutting down")
                 },
-            )
+                )
             return decision
         }
     }

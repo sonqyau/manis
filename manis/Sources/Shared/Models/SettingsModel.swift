@@ -21,9 +21,9 @@ final class SettingsModel {
     var autoUpdateInterval: TimeInterval = 86400
     var lastSelectedTab = "overview"
     var dashboardRefreshInterval: TimeInterval = 5.0
-    
+
     var selectedProxies: [String: String] = [:]
-    
+
     var dashboardWindowFrame: String?
     var settingsWindowFrame: String?
     var configWindowFrame: String?
@@ -58,7 +58,7 @@ final class SettingsManager {
             schema: schema,
             isStoredInMemoryOnly: false,
             allowsSave: true,
-        )
+            )
 
         do {
             let container = try ModelContainer(for: schema, configurations: [configuration])

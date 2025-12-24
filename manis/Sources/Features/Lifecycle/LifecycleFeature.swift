@@ -40,7 +40,7 @@ struct LifecycleFeature: @preconcurrency Reducer {
                     resourceService: resourceService,
                     mihomoService: mihomoService,
                     networkService: networkService,
-                )
+                    )
                 await Self.initializeApplication(context)
             }
 
@@ -81,7 +81,7 @@ struct LifecycleFeature: @preconcurrency Reducer {
                 "Remote configuration setup",
                 warning: "Remote configuration unavailable. Local mode is enabled.",
                 initializationWarnings: &initializationWarnings,
-            ) {
+                ) {
                 try context.persistenceService.initialize(container: container)
             }
         }
@@ -90,7 +90,7 @@ struct LifecycleFeature: @preconcurrency Reducer {
             "Resource initialization",
             warning: "Resource directory incomplete. Geo data or configuration synchronization may be limited.",
             initializationWarnings: &initializationWarnings,
-        ) {
+            ) {
             try await context.resourceService.initialize()
         }
 
@@ -98,7 +98,7 @@ struct LifecycleFeature: @preconcurrency Reducer {
             "Default configuration initialization",
             warning: "Failed to generate the default configuration. Verify write permissions.",
             initializationWarnings: &initializationWarnings,
-        ) {
+            ) {
             try context.resourceService.ensureDefaultConfig()
         }
 
@@ -156,13 +156,13 @@ struct LifecycleFeature: @preconcurrency Reducer {
             identifier: "RELOAD_CONFIG",
             title: "Reload",
             options: [.foreground],
-        )
+            )
 
         let configCategory = UNNotificationCategory(
             identifier: "CONFIG_CHANGE",
             actions: [reloadAction],
             intentIdentifiers: [],
-        )
+            )
 
         center.setNotificationCategories([configCategory])
     }
@@ -212,7 +212,7 @@ struct LifecycleFeature: @preconcurrency Reducer {
         warning: String,
         initializationWarnings: inout [String],
         operation: () async throws -> Void,
-    ) async {
+        ) async {
         do {
             try await operation()
         } catch {
@@ -220,7 +220,7 @@ struct LifecycleFeature: @preconcurrency Reducer {
                 warning,
                 error: error,
                 initializationWarnings: &initializationWarnings,
-            )
+                )
         }
     }
 
@@ -229,7 +229,7 @@ struct LifecycleFeature: @preconcurrency Reducer {
         _ message: String,
         error: any Error,
         initializationWarnings: inout [String],
-    ) {
+        ) {
         initializationWarnings.append("\(message) (Reason: \(error.applicationMessage))")
     }
 

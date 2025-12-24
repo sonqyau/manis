@@ -76,7 +76,7 @@ actor DNSService {
         }
     }
 
-    private nonisolated func setDNSServers(_ servers: [String]) throws {
+    nonisolated private func setDNSServers(_ servers: [String]) throws {
         _ = servers.joined(separator: " ")
         let result = executeNetworkSetup([
             "-setdnsservers", "Wi-Fi",
@@ -87,17 +87,17 @@ actor DNSService {
         }
     }
 
-    private nonisolated func enableDNSHijacking() throws {
+    nonisolated private func enableDNSHijacking() throws {
         // TODO: Implement DNS hijacking enable
         logger.info("DNS hijacking enabled (placeholder)")
     }
 
-    private nonisolated func disableDNSHijacking() throws {
+    nonisolated private func disableDNSHijacking() throws {
         // TODO: Implement DNS hijacking disable
         logger.info("DNS hijacking disabled (placeholder)")
     }
 
-    private nonisolated func executeDNSFlush() -> Int32 {
+    nonisolated private func executeDNSFlush() -> Int32 {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/dscacheutil")
         process.arguments = ["-flushcache"]
@@ -112,7 +112,7 @@ actor DNSService {
         }
     }
 
-    private nonisolated func executeNetworkSetup(_ arguments: [String]) -> Int32 {
+    nonisolated private func executeNetworkSetup(_ arguments: [String]) -> Int32 {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/sbin/networksetup")
         process.arguments = arguments

@@ -63,8 +63,8 @@ final class PersistenceDomain {
                 remoteInstances: [],
                 isLocalMode: true,
                 activeRemoteInstance: nil,
-            ),
-        )
+                ),
+            )
     }
 
     func statePublisher() -> AnyPublisher<State, Never> {
@@ -79,7 +79,7 @@ final class PersistenceDomain {
             remoteInstances: remoteInstances,
             isLocalMode: isLocalMode,
             activeRemoteInstance: activeRemoteInstance,
-        )
+            )
     }
 
     private func emitState() {
@@ -116,7 +116,7 @@ final class PersistenceDomain {
         let context = container.mainContext
         let descriptor = FetchDescriptor<PersistenceModel>(
             sortBy: [SortDescriptor(\.createdAt)],
-        )
+            )
 
         do {
             configs = try performDatabase {
@@ -136,7 +136,7 @@ final class PersistenceDomain {
         let context = container.mainContext
         let descriptor = FetchDescriptor<RemoteInstance>(
             sortBy: [SortDescriptor(\.createdAt)],
-        )
+            )
 
         do {
             let instances = try performDatabase {
@@ -155,7 +155,7 @@ final class PersistenceDomain {
     func addConfig(name: String, url: String) async throws(PersistenceError) {
         guard let container = modelContainer else { throw PersistenceError.notInitialized }
         guard URL(string: url) != nil else { throw PersistenceError.invalidURL }
-        
+
         let context = container.mainContext
         let duplicateDescriptor = FetchDescriptor<PersistenceModel>(
             predicate: #Predicate<PersistenceModel> { $0.url == url }
@@ -241,7 +241,7 @@ final class PersistenceDomain {
     func activateConfig(_ config: PersistenceModel) async throws(PersistenceError) {
         guard let container = modelContainer else { throw PersistenceError.notInitialized }
         let context = container.mainContext
-        
+
         let deactivateDescriptor = FetchDescriptor<PersistenceModel>(
             predicate: #Predicate<PersistenceModel> { $0.isActive == true }
         )
@@ -286,7 +286,7 @@ final class PersistenceDomain {
             guard result.isValid else {
                 throw PersistenceError.validationFailed(
                     result.errorMessage ?? "Unknown configuration validation error.",
-                )
+                    )
             }
         } catch {
             throw mapError(error)
@@ -297,7 +297,7 @@ final class PersistenceDomain {
         try await apiClient.reloadConfig(
             path: resourceManager.configFilePath.path,
             payload: "",
-        )
+            )
     }
 
     func backupConfig() throws(PersistenceError) {
@@ -324,7 +324,7 @@ final class PersistenceDomain {
                 at: resourceManager.configDirectory,
                 includingPropertiesForKeys: [.creationDateKey],
                 options: [.skipsHiddenFiles],
-            )
+                )
             .filter { $0.lastPathComponent.hasPrefix("config_bak_") }
             .sorted { url1, url2 in
                 let d1 = (try? url1.resourceValues(forKeys: [.creationDateKey]))?
@@ -360,11 +360,11 @@ final class PersistenceDomain {
     private func performAutoUpdate() async {
         guard let container = modelContainer else { return }
         let context = container.mainContext
-        
+
         let autoUpdateDescriptor = FetchDescriptor<PersistenceModel>(
             predicate: #Predicate<PersistenceModel> { $0.autoUpdate == true }
         )
-        
+
         do {
             let autoUpdateConfigs = try performDatabase {
                 try context.fetch(autoUpdateDescriptor)
@@ -376,18 +376,18 @@ final class PersistenceDomain {
                         await sendNotification(
                             title: "Configuration updated",
                             body: "\(cfg.name) was updated successfully.",
-                        )
+                            )
                     }
                 } catch {
                     let chain = error.errorChainDescription
                     logger.error(
                         "Failed to update configuration \(cfg.name): \(error.localizedDescription)\n\(chain)",
-                    )
+                        )
                     if cfg.isActive {
                         await sendNotification(
                             title: "Configuration update failed",
                             body: "\(cfg.name): \(error.localizedDescription)",
-                        )
+                            )
                     }
                 }
             }
@@ -404,7 +404,7 @@ final class PersistenceDomain {
                 let chain = error.errorChainDescription
                 logger.error(
                     "Failed to update configuration \(config.name): \(error.localizedDescription)\n\(chain)",
-                )
+                    )
             }
         }
 
@@ -465,7 +465,7 @@ final class PersistenceDomain {
     func activateRemoteInstance(_ instance: RemoteInstance?) async {
         guard let container = modelContainer else { return }
         let context = container.mainContext
-        
+
         let deactivateDescriptor = FetchDescriptor<RemoteInstance>(
             predicate: #Predicate<RemoteInstance> { $0.isActive == true }
         )
@@ -499,9 +499,8 @@ final class PersistenceDomain {
             title: title,
             body: body,
             category: "CONFIG_CHANGE",
-        )
+            )
     }
-
 }
 
 enum PersistenceError: MainError {

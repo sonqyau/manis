@@ -84,7 +84,7 @@ public class DiagnosticPlugin: STPlugin {
                     range: updatedRange,
                     type: diagnostic.type,
                     message: diagnostic.message,
-                )
+                    )
                 updatedDiagnostics.append(updatedDiagnostic)
             }
         }
@@ -106,7 +106,7 @@ extension DiagnosticPlugin: @MainActor ManisTextLayoutManagerDelegate {
         _ textLayoutManager: TextLayout,
         customLayoutFragmentFor _: NSTextLocation,
         in textElement: NSTextElement,
-    ) -> NSTextLayoutFragment? {
+        ) -> NSTextLayoutFragment? {
         guard textLayoutManager.textContentManager != nil,
               let elementRange = textElement.elementRange
         else {

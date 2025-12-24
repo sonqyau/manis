@@ -140,7 +140,7 @@ struct MenuBarFeature: @preconcurrency Reducer {
     private func onDisappearEffect() -> Effect<Action> {
         .merge(
             .cancel(id: CancelID.mihomoStream),
-        )
+            )
     }
 
     private func selectProxyEffect(group: String, proxy: String) -> Effect<Action> {
@@ -159,7 +159,7 @@ struct MenuBarFeature: @preconcurrency Reducer {
     private func runOperation(
         containerDescription _: String,
         work: @escaping () async throws -> Void,
-    ) -> Effect<Action> {
+        ) -> Effect<Action> {
         .run { @MainActor send in
             do {
                 try await work()
@@ -177,7 +177,7 @@ struct MenuBarFeature: @preconcurrency Reducer {
 
     private static func buildSelectorGroups(
         from groups: OrderedDictionary<String, GroupInfo>,
-    ) -> [State.ProxySelectorGroup] {
+        ) -> [State.ProxySelectorGroup] {
         groups
             .filter { $0.value.type.lowercased() == "selector" }
             .sorted { $0.key < $1.key }

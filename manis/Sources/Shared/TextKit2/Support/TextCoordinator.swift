@@ -42,7 +42,7 @@ final class TextCoordinator: ObservableObject {
             range: currentResult.range,
             replacement: replacement,
             originalText: currentResult.matchedText,
-        )
+            )
 
         performReplaceOperation(operation)
     }
@@ -108,20 +108,20 @@ final class TextCoordinator: ObservableObject {
             getHighlightedRanges(),
             in: attributedString,
             with: customHighlightAttributes,
-        )
+            )
 
         TextComposer.highlightRanges(
             searchResults.map(\.range),
             in: attributedString,
             with: searchHighlightAttributes,
-        )
+            )
 
         if let currentResult = currentSearchResult {
             TextComposer.highlightRanges(
                 [currentResult.range],
                 in: attributedString,
                 with: currentMatchAttributes,
-            )
+                )
         }
 
         return attributedString
@@ -153,7 +153,7 @@ final class TextCoordinator: ObservableObject {
         text = text.replacingOccurrences(
             of: String(substring),
             with: operation.replacement,
-        )
+            )
 
         mutationTracker.addMutation(operation.mutation)
         updateSearchResults()
@@ -223,7 +223,7 @@ extension TextCoordinator {
             let adjustedRange = NSRange(
                 location: range.location + result.range.location,
                 length: result.range.length,
-            )
+                )
             return TextComposer.SearchResult(range: adjustedRange, in: text)
         }
     }

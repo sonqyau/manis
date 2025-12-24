@@ -82,7 +82,7 @@ final class RemoteInstance: Identifiable {
         self.apiURL = apiURL
         isActive = false
         createdAt = dependencies.date()
-        
+
         if let secret = secret, !secret.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             do {
                 let keychainDeps = RemoteInstanceDependencies()
