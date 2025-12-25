@@ -1,6 +1,7 @@
 import Collections
 import ComposableArchitecture
 import Perception
+import SFSafeSymbols
 import SwiftNavigation
 import SwiftUI
 import SwiftUINavigation
@@ -30,8 +31,8 @@ struct MenuBarIconView: View {
                 .accessibilityHidden(true)
 
             VStack(alignment: .trailing, spacing: 0) {
-                speedRow(icon: "arrow.up", speed: bindableStore.uploadSpeed)
-                speedRow(icon: "arrow.down", speed: bindableStore.downloadSpeed)
+                speedRow(icon: .arrowUp, speed: bindableStore.uploadSpeed)
+                speedRow(icon: .arrowDown, speed: bindableStore.downloadSpeed)
             }
         }
         .font(.system(.caption2, design: .monospaced))
@@ -41,9 +42,9 @@ struct MenuBarIconView: View {
         .onDisappear { bindableStore.send(.onDisappear) }
     }
 
-    private func speedRow(icon: String, speed: String) -> some View {
+    private func speedRow(icon: SFSymbol, speed: String) -> some View {
         HStack(spacing: 4) {
-            Image(systemName: icon)
+            Image(systemSymbol: icon)
                 .font(.caption2)
                 .accessibilityHidden(true)
             Text(speed)
@@ -104,7 +105,7 @@ struct MenuBarContentView: View {
         Section {
             statusSectionContent
         } header: {
-            Label("Status", systemImage: "info.circle")
+            Label("Status", systemSymbol: .infoCircle)
         }
     }
 
@@ -160,13 +161,13 @@ struct MenuBarContentView: View {
             VStack(spacing: 12) {
                 HStack(spacing: 16) {
                     trafficStat(
-                        icon: "arrow.down",
+                        icon: .arrowDown,
                         value: bindableStore.downloadSpeed,
                         color: .blue,
                         )
                     Divider().frame(height: 20)
                     trafficStat(
-                        icon: "arrow.up",
+                        icon: .arrowUp,
                         value: bindableStore.uploadSpeed,
                         color: .green,
                         )
@@ -191,7 +192,7 @@ struct MenuBarContentView: View {
 
     private func memoryStat(value: String) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: "memorychip")
+            Image(systemSymbol: .memorychip)
                 .foregroundColor(.purple)
                 .font(.caption)
                 .accessibilityHidden(true)
@@ -202,9 +203,9 @@ struct MenuBarContentView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private func trafficStat(icon: String, value: String, color: Color) -> some View {
+    private func trafficStat(icon: SFSymbol, value: String, color: Color) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: icon)
+            Image(systemSymbol: icon)
                 .foregroundColor(color)
                 .font(.caption)
                 .accessibilityHidden(true)
@@ -217,12 +218,12 @@ struct MenuBarContentView: View {
 
     private func filterTile(
         title: String,
-        icon: String,
+        icon: SFSymbol,
         isActive: Bool = false,
         activeColor: Color = .blue,
         ) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: icon)
+            Image(systemSymbol: icon)
                 .font(.body)
                 .foregroundStyle(isActive ? activeColor : .primary)
                 .accessibilityHidden(true)
@@ -251,7 +252,7 @@ struct MenuBarContentView: View {
                 }
             }
         } header: {
-            Label("Proxy groups", systemImage: "server.rack")
+            Label("Proxy groups", systemSymbol: .serverRack)
         }
     }
 
@@ -264,7 +265,7 @@ struct MenuBarContentView: View {
                     } label: {
                         quickActionTile(
                             title: "System Proxy",
-                            icon: "network",
+                            icon: .network,
                             isActive: bindableStore.systemProxyEnabled,
                             activeColor: .blue
                         )
@@ -276,7 +277,7 @@ struct MenuBarContentView: View {
                     } label: {
                         quickActionTile(
                             title: "TUN Mode",
-                            icon: "shield.fill",
+                            icon: .shieldFill,
                             isActive: bindableStore.tunModeEnabled,
                             activeColor: .green
                         )
@@ -288,7 +289,7 @@ struct MenuBarContentView: View {
                     bindableStore.send(.reloadConfig)
                 } label: {
                     HStack(spacing: 8) {
-                        Image(systemName: "arrow.clockwise")
+                        Image(systemSymbol: .arrowClockwise)
                             .font(.body)
                             .foregroundStyle(.orange)
                             .accessibilityHidden(true)
@@ -308,18 +309,18 @@ struct MenuBarContentView: View {
                 .buttonStyle(.plain)
             }
         } header: {
-            Label("Actions", systemImage: "bolt.circle")
+            Label("Actions", systemSymbol: .boltCircle)
         }
     }
 
     private func quickActionTile(
         title: String,
-        icon: String,
+        icon: SFSymbol,
         isActive: Bool = false,
         activeColor: Color = .blue
     ) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: icon)
+            Image(systemSymbol: icon)
                 .font(.body)
                 .foregroundStyle(isActive ? activeColor : .primary)
                 .accessibilityHidden(true)
@@ -343,33 +344,33 @@ struct MenuBarContentView: View {
                 Button {
                     openWindow(id: "dashboardWindow")
                 } label: {
-                    filterTile(title: "Dashboard", icon: "square.grid.2x2.fill")
+                    filterTile(title: "Dashboard", icon: .squareGrid2x2Fill)
                 }
                 .buttonStyle(.plain)
 
                 Button {
                     openWindow(id: "settingsWindow")
                 } label: {
-                    filterTile(title: "Settings", icon: "gear")
+                    filterTile(title: "Settings", icon: .gear)
                 }
                 .buttonStyle(.plain)
 
                 Button {
                     NSApplication.shared.terminate(nil)
                 } label: {
-                    filterTile(title: "Quit", icon: "power")
+                    filterTile(title: "Quit", icon: .power)
                 }
                 .buttonStyle(.plain)
             }
         } header: {
-            Label("Shortcuts", systemImage: "arrowshape.turn.up.right.circle")
+            Label("Shortcuts", systemSymbol: .arrowshapeTurnUpRightCircle)
         }
     }
 }
 
 struct MenuBarNavigationButton: View {
     let title: String
-    let icon: String
+    let icon: SFSymbol
     var tint: Color?
     var showsChevron: Bool
     var role: ButtonRole?
@@ -377,7 +378,7 @@ struct MenuBarNavigationButton: View {
 
     init(
         title: String,
-        icon: String,
+        icon: SFSymbol,
         tint: Color? = nil,
         showsChevron: Bool = true,
         role: ButtonRole? = nil,
@@ -394,11 +395,11 @@ struct MenuBarNavigationButton: View {
     var body: some View {
         Button(role: role, action: action) {
             HStack(spacing: 8) {
-                Label(title, systemImage: icon)
+                Label(title, systemSymbol: icon)
                     .foregroundStyle(tint ?? .primary)
                 Spacer()
                 if showsChevron {
-                    Image(systemName: "chevron.right")
+                    Image(systemSymbol: .chevronRight)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .accessibilityHidden(true)
@@ -430,7 +431,7 @@ private struct MenuBarProxyGroupRow: View {
                 }
             } label: {
                 HStack {
-                    Image(systemName: "chevron.right")
+                    Image(systemSymbol: .chevronRight)
                         .font(.caption)
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                         .foregroundColor(.secondary)

@@ -2,6 +2,7 @@ import Rearrange
 import STTextView
 import SwiftUI
 import UniformTypeIdentifiers
+import Algorithms
 
 struct SettingsConfigView: View {
     @Binding var text: String

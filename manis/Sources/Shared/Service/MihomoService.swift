@@ -1,3 +1,4 @@
+import AsyncQueue
 import Combine
 import Foundation
 
@@ -31,11 +32,13 @@ protocol MihomoService: AnyObject, Sendable {
     func upgradeGeo2() async throws
     func triggerGC() async throws
     func updateConfig(_ updates: [String: Any]) async throws
+    func cancelAllOperations()
 }
 
 @MainActor
 final class APIDomainMihomoServiceAdapter: MihomoService, @unchecked Sendable {
     private let domain: MihomoDomain
+    private let cancellableQueue = CancellableQueue(underlyingQueue: FIFOQueue(name: "MihomoService"))
 
     init(domain: MihomoDomain = .shared) {
         self.domain = domain
@@ -147,5 +150,9 @@ final class APIDomainMihomoServiceAdapter: MihomoService, @unchecked Sendable {
 
     func updateConfig(_ updates: [String: Any]) async throws {
         try await domain.updateConfig(updates)
+    }
+
+    func cancelAllOperations() {
+        cancellableQueue.cancelTasks()
     }
 }

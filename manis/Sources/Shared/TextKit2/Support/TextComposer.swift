@@ -1,5 +1,6 @@
 import Foundation
 import Rearrange
+import Algorithms
 
 public enum TextComposer {
     public struct SearchResult {
@@ -73,13 +74,9 @@ public enum TextComposer {
             return (text, [])
         }
 
-        var operations: [ReplaceOperation] = []
-        var currentText = text
-        var offset = 0
-
-        for result in searchResults {
+        let operations = searchResults.reversed().indexed().map { _, result in
             let adjustedRange = NSRange(
-                location: result.range.location + offset,
+                location: result.range.location,
                 length: result.range.length,
                 )
 
@@ -88,21 +85,22 @@ public enum TextComposer {
                 replacement: replacement,
                 originalText: result.matchedText,
                 )
-            operations.append(operation)
-
-            if let substring = currentText[adjustedRange] {
-                currentText = currentText.replacingOccurrences(
-                    of: String(substring),
-                    with: replacement,
-                    options: [],
-                    range: Range(adjustedRange, in: currentText),
-                    )
-
-                offset += replacement.count - result.matchedText.count
-            }
+            return operation
         }
 
-        return (currentText, operations)
+        let currentText = operations.reversed().reduce(text) { currentText, operation in
+            if let substring = currentText[operation.range] {
+                return currentText.replacingOccurrences(
+                    of: String(substring),
+                    with: operation.replacement,
+                    options: [],
+                    range: Range(operation.range, in: currentText),
+                    )
+            }
+            return currentText
+        }
+
+        return (currentText, operations.reversed())
     }
 
     public static func insertText(
@@ -207,27 +205,35 @@ public enum TextComposer {
         let sortedRanges = ranges.filter(\.isValid).sorted { $0.location < $1.location }
         guard !sortedRanges.isEmpty else { return [text] }
 
+        let chunkedRanges = sortedRanges.chunked { current, next in
+            current.max <= next.location
+        }
+
         var parts: [String] = []
         var currentLocation = 0
 
-        for range in sortedRanges {
-            let clampedRange = range.clamped(to: text.count)
+        for chunk in chunkedRanges {
+            let clampedRanges = chunk.map { $0.clamped(to: text.count) }
 
-            if currentLocation < clampedRange.location {
+            if let firstRange = clampedRanges.first, currentLocation < firstRange.location {
                 let beforeRange = NSRange(
                     location: currentLocation,
-                    length: clampedRange.location - currentLocation,
+                    length: firstRange.location - currentLocation,
                     )
                 if let beforeText = text[beforeRange] {
                     parts.append(String(beforeText))
                 }
             }
 
-            if let rangeText = text[clampedRange] {
-                parts.append(String(rangeText))
+            for range in clampedRanges {
+                if let rangeText = text[range] {
+                    parts.append(String(rangeText))
+                }
             }
 
-            currentLocation = clampedRange.max
+            if let lastRange = clampedRanges.last {
+                currentLocation = lastRange.max
+            }
         }
 
         if currentLocation < text.count {

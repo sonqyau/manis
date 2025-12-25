@@ -1,3 +1,4 @@
+import AsyncAlgorithms
 import Collections
 @preconcurrency import Combine
 import ComposableArchitecture
@@ -168,7 +169,10 @@ struct MenuBarFeature: @preconcurrency Reducer {
         let network = networkService
 
         let mihomoEffect: Effect<Action> = .run { @MainActor send in
-            for await domainState in mihomo.statePublisher.values {
+            let debouncedStream = mihomo.statePublisher.values
+                .debounce(for: .milliseconds(300))
+
+            for await domainState in debouncedStream {
                 let snapshot = MihomoSnapshot(domainState)
                 send(.mihomoSnapshotUpdated(snapshot))
             }

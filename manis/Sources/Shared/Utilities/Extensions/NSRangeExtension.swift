@@ -1,5 +1,6 @@
 import Foundation
 import Rearrange
+import Algorithms
 
 extension NSRange {
     func intersects(_ other: NSRange) -> Bool {
@@ -175,18 +176,14 @@ struct RangeCollection {
         guard !ranges.isEmpty else { return [] }
 
         let sorted = ranges.sorted { $0.location < $1.location }
-        var merged: [NSRange] = [sorted[0]]
-
-        for range in sorted.dropFirst() {
-            let last = merged[merged.count - 1]
-            if range.location <= last.max {
-                merged[merged.count - 1] = last.union(with: range)
-            } else {
-                merged.append(range)
+        return sorted.chunked { current, next in
+            current.location <= next.max
+        }
+        .compactMap { chunk in
+            chunk.first.map { first in
+                chunk.reduce(first) { $0.union(with: $1) }
             }
         }
-
-        return merged
     }
 
     var asIndexSet: IndexSet {

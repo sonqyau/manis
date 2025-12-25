@@ -1,5 +1,9 @@
+import AsyncAlgorithms
+import AsyncQueue
 import Clocks
 import Foundation
+import HTTPTypes
+import HTTPTypesFoundation
 
 struct WebSocketReconnectionConfig {
     let enabled: Bool
@@ -23,7 +27,7 @@ struct WebSocketReconnectionConfig {
 }
 
 enum WebSocketStreamEvent {
-    case connected(headers: [String: String]?)
+    case connected(headers: HTTPFields?)
     case disconnected(reason: String?, code: UInt16)
     case text(String)
     case data(Data)
@@ -31,7 +35,7 @@ enum WebSocketStreamEvent {
 }
 
 protocol WebSocketStreamClient: AnyObject {
-    var events: AsyncStream<WebSocketStreamEvent> { get }
+    var events: AsyncChannel<WebSocketStreamEvent> { get }
 
     func connect()
     func disconnect(closeCode: UInt16?)
@@ -46,8 +50,8 @@ final class URLSessionWebSocketStreamClient: NSObject, WebSocketStreamClient, @u
     private let clock: any Clock<Duration>
     private var webSocketTask: URLSessionWebSocketTask?
     private var urlSession: URLSession?
-    private var continuation: AsyncStream<WebSocketStreamEvent>.Continuation?
-    private let stateQueue = DispatchQueue(label: "com.manis.websocket.state", attributes: .concurrent)
+    private let channel = AsyncChannel<WebSocketStreamEvent>()
+    private let queue = FIFOQueue(name: "WebSocketStreamClient")
 
     private var _isManuallyDisconnected = false
     private var _reconnectTask: Task<Void, Never>?
@@ -55,18 +59,18 @@ final class URLSessionWebSocketStreamClient: NSObject, WebSocketStreamClient, @u
     private var _currentDelay: TimeInterval
 
     private var isManuallyDisconnected: Bool {
-        get { stateQueue.sync { _isManuallyDisconnected } }
-        set { stateQueue.async(flags: .barrier) { self._isManuallyDisconnected = newValue } }
+        get { _isManuallyDisconnected }
+        set { _isManuallyDisconnected = newValue }
     }
 
     private var reconnectTask: Task<Void, Never>? {
-        get { stateQueue.sync { _reconnectTask } }
-        set { stateQueue.async(flags: .barrier) { self._reconnectTask = newValue } }
+        get { _reconnectTask }
+        set { _reconnectTask = newValue }
     }
 
     private var currentDelay: TimeInterval {
-        get { stateQueue.sync { _currentDelay } }
-        set { stateQueue.async(flags: .barrier) { self._currentDelay = newValue } }
+        get { _currentDelay }
+        set { _currentDelay = newValue }
     }
 
     init(
@@ -88,19 +92,19 @@ final class URLSessionWebSocketStreamClient: NSObject, WebSocketStreamClient, @u
         self.webSocketTask = task
     }
 
-    private(set) lazy var events: AsyncStream<WebSocketStreamEvent> = AsyncStream { continuation in
-        self.continuation = continuation
+    var events: AsyncChannel<WebSocketStreamEvent> {
+        channel
     }
 
     func connect() {
-        stateQueue.async(flags: .barrier) {
-            self._isManuallyDisconnected = false
-            self._reconnectAttempt = 0
-            self._currentDelay = self.reconnectionConfig.initialDelay
+        Task(on: queue) {
+            _isManuallyDisconnected = false
+            _reconnectAttempt = 0
+            _currentDelay = reconnectionConfig.initialDelay
         }
         reconnectTask?.cancel()
-        stateQueue.async(flags: .barrier) {
-            self._reconnectTask = nil
+        Task(on: queue) {
+            _reconnectTask = nil
         }
 
         setupWebSocket()
@@ -109,31 +113,39 @@ final class URLSessionWebSocketStreamClient: NSObject, WebSocketStreamClient, @u
     }
 
     func disconnect(closeCode: UInt16? = nil) {
-        stateQueue.async(flags: .barrier) {
-            self._isManuallyDisconnected = true
+        Task(on: queue) {
+            _isManuallyDisconnected = true
         }
         reconnectTask?.cancel()
-        stateQueue.async(flags: .barrier) {
-            self._reconnectTask = nil
+        Task(on: queue) {
+            _reconnectTask = nil
         }
 
         let closeCode = closeCode.map { URLSessionWebSocketTask.CloseCode(rawValue: Int($0)) ?? .normalClosure } ?? .normalClosure
         webSocketTask?.cancel(with: closeCode, reason: nil)
-        continuation?.finish()
+        channel.finish()
     }
 
     func send(text: String) {
-        webSocketTask?.send(.string(text)) { [weak self] error in
-            if let error {
-                self?.continuation?.yield(.error(error))
+        Task(on: queue) {
+            webSocketTask?.send(.string(text)) { [weak self] error in
+                if let error {
+                    Task {
+                        await self?.channel.send(.error(error))
+                    }
+                }
             }
         }
     }
 
     func send(data: Data) {
-        webSocketTask?.send(.data(data)) { [weak self] error in
-            if let error {
-                self?.continuation?.yield(.error(error))
+        Task(on: queue) {
+            webSocketTask?.send(.data(data)) { [weak self] error in
+                if let error {
+                    Task {
+                        await self?.channel.send(.error(error))
+                    }
+                }
             }
         }
     }
@@ -142,36 +154,38 @@ final class URLSessionWebSocketStreamClient: NSObject, WebSocketStreamClient, @u
         webSocketTask?.receive { [weak self] result in
             guard let self else { return }
 
-            switch result {
-            case let .success(message):
-                switch message {
-                case let .string(text):
-                    self.continuation?.yield(.text(text))
-                case let .data(data):
-                    self.continuation?.yield(.data(data))
-                @unknown default:
-                    break
-                }
-                self.startReceiving()
+            Task {
+                switch result {
+                case let .success(message):
+                    switch message {
+                    case let .string(text):
+                        await self.channel.send(.text(text))
+                    case let .data(data):
+                        await self.channel.send(.data(data))
+                    @unknown default:
+                        break
+                    }
+                    self.startReceiving()
 
-            case let .failure(error):
-                self.continuation?.yield(.error(error))
-                if !self.isManuallyDisconnected {
-                    self.scheduleReconnect()
-                } else {
-                    self.continuation?.finish()
+                case let .failure(error):
+                    await self.channel.send(.error(error))
+                    if !self.isManuallyDisconnected {
+                        self.scheduleReconnect()
+                    } else {
+                        channel.finish()
+                    }
                 }
             }
         }
     }
 
     private func scheduleReconnect() {
-        let shouldReconnect = stateQueue.sync {
-            reconnectionConfig.enabled && !_isManuallyDisconnected
-        }
+        let shouldReconnect = reconnectionConfig.enabled && !_isManuallyDisconnected
 
         guard shouldReconnect else {
-            continuation?.finish()
+            Task {
+                channel.finish()
+            }
             return
         }
 
@@ -190,21 +204,17 @@ final class URLSessionWebSocketStreamClient: NSObject, WebSocketStreamClient, @u
                 return
             }
 
-            let stillShouldReconnect = self.stateQueue.sync {
-                !self._isManuallyDisconnected
-            }
+            let stillShouldReconnect = !_isManuallyDisconnected
 
             guard stillShouldReconnect else {
                 return
             }
 
-            self.stateQueue.sync(flags: .barrier) {
-                self._reconnectAttempt += 1
-                self._currentDelay = min(
-                    self._currentDelay * backoffMultiplier,
-                    maxDelay,
-                    )
-            }
+            _reconnectAttempt += 1
+            _currentDelay = min(
+                _currentDelay * backoffMultiplier,
+                maxDelay,
+                )
 
             await MainActor.run { [weak self] in
                 guard let self else { return }
@@ -214,35 +224,32 @@ final class URLSessionWebSocketStreamClient: NSObject, WebSocketStreamClient, @u
             }
         }
 
-        stateQueue.async(flags: .barrier) {
-            self._reconnectTask = task
-        }
+        _reconnectTask = task
     }
 }
 
 extension URLSessionWebSocketStreamClient: URLSessionWebSocketDelegate {
     func urlSession(_: URLSession, webSocketTask _: URLSessionWebSocketTask, didOpenWithProtocol _: String?) {
-        let headers: [String: String]? = nil
-        continuation?.yield(.connected(headers: headers))
+        let headers: HTTPFields? = nil
+        Task {
+            await channel.send(.connected(headers: headers))
+        }
 
-        stateQueue.async(flags: .barrier) {
-            self._reconnectAttempt = 0
-            self._currentDelay = self.reconnectionConfig.initialDelay
-        }
+        _reconnectAttempt = 0
+        _currentDelay = reconnectionConfig.initialDelay
         reconnectTask?.cancel()
-        stateQueue.async(flags: .barrier) {
-            self._reconnectTask = nil
-        }
+        _reconnectTask = nil
     }
 
     func urlSession(_: URLSession, webSocketTask _: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
         let reasonString = reason.flatMap { String(data: $0, encoding: .utf8) }
-        continuation?.yield(.disconnected(reason: reasonString, code: UInt16(closeCode.rawValue)))
-
-        if !isManuallyDisconnected {
-            scheduleReconnect()
-        } else {
-            continuation?.finish()
+        Task {
+            await channel.send(.disconnected(reason: reasonString, code: UInt16(closeCode.rawValue)))
+            if !self.isManuallyDisconnected {
+                self.scheduleReconnect()
+            } else {
+                channel.finish()
+            }
         }
     }
 }
@@ -250,16 +257,16 @@ extension URLSessionWebSocketStreamClient: URLSessionWebSocketDelegate {
 struct TrafficDataStream: AsyncSequence {
     typealias Element = TrafficSnapshot
 
-    let events: AsyncStream<WebSocketStreamEvent>
+    let events: AsyncChannel<WebSocketStreamEvent>
 
     func makeAsyncIterator() -> AsyncIterator {
         AsyncIterator(events: events)
     }
 
     struct AsyncIterator: AsyncIteratorProtocol {
-        private var eventIterator: AsyncStream<WebSocketStreamEvent>.AsyncIterator
+        private var eventIterator: AsyncChannel<WebSocketStreamEvent>.AsyncIterator
 
-        init(events: AsyncStream<WebSocketStreamEvent>) {
+        init(events: AsyncChannel<WebSocketStreamEvent>) {
             self.eventIterator = events.makeAsyncIterator()
         }
 
@@ -289,16 +296,16 @@ struct TrafficDataStream: AsyncSequence {
 struct WebSocketMessageStream: AsyncSequence {
     typealias Element = String
 
-    let events: AsyncStream<WebSocketStreamEvent>
+    let events: AsyncChannel<WebSocketStreamEvent>
 
     func makeAsyncIterator() -> AsyncIterator {
         AsyncIterator(events: events)
     }
 
     struct AsyncIterator: AsyncIteratorProtocol {
-        private var eventIterator: AsyncStream<WebSocketStreamEvent>.AsyncIterator
+        private var eventIterator: AsyncChannel<WebSocketStreamEvent>.AsyncIterator
 
-        init(events: AsyncStream<WebSocketStreamEvent>) {
+        init(events: AsyncChannel<WebSocketStreamEvent>) {
             self.eventIterator = events.makeAsyncIterator()
         }
 

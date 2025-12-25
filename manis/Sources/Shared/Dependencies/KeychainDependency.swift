@@ -4,6 +4,10 @@ struct KeychainClient {
     var setSecret: @Sendable (_ secret: String, _ key: String) throws -> Void
     var secret: @Sendable (_ key: String) throws -> String?
     var deleteSecret: @Sendable (_ key: String) throws -> Void
+    var containsSecret: @Sendable (_ key: String) throws -> Bool
+    var removeAllSecrets: @Sendable () throws -> Void
+    var allKeys: @Sendable () throws -> Set<String>
+    var canAccessKeychain: @Sendable () -> Bool
 }
 
 enum KeychainClientKey: DependencyKey {
@@ -17,7 +21,19 @@ enum KeychainClientKey: DependencyKey {
         deleteSecret: { key in
             try Keychain.shared.deleteSecret(for: key)
         },
-        )
+        containsSecret: { key in
+            try Keychain.shared.containsSecret(for: key)
+        },
+        removeAllSecrets: {
+            try Keychain.shared.removeAllSecrets()
+        },
+        allKeys: {
+            try Keychain.shared.allKeys()
+        },
+        canAccessKeychain: {
+            Keychain.shared.canAccessKeychain()
+        }
+    )
 }
 
 extension DependencyValues {

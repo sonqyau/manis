@@ -1,6 +1,9 @@
 import Clocks
 @preconcurrency import Combine
 import Foundation
+import HTTPTypes
+import HTTPTypesFoundation
+import SystemPackage
 import OSLog
 import SwiftData
 import UserNotifications
@@ -199,14 +202,17 @@ final class PersistenceDomain {
     func updateConfig(_ config: PersistenceModel) async throws(PersistenceError) {
         guard let url = URL(string: config.url) else { throw PersistenceError.invalidURL }
 
-        var req = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
-        req.setValue("manis/1.0", forHTTPHeaderField: "User-Agent")
+        var request = HTTPRequest(method: .get, url: url)
+        request.headerFields[.userAgent] = "manis/1.0"
 
-        let capturedRequest = req
+        guard let urlRequest = URLRequest(httpRequest: request) else {
+            throw PersistenceError.downloadFailed
+        }
         do {
-            let (data, resp) = try await URLSession.shared.data(for: capturedRequest)
+            let (data, resp) = try await URLSession.shared.data(for: urlRequest)
 
-            guard let http = resp as? HTTPURLResponse, (200 ... 299).contains(http.statusCode) else {
+            guard let httpResponse = resp as? HTTPURLResponse,
+                  (200 ... 299).contains(httpResponse.statusCode) else {
                 throw PersistenceError.downloadFailed
             }
 
@@ -219,9 +225,11 @@ final class PersistenceDomain {
                 throw PersistenceError.validationFailed(result.errorMessage ?? "Invalid configuration.")
             }
 
-            let path = resourceManager.configDirectory.appendingPathComponent("\(config.name).yaml")
-            try content.write(to: path, atomically: true, encoding: String.Encoding.utf8)
-            try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: path.path)
+            let path = FilePath(resourceManager.configDirectory.appendingPathComponent("\(config.name).yaml").path)
+            let fd = try FileDescriptor.open(path, .writeOnly, options: [.create, .truncate], permissions: FilePermissions(rawValue: 0o644))
+            _ = try fd.closeAfter {
+                try fd.writeAll(content.utf8)
+            }
 
             config.lastUpdated = Date()
             config.updatedAt = Date()
@@ -257,21 +265,21 @@ final class PersistenceDomain {
         do {
             try modelContainer?.mainContext.save()
 
-            let src = resourceManager.configDirectory.appendingPathComponent("\(config.name).yaml")
-            let dst = resourceManager.configFilePath
+            let src = FilePath(resourceManager.configDirectory.appendingPathComponent("\(config.name).yaml").path)
+            let dst = FilePath(resourceManager.configFilePath.path)
 
-            guard FileManager.default.fileExists(atPath: src.path) else {
+            guard FileManager.default.fileExists(atPath: src.string) else {
                 throw PersistenceError.validationFailed("Source configuration not found.")
             }
 
             try backupConfig()
 
-            if FileManager.default.fileExists(atPath: dst.path) {
-                try FileManager.default.removeItem(at: dst)
+            if FileManager.default.fileExists(atPath: dst.string) {
+                try FileManager.default.removeItem(atPath: dst.string)
             }
 
-            try FileManager.default.copyItem(at: src, to: dst)
-            try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: dst.path)
+            try FileManager.default.copyItem(atPath: src.string, toPath: dst.string)
+            try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: dst.string)
             try await reloadActiveConfig()
 
             emitState()
@@ -301,8 +309,8 @@ final class PersistenceDomain {
     }
 
     func backupConfig() throws(PersistenceError) {
-        let path = resourceManager.configFilePath
-        guard FileManager.default.fileExists(atPath: path.path) else {
+        let path = FilePath(resourceManager.configFilePath.path)
+        guard FileManager.default.fileExists(atPath: path.string) else {
             return
         }
 
@@ -311,7 +319,7 @@ final class PersistenceDomain {
             let backup = resourceManager.configDirectory
                 .appendingPathComponent("config_bak_\(ts).yaml")
 
-            try FileManager.default.copyItem(at: path, to: backup)
+            try FileManager.default.copyItem(atPath: path.string, toPath: backup.path)
             try cleanupOldBackups()
         } catch {
             throw mapError(error)

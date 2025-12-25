@@ -184,7 +184,8 @@ actor DaemonService {
             throw DaemonError.configurationError("Missing required parameters for updateTun")
         }
 
-        // TODO: Implement TUN with enabled: request.enabled, dnsServer: dnsServer
+        // TUN implementation not yet available
+        logger.warning("TUN update requested but not implemented")
         throw DaemonError.serviceUnavailable("TUN update not implemented yet")
     }
 }

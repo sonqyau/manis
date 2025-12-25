@@ -1,7 +1,9 @@
 import Foundation
 import OSLog
 import Rearrange
+import SystemPackage
 import Yams
+import Algorithms
 
 enum ConfigValidationError: MainError {
     case executableNotFound
@@ -158,14 +160,16 @@ final class ConfigValidation {
     }
 
     func validateContent(_ content: String) async throws -> ValidationResult {
-        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(
+        let tmp = FilePath(FileManager.default.temporaryDirectory.appendingPathComponent(
             "cfg_\(UUID().uuidString).yaml",
-            )
-        defer { try? FileManager.default.removeItem(at: tmp) }
+            ).path)
+        defer { try? FileManager.default.removeItem(atPath: tmp.string) }
 
-        try content.write(to: tmp, atomically: true, encoding: .utf8)
-        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: tmp.path)
-        return try await validate(configPath: tmp.path)
+        let fd = try FileDescriptor.open(tmp, .writeOnly, options: [.create, .truncate], permissions: FilePermissions(rawValue: 0o600))
+        _ = try fd.closeAfter {
+            try fd.writeAll(content.utf8)
+        }
+        return try await validate(configPath: tmp.string)
     }
 
     func quickValidate(configPath: String) throws -> ValidationResult {
@@ -201,36 +205,46 @@ final class ConfigValidation {
     private func extractErrorMessage(from output: String) -> String {
         let lines = output.split(separator: "\n").map(String.init)
 
-        for line in lines {
-            if line.contains("level=error") || line.contains("level=fatal") {
-                if let msgRange = line.range(of: "msg=") {
-                    let messageStart = msgRange.upperBound
-                    let remainingText = String(line[messageStart...])
-                    return remainingText.trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                }
+        let errorLine = lines.first { line in
+            line.contains("level=error") || line.contains("level=fatal")
+        }
+        .flatMap { line in
+            if let msgRange = line.range(of: "msg=") {
+                let messageStart = msgRange.upperBound
+                let remainingText = String(line[messageStart...])
+                return remainingText.trimmingCharacters(in: CharacterSet(charactersIn: "\""))
             }
-
-            if line.contains("test failed") || line.lowercased().contains("error:") {
-                return line
-            }
+            return nil
         }
 
-        return lines.reversed().first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        if let error = errorLine {
+            return error
+        }
+
+        let testFailedLine = lines.first { line in
+            line.contains("test failed") || line.lowercased().contains("error:")
+        }
+
+        if let testFailed = testFailedLine {
+            return testFailed
+        }
+
+        return lines.last { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             ?? "Configuration validation failed with an unknown error"
     }
 
     private func extractLogLevel(from line: String) -> String? {
         let levelPatterns = ["level=error", "level=fatal", "level=warn", "level=info", "level=debug"]
 
-        for pattern in levelPatterns {
-            if let range = line.range(of: pattern) {
-                let levelStart = line.index(range.lowerBound, offsetBy: 6)
-                let levelEnd = range.upperBound
-                return String(line[levelStart ..< levelEnd])
-            }
+        return levelPatterns.first { pattern in
+            line.contains(pattern)
         }
-
-        return nil
+        .flatMap { pattern in
+            guard let range = line.range(of: pattern) else { return nil }
+            let levelStart = line.index(range.lowerBound, offsetBy: 6)
+            let levelEnd = range.upperBound
+            return String(line[levelStart ..< levelEnd])
+        }
     }
 
     private func parseStructuredLog(_ line: String) -> (level: String?, message: String?) {

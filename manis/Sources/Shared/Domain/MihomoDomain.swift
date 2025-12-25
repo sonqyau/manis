@@ -1,7 +1,10 @@
+import AsyncAlgorithms
 import Clocks
 import Collections
 @preconcurrency import Combine
 import Foundation
+import HTTPTypes
+import HTTPTypesFoundation
 import Observation
 import OSLog
 import Perception
@@ -205,11 +208,13 @@ final class MihomoDomain {
 
             await refreshDashboardData()
 
-            while !Task.isCancelled {
-                try? await clock.sleep(for: .seconds(5))
-                guard !Task.isCancelled else { break }
-                await refreshDashboardData()
+            let timer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
+                Task {
+                    await self.refreshDashboardData()
+                }
             }
+
+            RunLoop.main.add(timer, forMode: .common)
         }
     }
 
@@ -224,7 +229,7 @@ final class MihomoDomain {
 
     private func makeRequest(
         path: String,
-        method: String = "GET",
+        method: HTTPRequest.Method = .get,
         body: Data? = nil,
         queryItems: [URLQueryItem] = [],
         ) async throws -> (Data, HTTPURLResponse) {
@@ -235,20 +240,26 @@ final class MihomoDomain {
             throw URLError(.badURL)
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = method
-        request.httpBody = body
+        var request = HTTPRequest(method: method, url: url)
 
         if let secret {
-            request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
+            request.headerFields = [
+                HTTPField.Name.authorization: "Bearer \(secret)"
+            ]
         }
 
         if body != nil {
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.headerFields[.contentType] = "application/json"
         }
 
-        let capturedRequest = request
-        let (data, response) = try await URLSession.shared.data(for: capturedRequest)
+        if let body = body {
+            request.headerFields[.contentLength] = "\(body.count)"
+        }
+
+        guard let urlRequest = URLRequest(httpRequest: request) else {
+            throw URLError(.badURL)
+        }
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
@@ -270,39 +281,49 @@ final class MihomoDomain {
             return
         }
 
-        var request = URLRequest(
-            url: url,
-            cachePolicy: .reloadIgnoringLocalCacheData,
-            timeoutInterval: 30,
-            )
+        var request = HTTPRequest(method: .get, url: url)
         if let secret {
-            request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
+            request.headerFields[.authorization] = "Bearer \(secret)"
         }
 
-        let client = URLSessionWebSocketStreamClient(request: request, reconnectionConfig: .default)
+        guard let urlRequest = URLRequest(httpRequest: request) else {
+            logger.error("Failed to create URLRequest for traffic socket")
+            return
+        }
+        let client = URLSessionWebSocketStreamClient(request: urlRequest, reconnectionConfig: .default)
         trafficSocket = client
         client.connect()
 
-        let stream = TrafficDataStream(events: client.events)
-
-        do {
-            for try await traffic in stream {
-                currentTraffic = traffic
-
-                let point = TrafficPoint(
-                    timestamp: Date(),
-                    upload: Double(traffic.up),
-                    download: Double(traffic.down),
-                    )
-
-                trafficHistory.append(point)
-
-                if trafficHistory.count > Self.maxTrafficPoints {
-                    trafficHistory.removeFirst()
+        let events = client.events
+        let stream = events.compactMap { event -> TrafficSnapshot? in
+            switch event {
+            case .text(let text):
+                guard let data = text.data(using: .utf8),
+                      let traffic = try? JSONDecoder().decode(TrafficSnapshot.self, from: data)
+                else {
+                    return nil
                 }
+                return traffic
+            default:
+                return nil
             }
-        } catch {
-            logger.notice("Traffic stream ended", error: error)
+        }
+        .removeDuplicates { $0.up == $1.up && $0.down == $1.down }
+
+        for try await traffic in stream {
+            currentTraffic = traffic
+
+            let point = TrafficPoint(
+                timestamp: Date(),
+                upload: Double(traffic.up),
+                download: Double(traffic.down),
+                )
+
+            trafficHistory.append(point)
+
+            if trafficHistory.count > Self.maxTrafficPoints {
+                trafficHistory.removeFirst()
+            }
         }
     }
 
@@ -313,10 +334,13 @@ final class MihomoDomain {
                 return
             }
 
-            while !Task.isCancelled {
-                await fetchConnections()
-                try? await clock.sleep(for: .seconds(1))
+            let timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+                Task {
+                    await self.fetchConnections()
+                }
             }
+
+            RunLoop.main.add(timer, forMode: .common)
         }
     }
 
@@ -326,33 +350,37 @@ final class MihomoDomain {
             return
         }
 
-        var request = URLRequest(
-            url: url,
-            cachePolicy: .reloadIgnoringLocalCacheData,
-            timeoutInterval: 30,
-            )
+        var request = HTTPRequest(method: .get, url: url)
         if let secret {
-            request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
+            request.headerFields[.authorization] = "Bearer \(secret)"
         }
 
-        let client = URLSessionWebSocketStreamClient(request: request, reconnectionConfig: .default)
+        guard let urlRequest = URLRequest(httpRequest: request) else {
+            logger.error("Failed to create URLRequest for memory socket")
+            return
+        }
+        let client = URLSessionWebSocketStreamClient(request: urlRequest, reconnectionConfig: .default)
         memorySocket = client
         client.connect()
 
-        let stream = WebSocketMessageStream(events: client.events)
-
-        do {
-            for try await text in stream {
+        let events = client.events
+        let stream = events.compactMap { event -> MemorySnapshot? in
+            switch event {
+            case .text(let text):
                 guard let data = text.data(using: .utf8),
                       let memory = try? JSONDecoder().decode(MemorySnapshot.self, from: data)
                 else {
-                    continue
+                    return nil
                 }
-
-                memoryUsage = memory.inuse
+                return memory
+            default:
+                return nil
             }
-        } catch {
-            logger.notice("Memory stream ended", error: error)
+        }
+        .removeDuplicates { $0.inuse == $1.inuse }
+
+        for try await memory in stream {
+            memoryUsage = memory.inuse
         }
     }
 
@@ -361,17 +389,18 @@ final class MihomoDomain {
             return
         }
 
-        var request = URLRequest(
-            url: url,
-            cachePolicy: .reloadIgnoringLocalCacheData,
-            timeoutInterval: 5,
-            )
+        var request = HTTPRequest(method: .get, url: url)
         if let secret {
-            request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
+            request.headerFields[.authorization] = "Bearer \(secret)"
+        }
+
+        guard let urlRequest = URLRequest(httpRequest: request) else {
+            logger.error("Failed to create URLRequest for connections fetch")
+            return
         }
 
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let (data, _) = try await URLSession.shared.data(for: urlRequest)
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .custom { decoder in
                 let container = try decoder.singleValueContainer()
@@ -396,14 +425,19 @@ final class MihomoDomain {
             return
         }
 
-        var request = URLRequest(url: url)
+        var request = HTTPRequest(method: .get, url: url)
         if let secret {
-            request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
+            request.headerFields[.authorization] = "Bearer \(secret)"
+        }
+
+        guard let urlRequest = URLRequest(httpRequest: request) else {
+            logger.error("Failed to create URLRequest for version fetch")
+            return
         }
 
         Task(name: "Fetch Mihomo Version") {
             do {
-                let (data, _) = try await URLSession.shared.data(for: request)
+                let (data, _) = try await URLSession.shared.data(for: urlRequest)
                 let versionInfo = try JSONDecoder().decode(ClashVersion.self, from: data)
                 await MainActor.run {
                     self.version = versionInfo.version
@@ -486,12 +520,16 @@ final class MihomoDomain {
             return
         }
 
-        var request = URLRequest(url: url)
+        var request = HTTPRequest(method: .get, url: url)
         if let secret {
-            request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
+            request.headerFields[.authorization] = "Bearer \(secret)"
         }
 
-        let client = URLSessionWebSocketStreamClient(request: request, reconnectionConfig: .disabled)
+        guard let urlRequest = URLRequest(httpRequest: request) else {
+            logger.error("Failed to create URLRequest for log socket")
+            return
+        }
+        let client = URLSessionWebSocketStreamClient(request: urlRequest, reconnectionConfig: .disabled)
         logSocket = client
         client.connect()
 
@@ -531,7 +569,7 @@ final class MihomoDomain {
         let body = try JSONEncoder().encode(request)
         _ = try await makeRequest(
             path: "/configs",
-            method: "PUT",
+            method: .put,
             body: body,
             queryItems: [URLQueryItem(name: "force", value: "true")],
             )
@@ -541,49 +579,49 @@ final class MihomoDomain {
 
     func updateConfig(_ updates: [String: Any]) async throws {
         let body = try JSONSerialization.data(withJSONObject: updates)
-        _ = try await makeRequest(path: "/configs", method: "PATCH", body: body)
+        _ = try await makeRequest(path: "/configs", method: .patch, body: body)
         logger.info("Updated Config")
         await fetchConfig()
     }
 
     func upgradeGeo2() async throws {
-        _ = try await makeRequest(path: "/configs/geo", method: "POST", body: Data())
+        _ = try await makeRequest(path: "/configs/geo", method: .post, body: Data())
         logger.info("Updated GEO database")
     }
 
     func restart() async throws {
-        _ = try await makeRequest(path: "/restart", method: "POST", body: Data())
+        _ = try await makeRequest(path: "/restart", method: .post, body: Data())
         logger.info("Restarted core")
     }
 
     func upgradeCore() async throws {
-        _ = try await makeRequest(path: "/upgrade", method: "POST", body: Data())
+        _ = try await makeRequest(path: "/upgrade", method: .post, body: Data())
         logger.info("Upgraded core")
     }
 
     func upgradeUI() async throws {
-        _ = try await makeRequest(path: "/upgrade/ui", method: "POST", body: Data())
+        _ = try await makeRequest(path: "/upgrade/ui", method: .post, body: Data())
         logger.info("Upgraded UI")
     }
 
     func upgradeGeo1() async throws {
-        _ = try await makeRequest(path: "/upgrade/geo", method: "POST", body: Data())
+        _ = try await makeRequest(path: "/upgrade/geo", method: .post, body: Data())
         logger.info("Upgraded GEO database")
     }
 
     func flushFakeIPCache() async throws {
-        _ = try await makeRequest(path: "/cache/fakeip/flush", method: "POST", body: Data())
+        _ = try await makeRequest(path: "/cache/fakeip/flush", method: .post, body: Data())
         logger.info("Flushed fake IP cache")
     }
 
     func closeAllConnections() async throws {
-        _ = try await makeRequest(path: "/connections", method: "DELETE")
+        _ = try await makeRequest(path: "/connections", method: .delete)
         logger.info("Closed all connections")
         await fetchConnections()
     }
 
     func closeConnection(id: String) async throws {
-        _ = try await makeRequest(path: "/connections/\(id)", method: "DELETE")
+        _ = try await makeRequest(path: "/connections/\(id)", method: .delete)
         logger.info("Closed connection: \(id)")
         await fetchConnections()
     }
@@ -592,7 +630,7 @@ final class MihomoDomain {
         let encodedGroup = group.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? group
         let request = ProxySelectRequest(name: proxy)
         let body = try JSONEncoder().encode(request)
-        _ = try await makeRequest(path: "/proxies/\(encodedGroup)", method: "PUT", body: body)
+        _ = try await makeRequest(path: "/proxies/\(encodedGroup)", method: .put, body: body)
         logger.info("Selected proxy \(proxy) for group \(group)")
         await fetchProxies()
         await fetchGroups()
@@ -634,7 +672,7 @@ final class MihomoDomain {
         let encodedName = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
         _ = try await makeRequest(
             path: "/providers/proxies/\(encodedName)",
-            method: "PUT",
+            method: .put,
             body: Data(),
             )
         logger.info("Updated proxy provider: \(name)")
@@ -650,7 +688,7 @@ final class MihomoDomain {
 
     func updateRuleProvider(name: String) async throws {
         let encodedName = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
-        _ = try await makeRequest(path: "/providers/rules/\(encodedName)", method: "PUT", body: Data())
+        _ = try await makeRequest(path: "/providers/rules/\(encodedName)", method: .put, body: Data())
         logger.info("Updated rule provider: \(name)")
         await fetchRuleProviders()
     }
@@ -665,12 +703,12 @@ final class MihomoDomain {
     }
 
     func triggerGC() async throws {
-        _ = try await makeRequest(path: "/debug/gc", method: "PUT", body: Data())
+        _ = try await makeRequest(path: "/debug/gc", method: .put, body: Data())
         logger.info("Triggered garbage collection")
     }
 
     func flushDNSCache() async throws {
-        _ = try await makeRequest(path: "/cache/dns/flush", method: "POST", body: Data())
+        _ = try await makeRequest(path: "/cache/dns/flush", method: .post, body: Data())
         logger.info("Flushed DNS cache")
     }
 }

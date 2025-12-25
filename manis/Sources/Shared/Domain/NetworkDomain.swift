@@ -1,4 +1,5 @@
 import AppKit
+import AsyncQueue
 import CFNetwork
 import Clocks
 import Foundation
@@ -20,6 +21,7 @@ final class NetworkDomain {
     private let clock: any Clock<Duration>
 
     private var pathMonitor: NWPathMonitor?
+    private let queue = FIFOQueue(name: "NetworkDomain")
     private let monitorQueue = DispatchQueue(label: "com.manis.networkmonitor", qos: .utility)
 
     private var proxyStore: SCDynamicStore?

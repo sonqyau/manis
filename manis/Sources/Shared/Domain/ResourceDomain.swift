@@ -1,6 +1,7 @@
 import Compression
 import Foundation
 import OSLog
+import SystemPackage
 
 @MainActor
 @Observable
@@ -50,8 +51,9 @@ final class ResourceDomain {
     }
 
     private func createConfigDirectoryIfNeeded() throws {
+        let configPath = configDirectory
         var isDir: ObjCBool = false
-        let exists = FileManager.default.fileExists(atPath: configDirectory.path, isDirectory: &isDir)
+        let exists = FileManager.default.fileExists(atPath: configPath.path, isDirectory: &isDir)
 
         if exists, isDir.boolValue {
             return
@@ -63,7 +65,7 @@ final class ResourceDomain {
         do {
             try performFile {
                 try FileManager.default.createDirectory(
-                    at: configDirectory,
+                    atPath: configPath.path,
                     withIntermediateDirectories: true,
                     attributes: [.posixPermissions: 0o755],
                     )
@@ -74,12 +76,13 @@ final class ResourceDomain {
     }
 
     private func ensureGeoIPDatabase() async throws {
-        if FileManager.default.fileExists(atPath: geoIPDatabasePath.path) {
+        let geoIPPath = geoIPDatabasePath
+        if FileManager.default.fileExists(atPath: geoIPPath.path) {
             if isGeoIPDatabaseValid() {
                 logger.debug("GeoIP database valid")
                 return
             }
-            try? FileManager.default.removeItem(at: geoIPDatabasePath)
+            try? FileManager.default.removeItem(atPath: geoIPPath.path)
         }
 
         try extractBundledGeoIPDatabase()
@@ -112,7 +115,11 @@ final class ResourceDomain {
 
         let compressed = try Data(contentsOf: path)
         let decompressed = try decompressLZFSE(compressed)
-        try decompressed.write(to: geoIPDatabasePath, options: [.atomic, .completeFileProtection])
+        let geoIPPath = FilePath(geoIPDatabasePath.path)
+        let fd = try FileDescriptor.open(geoIPPath, .writeOnly, options: [.create, .truncate], permissions: FilePermissions(rawValue: 0o644))
+        _ = try fd.closeAfter {
+            try fd.writeAll(decompressed)
+        }
     }
 
     private func ensureGeoSiteDatabase() async throws {
@@ -126,7 +133,11 @@ final class ResourceDomain {
         do {
             let compressed = try Data(contentsOf: path)
             let decompressed = try decompressLZFSE(compressed)
-            try decompressed.write(to: geoSiteDatabasePath, options: .atomic)
+            let geoSitePath = FilePath(geoSiteDatabasePath.path)
+            let fd = try FileDescriptor.open(geoSitePath, .writeOnly, options: [.create, .truncate], permissions: FilePermissions(rawValue: 0o644))
+            _ = try fd.closeAfter {
+                try fd.writeAll(decompressed)
+            }
         } catch {
             logger.error("GeoSite extract failed", error: error)
         }

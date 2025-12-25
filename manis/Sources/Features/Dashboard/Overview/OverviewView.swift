@@ -2,6 +2,7 @@ import Charts
 import Collections
 import ComposableArchitecture
 import Perception
+import SFSafeSymbols
 import SwiftUI
 
 struct OverviewView: View {
@@ -35,21 +36,21 @@ struct OverviewView: View {
                 OverviewMetricRow(
                     title: "Download",
                     value: summary.downloadSpeed,
-                    icon: "arrow.down.circle.fill",
+                    icon: .arrowDownCircleFill,
                     tint: .blue,
                     )
 
                 OverviewMetricRow(
                     title: "Upload",
                     value: summary.uploadSpeed,
-                    icon: "arrow.up.circle.fill",
+                    icon: .arrowUpCircleFill,
                     tint: .green,
                     )
 
                 OverviewMetricRow(
                     title: "Connections",
                     value: "\(summary.connectionCount)",
-                    icon: "network",
+                    icon: .network,
                     tint: .purple,
                     )
 
@@ -59,13 +60,13 @@ struct OverviewView: View {
                         fromByteCount: summary.memoryUsage,
                         countStyle: .memory,
                         ),
-                    icon: "memorychip.fill",
+                    icon: .memorychipFill,
                     tint: .orange,
                     )
             }
             .padding(.vertical, 6)
         } header: {
-            Label("Current metrics", systemImage: "gauge.medium")
+            Label("Current metrics", systemSymbol: .gaugeWithDotsNeedleBottom50percent)
         }
     }
 
@@ -77,7 +78,7 @@ struct OverviewView: View {
             }
             .padding(.vertical, 6)
         } header: {
-            Label("Traffic history", systemImage: "chart.xyaxis.line")
+            Label("Traffic history", systemSymbol: .chartXyaxisLine)
         }
     }
 
@@ -96,12 +97,13 @@ struct OverviewView: View {
 
                 LabeledContent("Status") {
                     Text(isConnected ? "Connected" : "Disconnected")
-                        .foregroundStyle(isConnected ? .green : .red)
+                        .if(isConnected) { $0.foregroundStyle(.green) }
+                        .ifNot(isConnected) { $0.foregroundStyle(.red) }
                 }
             }
             .padding(.vertical, 6)
         } header: {
-            Label("System information", systemImage: "info.circle.fill")
+            Label("System information", systemSymbol: .infoCircleFill)
         }
     }
 
@@ -141,12 +143,12 @@ struct OverviewView: View {
 private struct OverviewMetricRow: View {
     let title: String
     let value: String
-    let icon: String
+    let icon: SFSymbol
     let tint: Color
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: icon)
+            Image(systemSymbol: icon)
                 .font(.title3)
                 .foregroundStyle(tint)
                 .accessibilityHidden(true)

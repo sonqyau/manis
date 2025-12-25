@@ -1,5 +1,6 @@
 import ComposableArchitecture
 import Perception
+import SFSafeSymbols
 import STTextView
 import SwiftNavigation
 import SwiftUI
@@ -41,7 +42,7 @@ struct ConfigDetailView: View {
             ToolbarItem(placement: .primaryAction) {
                 if store.isLocalMode {
                     Button(action: { store.send(.refreshAll) }, label: {
-                        Label("Refresh All", systemImage: "arrow.clockwise")
+                        Label("Refresh All", systemSymbol: .arrowClockwise)
                     })
                     .disabled(store.isUpdatingAll || store.configs.isEmpty)
                 }
@@ -88,7 +89,7 @@ struct ConfigDetailView: View {
     private var modeSection: some View {
         Section {
             HStack {
-                Image(systemName: store.isLocalMode ? "laptopcomputer" : "network")
+                Image(systemSymbol: store.isLocalMode ? .laptopcomputer : .network)
                     .accessibilityHidden(true)
                     .foregroundStyle(store.isLocalMode ? .blue : .green)
 
@@ -106,7 +107,7 @@ struct ConfigDetailView: View {
                 }
             }
         } header: {
-            Label("Mode", systemImage: "switch.2")
+            Label("Mode", systemSymbol: .switch2)
         } footer: {
             Text(
                 "Local mode manages the on-device Mihomo kernel. Remote mode connects to an external Mihomo instance.",
@@ -119,7 +120,7 @@ struct ConfigDetailView: View {
         Section {
             if store.configs.isEmpty {
                 ContentUnavailableView {
-                    Label("No Remote Configurations", systemImage: "tray")
+                    Label("No Remote Configurations", systemSymbol: .tray)
                 } description: {
                     Text("Add a remote configuration URL to begin.")
                 } actions: {
@@ -150,13 +151,13 @@ struct ConfigDetailView: View {
             }
         } header: {
             HStack {
-                Label("Remote Configurations", systemImage: "cloud")
+                Label("Remote Configurations", systemSymbol: .cloud)
                     .font(.headline)
 
                 Spacer()
 
                 Button(action: { store.send(.showAddConfig(true)) }, label: {
-                    Image(systemName: "plus.circle.fill")
+                    Image(systemSymbol: .plusCircleFill)
                         .accessibilityLabel("Add configuration")
                 })
                 .buttonStyle(.plain)
@@ -171,7 +172,7 @@ struct ConfigDetailView: View {
         Section {
             Button(action: { store.send(.activateInstance(nil)) }, label: {
                 HStack {
-                    Image(systemName: "laptopcomputer")
+                    Image(systemSymbol: .laptopcomputer)
                         .accessibilityHidden(true)
                         .foregroundStyle(store.isLocalMode ? .green : .secondary)
 
@@ -181,7 +182,7 @@ struct ConfigDetailView: View {
                     Spacer()
 
                     if store.isLocalMode {
-                        Image(systemName: "checkmark.circle.fill")
+                        Image(systemSymbol: .checkmarkCircleFill)
                             .accessibilityHidden(true)
                             .foregroundStyle(.green)
                     }
@@ -198,13 +199,13 @@ struct ConfigDetailView: View {
             }
         } header: {
             HStack {
-                Label("Control Panel", systemImage: "server.rack")
+                Label("Control Panel", systemSymbol: .serverRack)
                     .font(.headline)
 
                 Spacer()
 
                 Button(action: { store.send(.showAddInstance(true)) }, label: {
-                    Image(systemName: "plus.circle.fill")
+                    Image(systemSymbol: .plusCircleFill)
                         .accessibilityLabel("Add instance")
                 })
                 .buttonStyle(.plain)
@@ -227,7 +228,7 @@ struct RemoteConfigRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Image(systemName: config.isActive ? "cloud.fill" : "cloud")
+                Image(systemSymbol: config.isActive ? .cloudFill : .cloud)
                     .accessibilityHidden(true)
                     .foregroundStyle(accentColor)
                     .imageScale(.large)
@@ -259,12 +260,12 @@ struct RemoteConfigRow: View {
             }
 
             HStack(spacing: 12) {
-                Label(config.displayTimeString(), systemImage: "clock")
+                Label(config.displayTimeString(), systemSymbol: .clock)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
                 if config.autoUpdate {
-                    Label("Automatic Updates", systemImage: "arrow.clockwise")
+                    Label("Automatic Updates", systemSymbol: .arrowClockwise)
                         .font(.subheadline)
                         .foregroundStyle(accentColor)
                 }
@@ -275,7 +276,7 @@ struct RemoteConfigRow: View {
             HStack(spacing: 12) {
                 if !config.isActive {
                     Button(action: onActivate) {
-                        Label("Activate", systemImage: "checkmark.circle")
+                        Label("Activate", systemSymbol: .checkmarkCircle)
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(accentColor)
@@ -284,13 +285,13 @@ struct RemoteConfigRow: View {
                 Spacer(minLength: 0)
 
                 Button(action: onUpdate) {
-                    Label("Refresh", systemImage: "arrow.clockwise")
+                    Label("Refresh", systemSymbol: .arrowClockwise)
                 }
                 .buttonStyle(.bordered)
                 .tint(accentColor)
 
                 Button(role: .destructive, action: onDelete) {
-                    Label("Delete", systemImage: "trash")
+                    Label("Delete", systemSymbol: .trash)
                 }
                 .buttonStyle(.bordered)
             }
@@ -320,7 +321,7 @@ struct RemoteInstanceRow: View {
     var body: some View {
         Button(action: onActivate) {
             HStack {
-                Image(systemName: "server.rack")
+                Image(systemSymbol: .serverRack)
                     .accessibilityHidden(true)
                     .foregroundStyle(instance.isActive ? .green : .secondary)
 
@@ -335,13 +336,13 @@ struct RemoteInstanceRow: View {
                 Spacer()
 
                 if instance.isActive {
-                    Image(systemName: "checkmark.circle.fill")
+                    Image(systemSymbol: .checkmarkCircleFill)
                         .accessibilityHidden(true)
                         .foregroundStyle(.green)
                 }
 
                 Button(action: onDelete) {
-                    Image(systemName: "trash")
+                    Image(systemSymbol: .trash)
                         .accessibilityLabel("Delete instance")
                 }
                 .buttonStyle(.bordered)

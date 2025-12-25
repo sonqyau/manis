@@ -1,36 +1,189 @@
+import AsyncQueue
 import ConcurrencyExtras
 import Foundation
 import OSLog
+import SwiftyXPC
 
-private final class XPCConnectionBox: @unchecked Sendable {
-    let connection: NSXPCConnection
+struct XPCRequest: Codable, Sendable {
+    let method: String
+    let executablePath: String?
+    let configPath: String?
+    let configContent: String?
+    let httpPort: Int?
+    let socksPort: Int?
+    let pacURL: String?
+    let bypassList: [String]?
+    let servers: [String]?
+    let hijackEnabled: Bool
+    let host: String?
+    let port: Int?
+    let timeout: TimeInterval?
+    let enabled: Bool
+    let dnsServer: String?
 
-    init(_ connection: NSXPCConnection) {
-        self.connection = connection
+    init(
+        method: String,
+        executablePath: String? = nil,
+        configPath: String? = nil,
+        configContent: String? = nil,
+        httpPort: Int? = nil,
+        socksPort: Int? = nil,
+        pacURL: String? = nil,
+        bypassList: [String]? = nil,
+        servers: [String]? = nil,
+        hijackEnabled: Bool = false,
+        host: String? = nil,
+        port: Int? = nil,
+        timeout: TimeInterval? = nil,
+        enabled: Bool = false,
+        dnsServer: String? = nil,
+        ) {
+        self.method = method
+        self.executablePath = executablePath
+        self.configPath = configPath
+        self.configContent = configContent
+        self.httpPort = httpPort
+        self.socksPort = socksPort
+        self.pacURL = pacURL
+        self.bypassList = bypassList
+        self.servers = servers
+        self.hijackEnabled = hijackEnabled
+        self.host = host
+        self.port = port
+        self.timeout = timeout
+        self.enabled = enabled
+        self.dnsServer = dnsServer
     }
 }
 
-private final class ContinuationBox<T: Sendable>: @unchecked Sendable {
-    private let continuation = LockIsolated<CheckedContinuation<T, any Error>?>(nil)
+enum XPCResponse: Codable, Sendable {
+    case version(String)
+    case kernelStatus(ManisKernelStatus)
+    case systemProxyStatus(ConnectStatus)
+    case usedPorts([Int])
+    case connectivity(Bool)
+    case message(String)
+    case error(MainXPCError)
 
-    init(_ continuation: CheckedContinuation<T, any Error>) {
-        self.continuation.setValue(continuation)
+    enum CodingKeys: String, CodingKey {
+        case type, value
     }
 
-    func resume(returning value: T) {
-        continuation.withValue { cont in
-            let captured = cont
-            cont = nil
-            captured?.resume(returning: value)
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let type = try container.decode(String.self, forKey: .type)
+
+        switch type {
+        case "version":
+            let value = try container.decode(String.self, forKey: .value)
+            self = .version(value)
+        case "kernelStatus":
+            let value = try container.decode(ManisKernelStatus.self, forKey: .value)
+            self = .kernelStatus(value)
+        case "systemProxyStatus":
+            let value = try container.decode(ConnectStatus.self, forKey: .value)
+            self = .systemProxyStatus(value)
+        case "usedPorts":
+            let value = try container.decode([Int].self, forKey: .value)
+            self = .usedPorts(value)
+        case "connectivity":
+            let value = try container.decode(Bool.self, forKey: .value)
+            self = .connectivity(value)
+        case "message":
+            let value = try container.decode(String.self, forKey: .value)
+            self = .message(value)
+        case "error":
+            let value = try container.decode(MainXPCError.self, forKey: .value)
+            self = .error(value)
+        default:
+            throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "Unknown response type")
         }
     }
 
-    func resume(throwing error: any Error) {
-        continuation.withValue { cont in
-            let captured = cont
-            cont = nil
-            captured?.resume(throwing: error)
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        switch self {
+        case let .version(value):
+            try container.encode("version", forKey: .type)
+            try container.encode(value, forKey: .value)
+        case let .kernelStatus(value):
+            try container.encode("kernelStatus", forKey: .type)
+            try container.encode(value, forKey: .value)
+        case let .systemProxyStatus(value):
+            try container.encode("systemProxyStatus", forKey: .type)
+            try container.encode(value, forKey: .value)
+        case let .usedPorts(value):
+            try container.encode("usedPorts", forKey: .type)
+            try container.encode(value, forKey: .value)
+        case let .connectivity(value):
+            try container.encode("connectivity", forKey: .type)
+            try container.encode(value, forKey: .value)
+        case let .message(value):
+            try container.encode("message", forKey: .type)
+            try container.encode(value, forKey: .value)
+        case let .error(value):
+            try container.encode("error", forKey: .type)
+            try container.encode(value, forKey: .value)
         }
+    }
+}
+
+struct ConnectStatus: Codable, Sendable {
+    let isEnabled: Bool
+    let httpProxy: ConnectInfo?
+    let httpsProxy: ConnectInfo?
+    let socksProxy: ConnectInfo?
+    let pacURL: String?
+    let bypassList: [String]
+}
+
+struct ConnectInfo: Codable, Sendable {
+    let host: String
+    let port: Int32
+}
+
+extension ManisKernelStatus: Codable {
+    convenience init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let isRunning = try container.decode(Bool.self, forKey: .isRunning)
+        let processId = try container.decode(Int32.self, forKey: .processId)
+        let externalController = try container.decodeIfPresent(String.self, forKey: .externalController)
+        let secret = try container.decodeIfPresent(String.self, forKey: .secret)
+        self.init(isRunning: isRunning, processId: processId, externalController: externalController, secret: secret)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(isRunning, forKey: .isRunning)
+        try container.encode(processId, forKey: .processId)
+        try container.encodeIfPresent(externalController, forKey: .externalController)
+        try container.encodeIfPresent(secret, forKey: .secret)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case isRunning, processId, externalController, secret
+    }
+}
+
+extension MainXPCError: Codable {
+    convenience init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let domain = try container.decode(String.self, forKey: .domain)
+        let code = try container.decode(Int.self, forKey: .code)
+        let message = try container.decode(String.self, forKey: .message)
+        self.init(domain: domain, code: code, message: message)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(domain, forKey: .domain)
+        try container.encode(code, forKey: .code)
+        try container.encode(message, forKey: .message)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case domain, code, message
     }
 }
 
@@ -57,6 +210,7 @@ enum KernelControlError: Error, LocalizedError {
 struct XPCClient: XPC {
     private let machServiceName = "com.manis.XPC"
     private let logger = Logger(subsystem: "com.manis.app", category: "XPCClient")
+    private let queue = FIFOQueue(name: "XPCClient")
 
     private func isRetryableXPCError(_ error: any Error) -> Bool {
         let ns = error as NSError
@@ -87,124 +241,85 @@ struct XPCClient: XPC {
         }
     }
 
-    nonisolated private func makeConnection(
-        continuationBox: ContinuationBox<some Sendable>,
-        ) -> (MainXPCProtocol, NSXPCConnection) {
-        let conn = NSXPCConnection(machServiceName: machServiceName)
-        conn.remoteObjectInterface = NSXPCInterface(with: MainXPCProtocol.self)
-
-        conn.invalidationHandler = {
-            continuationBox.resume(throwing: NSError(domain: "com.manis.XPC", code: -4097))
-        }
-        conn.interruptionHandler = {
-            continuationBox.resume(throwing: NSError(domain: "com.manis.XPC", code: -4098))
-        }
-
-        conn.resume()
-
-        let proxy = conn.remoteObjectProxyWithErrorHandler { error in
-            continuationBox.resume(throwing: error)
-        }
-
-        guard let service = proxy as? MainXPCProtocol else {
-            continuationBox.resume(throwing: NSError(domain: "com.manis.XPC", code: -1))
-            return (DummyXPC() as MainXPCProtocol, conn)
-        }
-
-        return (service, conn)
-    }
-
     func getVersion() async throws -> String {
         try await withOneRetry {
-            try await withCheckedThrowingContinuation { cont in
-                let box = ContinuationBox(cont)
-                let (service, connection) = makeConnection(continuationBox: box)
-                let connBox = XPCConnectionBox(connection)
+            try await Task(on: queue) {
+                let connection = try XPCConnection(type: .remoteMachService(serviceName: machServiceName, isPrivilegedHelperTool: false))
+                connection.activate()
+                defer { connection.cancel() }
 
-                service.getVersion { version in
-                    box.resume(returning: version)
-                    Task { @MainActor in
-                        connBox.connection.invalidate()
-                    }
-                }
-            }
+                return try await connection.sendMessage(name: "getVersion")
+            }.value
         }
     }
 
     func getKernelStatus() async throws -> ManisKernelStatus {
         try await withOneRetry {
-            try await withCheckedThrowingContinuation { cont in
-                let box = ContinuationBox(cont)
-                let (service, connection) = makeConnection(continuationBox: box)
-                let connBox = XPCConnectionBox(connection)
+            try await Task(on: queue) {
+                let connection = try XPCConnection(type: .remoteMachService(serviceName: machServiceName, isPrivilegedHelperTool: false))
+                connection.activate()
+                defer { connection.cancel() }
 
-                service.getKernelStatus { status in
-                    box.resume(returning: status)
-                    Task { @MainActor in
-                        connBox.connection.invalidate()
-                    }
+                let response: XPCResponse = try await connection.sendMessage(name: "getKernelStatus")
+
+                switch response {
+                case .kernelStatus(let status):
+                    return status
+                case .error(let error):
+                    throw KernelControlError.remote(error)
+                default:
+                    throw NSError(domain: "com.manis.XPC", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unexpected response type"])
                 }
-            }
+            }.value
         }
     }
 
     func startKernel(executablePath: String, configPath: String, configContent: String) async throws {
         try await withOneRetry {
-            try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, any Error>) in
-                let box = ContinuationBox(cont)
-                let (service, connection) = makeConnection(continuationBox: box)
-                let connBox = XPCConnectionBox(connection)
+            try await Task(on: queue) {
+                let connection = try XPCConnection(type: .remoteMachService(serviceName: machServiceName, isPrivilegedHelperTool: false))
+                connection.activate()
+                defer { connection.cancel() }
 
-                service.startKernel(executablePath: executablePath, configPath: configPath, configContent: configContent) { _, error in
-                    if let error {
-                        box.resume(throwing: KernelControlError.remote(error))
-                    } else {
-                        box.resume(returning: ())
-                    }
-                    Task { @MainActor in
-                        connBox.connection.invalidate()
-                    }
+                let request = XPCRequest(
+                    method: "startKernel",
+                    executablePath: executablePath,
+                    configPath: configPath,
+                    configContent: configContent
+                )
+
+                let response: XPCResponse = try await connection.sendMessage(name: "startKernel", request: request)
+
+                switch response {
+                case .message:
+                    return
+                case .error(let error):
+                    throw KernelControlError.remote(error)
+                default:
+                    throw NSError(domain: "com.manis.XPC", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unexpected response type"])
                 }
-            }
+            }.value
         }
     }
 
     func stopKernel() async throws {
         try await withOneRetry {
-            try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, any Error>) in
-                let box = ContinuationBox(cont)
-                let (service, connection) = makeConnection(continuationBox: box)
-                let connBox = XPCConnectionBox(connection)
+            try await Task(on: queue) {
+                let connection = try XPCConnection(type: .remoteMachService(serviceName: machServiceName, isPrivilegedHelperTool: false))
+                connection.activate()
+                defer { connection.cancel() }
 
-                service.stopKernel { error in
-                    if let error {
-                        box.resume(throwing: KernelControlError.remote(error))
-                    } else {
-                        box.resume(returning: ())
-                    }
-                    Task { @MainActor in
-                        connBox.connection.invalidate()
-                    }
+                let response: XPCResponse = try await connection.sendMessage(name: "stopKernel")
+
+                switch response {
+                case .message:
+                    return
+                case .error(let error):
+                    throw KernelControlError.remote(error)
+                default:
+                    throw NSError(domain: "com.manis.XPC", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unexpected response type"])
                 }
-            }
+            }.value
         }
-    }
-}
-
-@objc private final class DummyXPC: NSObject, MainXPCProtocol {
-    func getVersion(reply: @escaping (String) -> Void) { reply("") }
-    func getKernelStatus(reply: @escaping (ManisKernelStatus) -> Void) {
-        reply(ManisKernelStatus(isRunning: false, processId: 0, externalController: nil, secret: nil))
-    }
-
-    func startKernel(
-        executablePath _: String,
-        configPath _: String,
-        configContent _: String,
-        reply: @escaping (String?, MainXPCError?) -> Void,
-        ) { reply(nil, MainXPCError(domain: "com.manis.XPC", code: -1, message: "XPC service unavailable")) }
-
-    func stopKernel(reply: @escaping (MainXPCError?) -> Void) {
-        reply(MainXPCError(domain: "com.manis.XPC", code: -1, message: "XPC service unavailable"))
     }
 }

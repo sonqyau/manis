@@ -1,109 +1,90 @@
 import Foundation
-import Security
+import Valet
 
 final class Keychain: @unchecked Sendable {
     static let shared = Keychain()
 
-    private let service = "com.manis.secrets"
+    private let valet: Valet
 
-    private init() {}
-
-    private func performKeychain<T>(_ operation: () throws -> T) throws -> T {
-        try operation()
+    private init() {
+        guard let identifier = Identifier(nonEmpty: "com.manis.secrets") else {
+            fatalError("Failed to create keychain identifier")
+        }
+        self.valet = Valet.valet(with: identifier, accessibility: .afterFirstUnlockThisDeviceOnly)
     }
 
     func setSecret(_ secret: String, for key: String) throws {
-        let trimmedSecret = secret.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let data = trimmedSecret.data(using: .utf8) else {
-            throw KeychainError.stringEncodingFailure
-        }
-
-        let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: key,
-            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
-        ]
-
-        let attributesToUpdate: [CFString: Any] = [kSecValueData: data]
-
-        let status: OSStatus = try performKeychain {
-            SecItemUpdate(query as CFDictionary, attributesToUpdate as CFDictionary)
-        }
-
-        switch status {
-        case errSecSuccess:
-            return
-
-        case errSecItemNotFound:
-            var addQuery = query
-            addQuery[kSecValueData] = data
-            let addStatus: OSStatus = try performKeychain {
-                SecItemAdd(addQuery as CFDictionary, nil)
-            }
-            guard addStatus == errSecSuccess else {
-                throw KeychainError.unexpectedStatus(addStatus)
-            }
-
-        default:
-            throw KeychainError.unexpectedStatus(status)
+        do {
+            try valet.setString(secret, forKey: key)
+        } catch {
+            throw mapError(error)
         }
     }
 
     func secret(for key: String) throws -> String? {
-        let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: key,
-            kSecMatchLimit: kSecMatchLimitOne,
-            kSecReturnData: true,
-        ]
-
-        var item: CFTypeRef?
-        let status: OSStatus = try performKeychain {
-            SecItemCopyMatching(query as CFDictionary, &item)
-        }
-
-        switch status {
-        case errSecSuccess:
-            guard let data = item as? Data else {
-                throw KeychainError.unexpectedStatus(errSecInternalError)
-            }
-            guard let secret = String(data: data, encoding: .utf8) else {
-                throw KeychainError.stringEncodingFailure
-            }
-            return secret
-
-        case errSecItemNotFound:
-            return nil
-
-        default:
-            throw KeychainError.unexpectedStatus(status)
+        do {
+            return try valet.string(forKey: key)
+        } catch {
+            throw mapError(error)
         }
     }
 
     func deleteSecret(for key: String) throws {
-        let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: key,
-        ]
-
-        let status: OSStatus = try performKeychain {
-            SecItemDelete(query as CFDictionary)
+        do {
+            try valet.removeObject(forKey: key)
+        } catch {
+            throw mapError(error)
         }
+    }
 
-        switch status {
-        case errSecSuccess, errSecItemNotFound:
-            return
-
-        default:
-            throw KeychainError.unexpectedStatus(status)
+    func containsSecret(for key: String) throws -> Bool {
+        do {
+            return try valet.containsObject(forKey: key)
+        } catch {
+            throw mapError(error)
         }
+    }
+
+    func removeAllSecrets() throws {
+        do {
+            try valet.removeAllObjects()
+        } catch {
+            throw mapError(error)
+        }
+    }
+
+    func allKeys() throws -> Set<String> {
+        do {
+            return try valet.allKeys()
+        } catch {
+            throw mapError(error)
+        }
+    }
+
+    func canAccessKeychain() -> Bool {
+        return valet.canAccessKeychain()
+    }
+
+    private func mapError(_ error: Error) -> ManisKeychainError {
+        if let valetError = error as? KeychainError {
+            switch valetError {
+            case .couldNotAccessKeychain:
+                return .keychainUnavailable
+            case .userCancelled:
+                return .permissionDenied
+            case .missingEntitlement:
+                return .permissionDenied
+            case .emptyKey, .emptyValue:
+                return .stringEncodingFailure
+            case .itemNotFound:
+                return .unexpectedStatus(errSecItemNotFound)
+            }
+        }
+        return .unexpectedStatus(-1)
     }
 }
 
-enum KeychainError: MainError {
+enum ManisKeychainError: MainError {
     case unexpectedStatus(OSStatus)
     case stringEncodingFailure
     case permissionDenied

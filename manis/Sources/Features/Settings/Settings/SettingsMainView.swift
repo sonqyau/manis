@@ -1,5 +1,6 @@
 import ComposableArchitecture
 import Perception
+import SFSafeSymbols
 import SwiftNavigation
 import SwiftUI
 
@@ -21,7 +22,7 @@ struct SettingsMainView: View {
                 Button {
                     store.send(.installDaemon)
                 } label: {
-                    Label("Install", systemImage: "arrow.down.circle")
+                    Label("Install", systemSymbol: .arrowDownCircle)
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(store.state.isProcessing)
@@ -29,7 +30,7 @@ struct SettingsMainView: View {
                 Button {
                     store.send(.uninstallDaemon)
                 } label: {
-                    Label("Uninstall", systemImage: "trash")
+                    Label("Uninstall", systemSymbol: .trash)
                 }
                 .buttonStyle(.bordered)
                 .disabled(store.state.isProcessing)
@@ -37,7 +38,7 @@ struct SettingsMainView: View {
                 Button {
                     store.send(.refreshDaemonStatus)
                 } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
+                    Label("Refresh", systemSymbol: .arrowClockwise)
                 }
                 .buttonStyle(.bordered)
                 .disabled(store.state.isProcessing)
@@ -50,7 +51,7 @@ struct SettingsMainView: View {
                     .foregroundStyle(.secondary)
             }
         } header: {
-            Label("Privileged Helper", systemImage: "lock.shield")
+            Label("Privileged Helper", systemSymbol: .lockShield)
         } footer: {
             Text("This is required to start/stop the kernel.")
                 .foregroundStyle(.secondary)
@@ -63,7 +64,7 @@ struct SettingsMainView: View {
                 Button {
                     store.send(store.state.kernelIsRunning ? .stopKernel : .startKernel)
                 } label: {
-                    Label(store.state.kernelIsRunning ? "Stop Kernel" : "Start Kernel", systemImage: store.state.kernelIsRunning ? "stop.circle" : "play.circle")
+                    Label(store.state.kernelIsRunning ? "Stop Kernel" : "Start Kernel", systemSymbol: store.state.kernelIsRunning ? .stopCircle : .playCircle)
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(store.state.isProcessing)
@@ -71,13 +72,13 @@ struct SettingsMainView: View {
                 Button {
                     store.send(.refreshKernelStatus)
                 } label: {
-                    Label("Refresh Status", systemImage: "arrow.clockwise")
+                    Label("Refresh Status", systemSymbol: .arrowClockwise)
                 }
                 .buttonStyle(.bordered)
                 .disabled(store.state.isProcessing)
             }
         } header: {
-            Label("Kernel", systemImage: "cpu")
+            Label("Kernel", systemSymbol: .cpu)
         } footer: {
             Text("The manis never talks to the privileged helper directly.")
                 .foregroundStyle(.secondary)
@@ -91,7 +92,7 @@ struct SettingsMainView: View {
                     Button {
                         store.send(.restartCore)
                     } label: {
-                        Label("Restart Core", systemImage: "arrow.clockwise")
+                        Label("Restart Core", systemSymbol: .arrowClockwise)
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(store.state.isPerformingSystemOperation || !store.state.kernelIsRunning)
@@ -99,7 +100,7 @@ struct SettingsMainView: View {
                     Button {
                         store.send(.upgradeCore)
                     } label: {
-                        Label("Upgrade Core", systemImage: "arrow.up.circle")
+                        Label("Upgrade Core", systemSymbol: .arrowUpCircle)
                     }
                     .buttonStyle(.bordered)
                     .disabled(store.state.isPerformingSystemOperation || !store.state.kernelIsRunning)
@@ -109,7 +110,7 @@ struct SettingsMainView: View {
                     Button {
                         store.send(.upgradeUI)
                     } label: {
-                        Label("Upgrade UI", systemImage: "paintbrush")
+                        Label("Upgrade UI", systemSymbol: .paintbrush)
                     }
                     .buttonStyle(.bordered)
                     .disabled(store.state.isPerformingSystemOperation || !store.state.kernelIsRunning)
@@ -117,7 +118,7 @@ struct SettingsMainView: View {
                     Button {
                         store.send(.upgradeGeo)
                     } label: {
-                        Label("Upgrade GEO", systemImage: "globe")
+                        Label("Upgrade GEO", systemSymbol: .globe)
                     }
                     .buttonStyle(.bordered)
                     .disabled(store.state.isPerformingSystemOperation || !store.state.kernelIsRunning)
@@ -135,7 +136,7 @@ struct SettingsMainView: View {
                 }
             }
         } header: {
-            Label("System Management", systemImage: "wrench.and.screwdriver")
+            Label("System Management", systemSymbol: .wrenchAndScrewdriver)
         } footer: {
             Text("Manage core system operations. These operations require an active kernel connection.")
                 .foregroundStyle(.secondary)
@@ -214,7 +215,7 @@ struct SettingsMainView: View {
                 Spacer()
             }
         } header: {
-            Label("Status", systemImage: "info.circle")
+            Label("Status", systemSymbol: .infoCircle)
         }
     }
 
@@ -236,7 +237,7 @@ struct SettingsMainView: View {
                     helperApprovalActions(needsStatusRefresh: false)
                 }
         } header: {
-            Label("Startup", systemImage: "power.circle")
+            Label("Startup", systemSymbol: .powerCircle)
         } footer: {
             Text("Start Manis automatically when you sign in to macOS.")
                 .foregroundStyle(.secondary)
@@ -249,9 +250,9 @@ struct SettingsMainView: View {
                 PersistenceView(store: persistenceStore)
             } label: {
                 HStack {
-                    Label("Manage Configurations", systemImage: "doc.text.fill")
+                    Label("Manage Configurations", systemSymbol: .textDocumentFill)
                     Spacer()
-                    Image(systemName: "chevron.right")
+                    Image(systemSymbol: .chevronRight)
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .accessibilityHidden(true)
@@ -263,9 +264,9 @@ struct SettingsMainView: View {
                 openConfigEditor()
             } label: {
                 HStack {
-                    Label("Edit Local Config", systemImage: "doc.text")
+                    Label("Edit Local Config", systemSymbol: .textDocument)
                     Spacer()
-                    Image(systemName: "pencil")
+                    Image(systemSymbol: .pencil)
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .accessibilityHidden(true)
@@ -273,7 +274,7 @@ struct SettingsMainView: View {
             }
             .buttonStyle(.plain)
         } header: {
-            Label("Configuration", systemImage: "gear")
+            Label("Configuration", systemSymbol: .gear)
         } footer: {
             Text("Manage local and remote Mihomo configuration profiles, or edit the local config file directly.")
                 .foregroundStyle(.secondary)
@@ -340,9 +341,9 @@ struct SettingsMainView: View {
                     URL(string: "https://github.com/sonqyau") ?? URL(fileURLWithPath: "/"),
                 ) {
                 HStack {
-                    Label("GitHub Repository", systemImage: "link")
+                    Label("GitHub Repository", systemSymbol: .link)
                     Spacer()
-                    Image(systemName: "arrow.up.right")
+                    Image(systemSymbol: .arrowUpRight)
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .accessibilityLabel("Opens in browser")
@@ -350,7 +351,7 @@ struct SettingsMainView: View {
             }
             .buttonStyle(.plain)
         } header: {
-            Label("About", systemImage: "info.circle")
+            Label("About", systemSymbol: .infoCircle)
         }
     }
 
@@ -390,7 +391,7 @@ struct SettingsMainView: View {
                 }
             }
         } header: {
-            Label("Proxy Settings", systemImage: "network")
+            Label("Proxy Settings", systemSymbol: .network)
         } footer: {
             Text("Configure proxy modes and view port information. System proxy enables ordinary HTTP proxies that only support TCP.")
                 .foregroundStyle(.secondary)
@@ -404,7 +405,7 @@ struct SettingsMainView: View {
                     Button {
                         store.send(.flushFakeIPCache)
                     } label: {
-                        Label("Flush Fake IP Cache", systemImage: "trash.circle")
+                        Label("Flush Fake IP Cache", systemSymbol: .trashCircle)
                     }
                     .buttonStyle(.bordered)
                     .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
@@ -412,7 +413,7 @@ struct SettingsMainView: View {
                     Button {
                         store.send(.flushDNSCache)
                     } label: {
-                        Label("Flush DNS Cache", systemImage: "trash.circle.fill")
+                        Label("Flush DNS Cache", systemSymbol: .trashCircleFill)
                     }
                     .buttonStyle(.bordered)
                     .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
@@ -421,13 +422,13 @@ struct SettingsMainView: View {
                 Button {
                     store.send(.triggerGC)
                 } label: {
-                    Label("Trigger Garbage Collection", systemImage: "memorychip")
+                    Label("Trigger Garbage Collection", systemSymbol: .memorychip)
                 }
                 .buttonStyle(.bordered)
                 .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
             }
         } header: {
-            Label("Cache Management", systemImage: "externaldrive")
+            Label("Cache Management", systemSymbol: .externaldrive)
         } footer: {
             Text("Manage DNS and Fake IP caches, and trigger memory garbage collection.")
                 .foregroundStyle(.secondary)
@@ -451,7 +452,7 @@ struct SettingsMainView: View {
                     .font(.system(.body, design: .monospaced))
             }
         } header: {
-            Label("System Information", systemImage: "info.circle.fill")
+            Label("System Information", systemSymbol: .infoCircleFill)
         } footer: {
             Text("Real-time system information from the Mihomo core.")
                 .foregroundStyle(.secondary)
@@ -484,7 +485,7 @@ struct SettingsMainView: View {
         text: String = "Allow the helper under Privacy & Security → Developer Tools",
         ) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "exclamationmark.triangle.fill")
+            Image(systemSymbol: .exclamationmarkTriangleFill)
                 .accessibilityHidden(true)
                 .foregroundStyle(.orange)
             Text(text)
@@ -502,7 +503,7 @@ struct SettingsMainView: View {
             Button {
                 store.send(.openSystemSettings)
             } label: {
-                Label("Open System Settings", systemImage: "gear")
+                Label("Open System Settings", systemSymbol: .gear)
             }
             .buttonStyle(.borderedProminent)
             .disabled(store.state.isProcessing)
@@ -513,7 +514,7 @@ struct SettingsMainView: View {
                 }
             } label: {
                 Label(
-                    needsStatusRefresh ? "Refresh Status" : "Check Status", systemImage: "arrow.clockwise",
+                    needsStatusRefresh ? "Refresh Status" : "Check Status", systemSymbol: .arrowClockwise,
                     )
             }
             .buttonStyle(.bordered)

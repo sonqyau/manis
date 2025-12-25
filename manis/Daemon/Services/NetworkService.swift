@@ -1,12 +1,55 @@
+import AsyncAlgorithms
 import Foundation
 import OSLog
+import SystemPackage
+import Algorithms
 
 actor NetworkService {
     private let logger = Logger(subsystem: "com.manis.Daemon", category: "NetworkService")
 
-    func getUsedPorts() async -> [Int] {
-        logger.debug("Getting used ports")
+    func monitorPorts(interval: Duration = .seconds(5)) async -> AsyncStream<[Int]> {
+        logger.debug("Starting port monitoring")
 
+        let timer = AsyncTimerSequence(interval: interval, clock: ContinuousClock())
+            .compactMap { _ in }
+            .debounce(for: .seconds(0.3))
+
+        return AsyncStream { continuation in
+            Task {
+                for await _ in timer {
+                    let ports = await scanUsedPortsAsync()
+                    continuation.yield(ports)
+                }
+            }
+        }
+    }
+
+    func monitorConnectivity(
+        host: String,
+        port: Int,
+        interval: Duration = .seconds(10),
+        timeout: TimeInterval = 3.0
+    ) async -> AsyncStream<Bool> {
+        logger.debug("Starting connectivity monitoring for \(host):\(port)")
+
+        let timer = AsyncTimerSequence(interval: interval, clock: ContinuousClock())
+            .debounce(for: .seconds(0.5))
+
+        return AsyncStream { continuation in
+            Task {
+                for await _ in timer {
+                    let isConnected = await testConnectivity(host: host, port: port, timeout: timeout)
+                    continuation.yield(isConnected)
+                }
+            }
+        }
+    }
+
+    func getUsedPorts() async -> [Int] {
+        return await scanUsedPortsAsync()
+    }
+
+    private func scanUsedPortsAsync() async -> [Int] {
         return await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 let ports = self.scanUsedPorts()
@@ -44,6 +87,8 @@ actor NetworkService {
             if let output = String(data: data, encoding: .utf8) {
                 ports = parseNetstatOutput(output)
             }
+        } catch let errno as Errno {
+            logger.error("Failed to execute netstat: \(errno)")
         } catch {
             logger.error("Failed to execute netstat: \(error)")
         }
@@ -52,23 +97,25 @@ actor NetworkService {
     }
 
     nonisolated private func parseNetstatOutput(_ output: String) -> [Int] {
-        var ports: Set<Int> = []
-
         let lines = output.components(separatedBy: .newlines)
-        for line in lines {
+
+        return lines.compactMap { line -> Int? in
             let components = line.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
 
-            if components.count >= 4, components[0] == "tcp4" {
-                let localAddress = components[3]
-
-                if let portString = localAddress.components(separatedBy: ".").last,
-                   let port = Int(portString) {
-                    ports.insert(port)
-                }
+            guard components.count >= 4, components[0] == "tcp4" else {
+                return nil
             }
-        }
 
-        return Array(ports)
+            let localAddress = components[3]
+
+            guard let portString = localAddress.components(separatedBy: ".").last,
+                  let port = Int(portString) else {
+                return nil
+            }
+
+            return port
+        }.uniqued()
+        .sorted()
     }
 
     nonisolated private func testConnection(host: String, port: Int, timeout: TimeInterval) -> Bool {
@@ -80,6 +127,9 @@ actor NetworkService {
             try process.run()
             process.waitUntilExit()
             return process.terminationStatus == 0
+        } catch let errno as Errno {
+            logger.error("Failed to test connectivity: \(errno)")
+            return false
         } catch {
             logger.error("Failed to test connectivity: \(error)")
             return false

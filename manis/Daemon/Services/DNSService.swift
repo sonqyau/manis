@@ -88,12 +88,12 @@ actor DNSService {
     }
 
     nonisolated private func enableDNSHijacking() throws {
-        // TODO: Implement DNS hijacking enable
+        // DNS hijacking implementation not yet available
         logger.info("DNS hijacking enabled (placeholder)")
     }
 
     nonisolated private func disableDNSHijacking() throws {
-        // TODO: Implement DNS hijacking disable
+        // DNS hijacking implementation not yet available
         logger.info("DNS hijacking disabled (placeholder)")
     }
 

@@ -1,5 +1,7 @@
 import Foundation
 import SwiftData
+import Algorithms
+import DifferenceKit
 
 struct DataModels {}
 
@@ -47,7 +49,7 @@ struct ConnectionSnapshot: Codable {
         }
     }
 
-    struct Connection: Codable, Identifiable {
+    struct Connection: Codable, Identifiable, Differentiable {
         let id: String
         let chains: [String]
         let upload: Int64
@@ -56,6 +58,27 @@ struct ConnectionSnapshot: Codable {
         let rule: String
         let rulePayload: String
         let metadata: Metadata
+
+        var differenceIdentifier: String {
+            id
+        }
+
+        func isContentEqual(to source: Self) -> Bool {
+            chains == source.chains &&
+                upload == source.upload &&
+                download == source.download &&
+                rule == source.rule &&
+                rulePayload == source.rulePayload &&
+                metadata.network == source.metadata.network &&
+                metadata.type == source.metadata.type &&
+                metadata.sourceIP == source.metadata.sourceIP &&
+                metadata.destinationIP == source.metadata.destinationIP &&
+                metadata.sourcePort == source.metadata.sourcePort &&
+                metadata.destinationPort == source.metadata.destinationPort &&
+                metadata.host == source.metadata.host &&
+                metadata.process == source.metadata.process &&
+                metadata.processPath == source.metadata.processPath
+        }
 
         var displayHost: String {
             metadata.host.isEmpty ? metadata.destinationIP : metadata.host

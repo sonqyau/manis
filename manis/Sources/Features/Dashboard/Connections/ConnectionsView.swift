@@ -1,7 +1,9 @@
 import ComposableArchitecture
 import Perception
+import SFSafeSymbols
 import SwiftNavigation
 import SwiftUI
+import Algorithms
 
 struct ConnectionsView: View {
     let store: StoreOf<ConnectionsFeature>
@@ -44,10 +46,8 @@ struct ConnectionsView: View {
         if !bindableStore.searchText.isEmpty {
             let term = bindableStore.searchText
             conns = conns.filter { connection in
-                connection.displayHost.localizedCaseInsensitiveContains(term) ||
-                    connection.metadata.process.localizedCaseInsensitiveContains(term) ||
-                    connection.chainString.localizedCaseInsensitiveContains(term) ||
-                    connection.ruleString.localizedCaseInsensitiveContains(term)
+                [connection.displayHost, connection.metadata.process, connection.chainString, connection.ruleString]
+                    .contains { $0.localizedCaseInsensitiveContains(term) }
             }
         }
 
@@ -238,7 +238,7 @@ struct ConnectionsView: View {
                             Button {
                                 bindableStore.send(.closeConnection(connection.id))
                             } label: {
-                                Image(systemName: "xmark.circle")
+                                Image(systemSymbol: .xmarkCircle)
                                     .foregroundStyle(.red)
                                     .accessibilityLabel("Terminate connection")
                             }
@@ -263,14 +263,14 @@ struct ConnectionsView: View {
 
     private var totalDownload: String {
         ByteCountFormatter.string(
-            fromByteCount: filteredConnections.reduce(0) { $0 + $1.download },
+            fromByteCount: filteredConnections.reduce(into: 0) { $0 += $1.download },
             countStyle: .binary,
             )
     }
 
     private var totalUpload: String {
         ByteCountFormatter.string(
-            fromByteCount: filteredConnections.reduce(0) { $0 + $1.upload },
+            fromByteCount: filteredConnections.reduce(into: 0) { $0 += $1.upload },
             countStyle: .binary,
             )
     }

@@ -1,6 +1,8 @@
+import AsyncQueue
 import Charts
 import ComposableArchitecture
 import Perception
+import SFSafeSymbols
 import SwiftNavigation
 import SwiftUI
 import SwiftUIIntrospect
@@ -29,15 +31,15 @@ enum DashboardTab: String, CaseIterable, Identifiable {
         }
     }
 
-    var icon: String {
+    var icon: SFSymbol {
         switch self {
-        case .overview: "chart.bar.fill"
-        case .proxies: "arrow.triangle.branch"
-        case .connections: "network"
-        case .rules: "list.bullet"
-        case .providers: "externaldrive.fill"
-        case .dns: "globe"
-        case .logs: "doc.text.fill"
+        case .overview: .chartBarFill
+        case .proxies: .arrowTriangleheadBranch
+        case .connections: .network
+        case .rules: .listBullet
+        case .providers: .externaldriveFill
+        case .dns: .globe
+        case .logs: .textDocumentFill
         }
     }
 }
@@ -57,8 +59,9 @@ struct DashboardView: View {
             Button {
                 bindableStore.send(.selectTab(tab))
             } label: {
-                Label(tab.title, systemImage: tab.icon)
-                    .foregroundColor(bindableStore.selectedTab == tab ? .accentColor : .primary)
+                Label(tab.title, systemSymbol: tab.icon)
+                    .if(bindableStore.selectedTab == tab) { $0.foregroundColor(.accentColor) }
+                    .ifNot(bindableStore.selectedTab == tab) { $0.foregroundColor(.primary) }
             }
             .buttonStyle(.plain)
         }
@@ -113,7 +116,8 @@ struct DashboardView: View {
         }
         .onAppear {
             bindableStore.send(.onAppear)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            Task {
+                try? await Task.sleep(nanoseconds: 100_000_000)
                 NSApp.activate(ignoringOtherApps: true)
                 if let window = NSApp.keyWindow ?? NSApp.mainWindow {
                     window.makeKeyAndOrderFront(nil)

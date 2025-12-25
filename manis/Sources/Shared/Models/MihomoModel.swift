@@ -1,4 +1,5 @@
 import Foundation
+import DifferenceKit
 
 struct ClashConfig: Codable {
     let port: Int?
@@ -63,13 +64,25 @@ struct ProxiesResponse: Codable {
     let proxies: [String: ProxyInfo]
 }
 
-struct ProxyInfo: Codable {
+struct ProxyInfo: Codable, Differentiable {
     let name: String
     let type: String
     let udp: Bool
     let now: String?
     let all: [String]
     let history: [ProxyDelay]
+
+    var differenceIdentifier: String {
+        name
+    }
+
+    func isContentEqual(to source: Self) -> Bool {
+        type == source.type &&
+            udp == source.udp &&
+            now == source.now &&
+            all == source.all &&
+            history.count == source.history.count
+    }
 
     init(
         name: String,
@@ -105,11 +118,21 @@ struct GroupsResponse: Codable {
     let proxies: [String: GroupInfo]
 }
 
-struct GroupInfo: Codable {
+struct GroupInfo: Codable, Differentiable {
     let name: String
     let type: String
     let now: String?
     let all: [String]
+
+    var differenceIdentifier: String {
+        name
+    }
+
+    func isContentEqual(to source: Self) -> Bool {
+        type == source.type &&
+            now == source.now &&
+            all == source.all
+    }
 
     init(
         name: String,
@@ -128,22 +151,43 @@ struct RulesResponse: Codable {
     let rules: [RuleInfo]
 }
 
-struct RuleInfo: Codable {
+struct RuleInfo: Codable, Differentiable {
     let type: String
     let payload: String
     let proxy: String
+
+    var differenceIdentifier: String {
+        "\(type)::\(payload)::\(proxy)"
+    }
+
+    func isContentEqual(to source: Self) -> Bool {
+        type == source.type &&
+            payload == source.payload &&
+            proxy == source.proxy
+    }
 }
 
 struct ProxyProvidersResponse: Codable {
     let providers: [String: ProxyProviderInfo]
 }
 
-struct ProxyProviderInfo: Codable {
+struct ProxyProviderInfo: Codable, Differentiable {
     let name: String
     let type: String
     let vehicleType: String
     let proxies: [ProxyInfo]
     let updatedAt: Date?
+
+    var differenceIdentifier: String {
+        name
+    }
+
+    func isContentEqual(to source: Self) -> Bool {
+        type == source.type &&
+            vehicleType == source.vehicleType &&
+            proxies.count == source.proxies.count &&
+            updatedAt == source.updatedAt
+    }
 
     enum CodingKeys: String, CodingKey {
         case name, type, proxies
@@ -156,13 +200,25 @@ struct RuleProvidersResponse: Codable {
     let providers: [String: RuleProviderInfo]
 }
 
-struct RuleProviderInfo: Codable {
+struct RuleProviderInfo: Codable, Differentiable {
     let name: String
     let type: String
     let vehicleType: String
     let behavior: String
     let ruleCount: Int
     let updatedAt: Date?
+
+    var differenceIdentifier: String {
+        name
+    }
+
+    func isContentEqual(to source: Self) -> Bool {
+        type == source.type &&
+            vehicleType == source.vehicleType &&
+            behavior == source.behavior &&
+            ruleCount == source.ruleCount &&
+            updatedAt == source.updatedAt
+    }
 
     enum CodingKeys: String, CodingKey {
         case name, type, behavior

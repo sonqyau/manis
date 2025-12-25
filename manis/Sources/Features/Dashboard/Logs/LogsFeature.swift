@@ -1,3 +1,4 @@
+import AsyncAlgorithms
 @preconcurrency import Combine
 import ComposableArchitecture
 import Foundation
@@ -108,7 +109,11 @@ struct LogsFeature: @preconcurrency Reducer {
         let service = mihomoService
         return .run { @MainActor send in
             service.requestDashboardRefresh()
-            for await domainState in service.statePublisher.values {
+            let debouncedStream = service.statePublisher.values
+                .debounce(for: .milliseconds(200))
+                .removeDuplicates { $0.logs.count == $1.logs.count && $0.logs.last?.id == $1.logs.last?.id }
+
+            for await domainState in debouncedStream {
                 let snapshot = MihomoSnapshot(domainState)
                 send(.mihomoSnapshotUpdated(snapshot))
             }

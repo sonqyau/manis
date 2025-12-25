@@ -2,6 +2,7 @@ import AppKit
 import Cocoa
 import Foundation
 import Rearrange
+import Algorithms
 import STTextView
 import SwiftUI
 

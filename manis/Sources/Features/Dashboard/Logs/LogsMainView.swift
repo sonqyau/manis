@@ -1,5 +1,6 @@
 import ComposableArchitecture
 import Perception
+import SFSafeSymbols
 import SwiftNavigation
 import SwiftUI
 import SwiftUIIntrospect
@@ -79,7 +80,7 @@ struct LogsMainView: View {
                             Button {
                                 bindableStore.send(.updateSearch(""))
                             } label: {
-                                Image(systemName: "xmark.circle.fill")
+                                Image(systemSymbol: .xmarkCircleFill)
                                     .accessibilityLabel("Clear search filter")
                                     .symbolRenderingMode(.hierarchical)
                                     .foregroundStyle(.secondary)
@@ -178,19 +179,19 @@ private struct LogRow: View {
         }
     }
 
-    private var logIcon: String {
+    private var logIcon: SFSymbol {
         switch log.type.lowercased() {
-        case "debug": "ladybug.fill"
-        case "info": "info.circle.fill"
-        case "warning": "exclamationmark.triangle.fill"
-        case "error": "xmark.octagon.fill"
-        default: "circle.fill"
+        case "debug": .ladybugFill
+        case "info": .infoCircleFill
+        case "warning": .exclamationmarkTriangleFill
+        case "error": .xmarkOctagonFill
+        default: .circleFill
         }
     }
 
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
-            Image(systemName: logIcon)
+            Image(systemSymbol: logIcon)
                 .font(.caption)
                 .foregroundStyle(logColor.gradient)
                 .frame(width: 20)

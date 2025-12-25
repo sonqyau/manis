@@ -1,6 +1,9 @@
+import AsyncAlgorithms
+import AsyncQueue
 import ConcurrencyExtras
 import Foundation
 import OSLog
+import SystemPackage
 import Yams
 
 actor MihomoService {
@@ -8,9 +11,13 @@ actor MihomoService {
     private let logger = Logger(subsystem: "com.manis.Daemon", category: "MihomoService")
 
     private var process: Process?
-    private let processQueue = DispatchQueue(label: "com.manis.mihomo.process", qos: .userInitiated)
+    private let queue = ActorQueue<MihomoService>()
 
     private let forcedExternalController = "127.0.0.1:9090"
+
+    init() {
+        queue.adoptExecutionContext(of: self)
+    }
 
     func start(executablePath: String, configPath: String, configContent: String) async throws -> String {
         guard case .stopped = state else {
@@ -24,24 +31,17 @@ actor MihomoService {
         logger.info("Starting Mihomo process")
 
         return try await withCheckedThrowingContinuation { continuation in
-            processQueue.async { [weak self] in
-                guard let self else {
-                    continuation.resume(throwing: DaemonError.serviceUnavailable("Service deallocated"))
-                    return
-                }
-
-                Task {
-                    do {
-                        let result = try await self.startProcess(
-                            executablePath: executablePath,
-                            configPath: configPath,
-                            configContent: configContent,
-                            )
-                        continuation.resume(returning: result)
-                    } catch {
-                        await self.handleError(error)
-                        continuation.resume(throwing: error)
-                    }
+            Task(on: queue) { myself in
+                do {
+                    let result = try await myself.startProcess(
+                        executablePath: executablePath,
+                        configPath: configPath,
+                        configContent: configContent,
+                        )
+                    continuation.resume(returning: result)
+                } catch {
+                    await myself.handleError(error)
+                    continuation.resume(throwing: error)
                 }
             }
         }
@@ -57,20 +57,13 @@ actor MihomoService {
         logger.info("Stopping Mihomo process")
 
         return try await withCheckedThrowingContinuation { continuation in
-            processQueue.async { [weak self] in
-                guard let self else {
-                    continuation.resume(throwing: DaemonError.serviceUnavailable("Service deallocated"))
-                    return
-                }
-
-                Task {
-                    do {
-                        try await self.stopProcess()
-                        continuation.resume()
-                    } catch {
-                        await self.handleError(error)
-                        continuation.resume(throwing: error)
-                    }
+            Task(on: queue) { myself in
+                do {
+                    try await myself.stopProcess()
+                    continuation.resume()
+                } catch {
+                    await myself.handleError(error)
+                    continuation.resume(throwing: error)
                 }
             }
         }
@@ -172,12 +165,15 @@ actor MihomoService {
         proc.executableURL = URL(fileURLWithPath: executablePath)
         proc.currentDirectoryURL = URL(fileURLWithPath: configPath)
 
-        let configFilePath = URL(fileURLWithPath: configPath).appendingPathComponent("config.yaml")
-        try effectiveConfigContent.write(to: configFilePath, atomically: true, encoding: .utf8)
+        let configFilePath = FilePath(URL(fileURLWithPath: configPath).appendingPathComponent("config.yaml").path)
+        let fd = try FileDescriptor.open(configFilePath, .writeOnly, options: [.create, .truncate], permissions: FilePermissions(rawValue: 0o644))
+        _ = try fd.closeAfter {
+            try fd.writeAll(effectiveConfigContent.utf8)
+        }
 
         proc.arguments = [
             "-d", configPath,
-            "-f", configFilePath.path,
+            "-f", configFilePath.string,
         ]
 
         var environment = Foundation.ProcessInfo.processInfo.environment
@@ -278,6 +274,41 @@ actor MihomoService {
         }
 
         return false
+    }
+
+    private func startProcessWithRetry(
+        executablePath: String,
+        configPath: String,
+        configContent: String,
+        secret: String
+    ) async throws -> String {
+        let maxRetries = 3
+        let retryDelay = Duration.seconds(2)
+
+        let retryStream = AsyncTimerSequence(interval: retryDelay, clock: ContinuousClock())
+            .compactMap { _ in }
+            .debounce(for: .milliseconds(100))
+
+        var attempt = 0
+
+        for await _ in retryStream {
+            attempt += 1
+            do {
+                let result = try await startProcess(
+                    executablePath: executablePath,
+                    configPath: configPath,
+                    configContent: configContent
+                )
+                return result
+            } catch {
+                logger.warning("Process start attempt \(attempt) failed: \(error)")
+                if attempt >= maxRetries {
+                    throw error
+                }
+            }
+        }
+
+        throw DaemonError.processError("Failed to start process after \(maxRetries) attempts")
     }
 
     private func findMihomoExecutable() -> String {

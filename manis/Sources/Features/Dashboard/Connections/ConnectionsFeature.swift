@@ -1,5 +1,6 @@
 @preconcurrency import Combine
 import ComposableArchitecture
+import DifferenceKit
 import Foundation
 import IdentifiedCollections
 import SwiftNavigation
@@ -53,7 +54,24 @@ struct ConnectionsFeature: @preconcurrency Reducer {
                 return .cancel(id: CancelID.mihomoStream)
 
             case let .mihomoSnapshotUpdated(snapshot):
-                state.connections = IdentifiedArray(uniqueElements: snapshot.connections)
+                let newConnections = IdentifiedArray(uniqueElements: snapshot.connections)
+                let stagedChangeset = StagedChangeset(source: state.connections.elements, target: newConnections.elements)
+
+                for changeset in stagedChangeset {
+                    for delete in changeset.elementDeleted where delete.element < state.connections.count {
+                        state.connections.remove(at: delete.element)
+                    }
+                    for insert in changeset.elementInserted where insert.element < newConnections.count {
+                        state.connections.insert(newConnections.elements[insert.element], at: insert.element)
+                    }
+                    for move in changeset.elementMoved where move.source.element < state.connections.count && move.target.element < newConnections.count {
+                        let element = state.connections.remove(at: move.source.element)
+                        state.connections.insert(element, at: move.target.element)
+                    }
+                    for update in changeset.elementUpdated where update.element < newConnections.count {
+                        state.connections[id: newConnections.elements[update.element].id] = newConnections.elements[update.element]
+                    }
+                }
                 return .none
 
             case let .updateSearch(text):

@@ -1,6 +1,7 @@
 import Collections
 @preconcurrency import Combine
 import ComposableArchitecture
+import DifferenceKit
 import Foundation
 
 @MainActor
@@ -54,8 +55,61 @@ struct ProvidersFeature: @preconcurrency Reducer {
                 return .cancel(id: CancelID.mihomoStream)
 
             case let .mihomoSnapshotUpdated(snapshot):
-                state.proxyProviders = snapshot.proxyProviders
-                state.ruleProviders = snapshot.ruleProviders
+                let stagedProxyProvidersChangeset = StagedChangeset(source: Array(state.proxyProviders.values), target: Array(snapshot.proxyProviders.values))
+                for changeset in stagedProxyProvidersChangeset {
+                    for delete in changeset.elementDeleted where delete.element < state.proxyProviders.count {
+                        let keys = Array(state.proxyProviders.keys)
+                        if delete.element < keys.count {
+                            state.proxyProviders.removeValue(forKey: keys[delete.element])
+                        }
+                    }
+                    for insert in changeset.elementInserted where insert.element < snapshot.proxyProviders.count {
+                        let keys = Array(snapshot.proxyProviders.keys)
+                        if insert.element < keys.count {
+                            let key = keys[insert.element]
+                            if let provider = snapshot.proxyProviders[key] {
+                                state.proxyProviders[provider.name] = provider
+                            }
+                        }
+                    }
+                    for update in changeset.elementUpdated where update.element < snapshot.proxyProviders.count {
+                        let keys = Array(snapshot.proxyProviders.keys)
+                        if update.element < keys.count {
+                            let key = keys[update.element]
+                            if let provider = snapshot.proxyProviders[key] {
+                                state.proxyProviders[provider.name] = provider
+                            }
+                        }
+                    }
+                }
+
+                let stagedRuleProvidersChangeset = StagedChangeset(source: Array(state.ruleProviders.values), target: Array(snapshot.ruleProviders.values))
+                for changeset in stagedRuleProvidersChangeset {
+                    for delete in changeset.elementDeleted where delete.element < state.ruleProviders.count {
+                        let keys = Array(state.ruleProviders.keys)
+                        if delete.element < keys.count {
+                            state.ruleProviders.removeValue(forKey: keys[delete.element])
+                        }
+                    }
+                    for insert in changeset.elementInserted where insert.element < snapshot.ruleProviders.count {
+                        let keys = Array(snapshot.ruleProviders.keys)
+                        if insert.element < keys.count {
+                            let key = keys[insert.element]
+                            if let provider = snapshot.ruleProviders[key] {
+                                state.ruleProviders[provider.name] = provider
+                            }
+                        }
+                    }
+                    for update in changeset.elementUpdated where update.element < snapshot.ruleProviders.count {
+                        let keys = Array(snapshot.ruleProviders.keys)
+                        if update.element < keys.count {
+                            let key = keys[update.element]
+                            if let provider = snapshot.ruleProviders[key] {
+                                state.ruleProviders[provider.name] = provider
+                            }
+                        }
+                    }
+                }
                 return .none
 
             case let .selectSegment(index):

@@ -1,6 +1,7 @@
 import Collections
 import ComposableArchitecture
 import Perception
+import SFSafeSymbols
 import SwiftNavigation
 import SwiftUI
 import SwiftUIIntrospect
@@ -38,7 +39,7 @@ struct ProxiesView: View {
                 EmptyView()
                     .if(filteredGroups.isEmpty) { _ in
                         ContentUnavailableView {
-                            Label("No Proxy Groups", systemImage: "rectangle.stack.fill")
+                            Label("No Proxy Groups", systemSymbol: .rectangleStackFill)
                         } description: {
                             Text("No proxy groups are available.")
                         }
@@ -60,7 +61,7 @@ struct ProxiesView: View {
                         }
                     }
             } header: {
-                Label("Proxy Groups", systemImage: "rectangle.stack")
+                Label("Proxy Groups", systemSymbol: .rectangleStack)
             }
         }
         .formStyle(.grouped)
@@ -83,7 +84,7 @@ struct ProxiesView: View {
     private var searchSection: some View {
         Section {
             HStack(spacing: 12) {
-                Image(systemName: "magnifyingglass")
+                Image(systemSymbol: .magnifyingglass)
                     .foregroundStyle(.secondary)
                     .accessibilityHidden(true)
 
@@ -96,7 +97,7 @@ struct ProxiesView: View {
                         Button {
                             bindableStore.send(.updateSearch(""))
                         } label: {
-                            Image(systemName: "xmark.circle.fill")
+                            Image(systemSymbol: .xmarkCircleFill)
                                 .accessibilityLabel("Clear search filter")
                                 .symbolRenderingMode(.hierarchical)
                                 .foregroundStyle(.secondary)
@@ -106,7 +107,7 @@ struct ProxiesView: View {
             }
             .padding(.vertical, 8)
         } header: {
-            Label("Search", systemImage: "text.magnifyingglass")
+            Label("Search", systemSymbol: .textMagnifyingglass)
         }
     }
 }
@@ -128,9 +129,9 @@ private struct ProxyGroupCard: View {
                 }
             } label: {
                 HStack(spacing: 12) {
-                    Image(systemName: "chevron.right")
+                    Image(systemSymbol: .chevronRight)
                         .foregroundStyle(.secondary)
-                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .if(isExpanded) { $0.rotationEffect(.degrees(90)) }
                         .animation(.smooth, value: isExpanded)
                         .accessibilityHidden(true)
 
@@ -158,7 +159,7 @@ private struct ProxyGroupCard: View {
                     Button {
                         onTestDelay()
                     } label: {
-                        Label("Test Delay", systemImage: "speedometer")
+                        Label("Test Delay", systemSymbol: .gaugeWithDotsNeedle67percent)
                             .font(.caption)
                     }
                     .buttonStyle(.bordered)
@@ -226,9 +227,10 @@ private struct ProxyNodeRow: View {
                                 .opacity(0.15),
                             in: Capsule(),
                             )
-                        .foregroundStyle(Color(delay == 0
-                                                ? .red
-                                                : delay < 100 ? .green : delay < 300 ? .orange : .red))
+                        .if(delay == 0) { $0.foregroundStyle(.red) }
+                        .if(delay > 0 && delay < 100) { $0.foregroundStyle(.green) }
+                        .if(delay >= 100 && delay < 300) { $0.foregroundStyle(.orange) }
+                        .if(delay >= 300) { $0.foregroundStyle(.red) }
                 } else {
                     Text("—")
                         .font(.caption)
@@ -236,7 +238,7 @@ private struct ProxyNodeRow: View {
                 }
 
                 if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
+                    Image(systemSymbol: .checkmarkCircleFill)
                         .font(.caption)
                         .foregroundStyle(Color.accentColor)
                         .accessibilityHidden(true)
@@ -244,10 +246,8 @@ private struct ProxyNodeRow: View {
             }
             .padding(.vertical, 12)
             .padding(.horizontal, 16)
-            .background(
-                isSelected ? Color.accentColor.opacity(0.1) : Color.clear,
-                in: RoundedRectangle(cornerRadius: 8),
-                )
+            .if(isSelected) { $0.background(Color.accentColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 8)) }
+            .ifNot(isSelected) { $0.background(Color.clear, in: RoundedRectangle(cornerRadius: 8)) }
         }
         .buttonStyle(.plain)
     }

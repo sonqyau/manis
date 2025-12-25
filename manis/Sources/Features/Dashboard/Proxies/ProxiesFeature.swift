@@ -1,6 +1,7 @@
 import Collections
 @preconcurrency import Combine
 import ComposableArchitecture
+import DifferenceKit
 import Foundation
 import SwiftNavigation
 
@@ -52,8 +53,67 @@ struct ProxiesFeature: @preconcurrency Reducer {
                 return .cancel(id: CancelID.mihomoStream)
 
             case let .mihomoSnapshotUpdated(snapshot):
-                state.groups = snapshot.groups
-                state.proxies = snapshot.proxies
+                let stagedGroupsChangeset = StagedChangeset(source: Array(state.groups.values), target: Array(snapshot.groups.values))
+                for changeset in stagedGroupsChangeset {
+                    for delete in changeset.elementDeleted where delete.element < state.groups.count {
+                        let keys = Array(state.groups.keys)
+                        if delete.element < keys.count {
+                            state.groups.removeValue(forKey: keys[delete.element])
+                        }
+                    }
+                    for insert in changeset.elementInserted where insert.element < snapshot.groups.count {
+                        let keys = Array(snapshot.groups.keys)
+                        if insert.element < keys.count {
+                            let key = keys[insert.element]
+                            if let group = snapshot.groups[key] {
+                                state.groups[group.name] = group
+                            }
+                        }
+                    }
+                    for update in changeset.elementUpdated where update.element < snapshot.groups.count {
+                        let keys = Array(snapshot.groups.keys)
+                        if update.element < keys.count {
+                            let key = keys[update.element]
+                            if let group = snapshot.groups[key] {
+                                state.groups[group.name] = group
+                            }
+                        }
+                    }
+                }
+
+                let stagedProxiesChangeset = StagedChangeset(source: Array(state.proxies.values), target: Array(snapshot.proxies.values))
+                for changeset in stagedProxiesChangeset {
+                    for delete in changeset.elementDeleted {
+                        if delete.element < state.proxies.count {
+                            let keys = Array(state.proxies.keys)
+                            if delete.element < keys.count {
+                                state.proxies.removeValue(forKey: keys[delete.element])
+                            }
+                        }
+                    }
+                    for insert in changeset.elementInserted {
+                        if insert.element < snapshot.proxies.count {
+                            let keys = Array(snapshot.proxies.keys)
+                            if insert.element < keys.count {
+                                let key = keys[insert.element]
+                                if let proxy = snapshot.proxies[key] {
+                                    state.proxies[proxy.name] = proxy
+                                }
+                            }
+                        }
+                    }
+                    for update in changeset.elementUpdated {
+                        if update.element < snapshot.proxies.count {
+                            let keys = Array(snapshot.proxies.keys)
+                            if update.element < keys.count {
+                                let key = keys[update.element]
+                                if let proxy = snapshot.proxies[key] {
+                                    state.proxies[proxy.name] = proxy
+                                }
+                            }
+                        }
+                    }
+                }
                 return .none
 
             case let .updateSearch(text):
