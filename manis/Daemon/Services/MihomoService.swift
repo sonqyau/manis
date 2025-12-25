@@ -280,8 +280,8 @@ actor MihomoService {
         executablePath: String,
         configPath: String,
         configContent: String,
-        secret: String
-    ) async throws -> String {
+        secret _: String,
+        ) async throws -> String {
         let maxRetries = 3
         let retryDelay = Duration.seconds(2)
 
@@ -297,8 +297,8 @@ actor MihomoService {
                 let result = try await startProcess(
                     executablePath: executablePath,
                     configPath: configPath,
-                    configContent: configContent
-                )
+                    configContent: configContent,
+                    )
                 return result
             } catch {
                 logger.warning("Process start attempt \(attempt) failed: \(error)")

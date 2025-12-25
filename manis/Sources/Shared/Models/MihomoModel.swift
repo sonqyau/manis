@@ -1,5 +1,5 @@
-import Foundation
 import DifferenceKit
+import Foundation
 
 struct ClashConfig: Codable {
     let port: Int?

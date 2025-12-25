@@ -1,13 +1,13 @@
 import Foundation
-import ServiceManagement
 import OSLog
+import ServiceManagement
 
 @MainActor
 final class DaemonManager {
     static let shared = DaemonManager()
 
-    internal let helperPlistName = "com.manis.Daemon"
-    internal let logger = Logger(subsystem: "com.manis.app", category: "DaemonManager")
+    let helperPlistName = "com.manis.Daemon"
+    let logger = Logger(subsystem: "com.manis.app", category: "DaemonManager")
 
     private init() {}
 
@@ -26,10 +26,17 @@ final class DaemonManager {
         switch currentStatus {
         case .requiresApproval:
             logger.warning("Daemon requires user approval in System Settings")
+            openSystemSettingsForApproval()
             return false
         case .notRegistered:
             logger.info("Daemon not registered, attempting registration")
-            return false
+            do {
+                try register()
+                return service.status == .enabled
+            } catch {
+                logger.error("Failed to register daemon: \(error)")
+                return false
+            }
         case .enabled:
             logger.info("Daemon is enabled and ready")
             return true

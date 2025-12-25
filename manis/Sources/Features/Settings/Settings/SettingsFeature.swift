@@ -119,13 +119,13 @@ struct SettingsFeature: @preconcurrency Reducer {
                  (.systemProxyToggled, .systemProxyToggled),
                  (.tunModeToggled, .tunModeToggled),
                  (.cacheOperationFinished, .cacheOperationFinished):
-                return true
+                true
             case (.toggleBootstrap, .toggleBootstrap):
-                return true
+                true
             case let (.systemOperationFinished(lhsSuccess, lhsError), .systemOperationFinished(rhsSuccess, rhsError)):
-                return lhsSuccess == rhsSuccess && lhsError == rhsError
+                lhsSuccess == rhsSuccess && lhsError == rhsError
             default:
-                return false
+                false
             }
         }
     }
@@ -177,6 +177,7 @@ struct SettingsFeature: @preconcurrency Reducer {
 
             case .uninstallDaemon:
                 return uninstallDaemonEffect(state: &state)
+
             case .diagnoseDaemon:
                 return diagnoseDaemonEffect(state: &state)
 
@@ -357,8 +358,8 @@ struct SettingsFeature: @preconcurrency Reducer {
                     throw NSError(
                         domain: "com.manis.app",
                         code: -1,
-                        userInfo: [NSLocalizedDescriptionKey: "Unknown daemon status"]
-                    )
+                        userInfo: [NSLocalizedDescriptionKey: "Unknown daemon status"],
+                        )
                 }
 
                 send(.refreshDaemonStatus)
@@ -674,13 +675,13 @@ struct SettingsFeature: @preconcurrency Reducer {
     private func systemOperationFinishedEffect(
         state: inout State,
         success: Bool,
-        errorMessage: String?
-    ) -> Effect<Action> {
+        errorMessage: String?,
+        ) -> Effect<Action> {
         state.isPerformingSystemOperation = false
 
         if success {
             state.alert = .success("Operation completed successfully")
-        } else if let errorMessage = errorMessage {
+        } else if let errorMessage {
             state.alert = .error(errorMessage)
         }
 
@@ -730,7 +731,7 @@ struct SettingsFeature: @preconcurrency Reducer {
         }
     }
 
-    private func flushFakeIPCacheEffect(state: inout State) -> Effect<Action> {
+    private func flushFakeIPCacheEffect(state _: inout State) -> Effect<Action> {
         let service = mihomoService
         return .run { @MainActor send in
             do {
@@ -743,7 +744,7 @@ struct SettingsFeature: @preconcurrency Reducer {
         }
     }
 
-    private func flushDNSCacheEffect(state: inout State) -> Effect<Action> {
+    private func flushDNSCacheEffect(state _: inout State) -> Effect<Action> {
         let service = mihomoService
         return .run { @MainActor send in
             do {
@@ -756,7 +757,7 @@ struct SettingsFeature: @preconcurrency Reducer {
         }
     }
 
-    private func triggerGCEffect(state: inout State) -> Effect<Action> {
+    private func triggerGCEffect(state _: inout State) -> Effect<Action> {
         let service = mihomoService
         return .run { @MainActor send in
             do {
@@ -777,7 +778,7 @@ struct SettingsFeature: @preconcurrency Reducer {
     }
 
     private func formatTraffic(_ traffic: TrafficSnapshot?) -> String {
-        guard let traffic = traffic else { return "--" }
+        guard let traffic else { return "--" }
         let formatter = ByteCountFormatter()
         formatter.allowedUnits = [.useKB, .useMB, .useGB]
         formatter.countStyle = .binary

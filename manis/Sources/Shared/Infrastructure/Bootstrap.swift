@@ -14,14 +14,17 @@ public enum Bootstrap {
             do {
                 if newValue {
                     if SMAppService.mainApp.status == .enabled {
-                        try? SMAppService.mainApp.unregister()
+                        try SMAppService.mainApp.unregister()
                     }
                     try SMAppService.mainApp.register()
+                    if SMAppService.mainApp.status == .requiresApproval {
+                        openSystemSettings()
+                    }
                 } else {
                     try SMAppService.mainApp.unregister()
                 }
             } catch {
-                logger.error("Failed to \(newValue ? "enable" : "disable") launch at login: \(error.localizedDescription)")
+                logger.error("Login configuration failed. Verify write permissions. \(error.localizedDescription)")
             }
         }
     }

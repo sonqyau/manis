@@ -217,7 +217,7 @@ enum ResourceError: MainError {
     }
 
     var userFriendlyMessage: String {
-        errorDescription ?? "Resource error"
+        errorDescription ?? "Resource operation failed"
     }
 
     var errorDescription: String? {
@@ -226,25 +226,25 @@ enum ResourceError: MainError {
             "Configuration path exists but is a file, not a directory."
 
         case let .cannotCreateConfigDirectory(error):
-            "Unable to create configuration directory: \(error.localizedDescription)"
+            "Configuration directory creation failed: \(error.localizedDescription)"
 
         case .bundledGeoIPNotFound:
             "Bundled GeoIP database not found in the application bundle."
 
         case let .cannotExtractGeoIP(error):
-            "Unable to extract GeoIP database: \(error.localizedDescription)"
+            "GeoIP database extraction failed: \(error.localizedDescription)"
 
         case .bundledConfigNotFound:
             "Bundled configuration file not found in the application bundle."
 
         case let .cannotCreateConfig(error):
-            "Unable to create configuration file: \(error.localizedDescription)"
+            "Configuration file creation failed: \(error.localizedDescription)"
 
         case .decompressionFailed:
             "Failed to decompress LZFSE data."
 
         case let .updateFailed(error):
-            "Failed to update resource: \(error.localizedDescription)"
+            "Resource update operation failed: \(error.localizedDescription)"
         }
     }
 

@@ -83,18 +83,18 @@ final class RemoteInstance: Identifiable {
         isActive = false
         createdAt = dependencies.date()
 
-        if let secret = secret, !secret.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if let secret, !secret.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             do {
                 let keychainDeps = RemoteInstanceDependencies()
                 try keychainDeps.keychain.setSecret(
                     secret,
-                    RemoteInstanceKeychain.key(for: self.id)
-                )
+                    RemoteInstanceKeychain.key(for: self.id),
+                    )
             } catch {
                 Self.logger.error(
-                    "Failed to store secret in Keychain during initialization",
-                    metadata: ["error": String(describing: error)]
-                )
+                    "Settings initialization failed: \(error.localizedDescription)",
+                    metadata: ["error": String(describing: error)],
+                    )
             }
         }
     }
@@ -103,13 +103,13 @@ final class RemoteInstance: Identifiable {
         do {
             let dependencies = RemoteInstanceDependencies()
             return try dependencies.keychain.secret(
-                RemoteInstanceKeychain.key(for: id)
-            )
+                RemoteInstanceKeychain.key(for: id),
+                )
         } catch {
             Self.logger.error(
-                "Unable to read secret from Keychain",
-                metadata: ["error": String(describing: error)]
-            )
+                "Keychain secret retrieval failed: \(error.localizedDescription)",
+                metadata: ["error": String(describing: error)],
+                )
             return nil
         }
     }
@@ -119,12 +119,12 @@ final class RemoteInstance: Identifiable {
         if let secret = newSecret, !secret.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             try dependencies.keychain.setSecret(
                 secret,
-                RemoteInstanceKeychain.key(for: id)
-            )
+                RemoteInstanceKeychain.key(for: id),
+                )
         } else {
             try dependencies.keychain.deleteSecret(
-                RemoteInstanceKeychain.key(for: id)
-            )
+                RemoteInstanceKeychain.key(for: id),
+                )
         }
     }
 

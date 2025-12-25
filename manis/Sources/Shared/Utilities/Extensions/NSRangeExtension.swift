@@ -1,6 +1,6 @@
+import Algorithms
 import Foundation
 import Rearrange
-import Algorithms
 
 extension NSRange {
     func intersects(_ other: NSRange) -> Bool {

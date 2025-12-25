@@ -1,5 +1,34 @@
 import Foundation
 
+struct KernelStartRequest: Codable, Sendable {
+    let executablePath: String
+    let configPath: String
+    let configContent: String
+}
+
+struct ConnectRequest: Codable, Sendable {
+    let httpPort: Int
+    let socksPort: Int
+    let pacURL: String?
+    let bypassList: [String]
+}
+
+struct DNSRequest: Codable, Sendable {
+    let servers: [String]
+    let hijackEnabled: Bool
+}
+
+struct ConnectivityRequest: Codable, Sendable {
+    let host: String
+    let port: Int
+    let timeout: TimeInterval
+}
+
+struct TunRequest: Codable, Sendable {
+    let enabled: Bool
+    let dnsServer: String
+}
+
 struct XPCRequest: Codable, Sendable {
     let method: String
     let executablePath: String?

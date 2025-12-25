@@ -3,9 +3,9 @@ import Clocks
 import Foundation
 import HTTPTypes
 import HTTPTypesFoundation
-import SystemPackage
 import OSLog
 import SwiftData
+import SystemPackage
 import UserNotifications
 
 @MainActor
@@ -43,8 +43,8 @@ final class PersistenceDomain {
         guard let container = modelContainer else { return true }
         let context = container.mainContext
         let activeInstanceDescriptor = FetchDescriptor<RemoteInstance>(
-            predicate: #Predicate<RemoteInstance> { $0.isActive == true }
-        )
+            predicate: #Predicate<RemoteInstance> { $0.isActive == true },
+            )
         let activeInstances = try? context.fetch(activeInstanceDescriptor)
         return activeInstances?.isEmpty ?? true
     }
@@ -53,8 +53,8 @@ final class PersistenceDomain {
         guard let container = modelContainer else { return nil }
         let context = container.mainContext
         let activeInstanceDescriptor = FetchDescriptor<RemoteInstance>(
-            predicate: #Predicate<RemoteInstance> { $0.isActive == true }
-        )
+            predicate: #Predicate<RemoteInstance> { $0.isActive == true },
+            )
         return try? context.fetch(activeInstanceDescriptor).first
     }
 
@@ -161,8 +161,8 @@ final class PersistenceDomain {
 
         let context = container.mainContext
         let duplicateDescriptor = FetchDescriptor<PersistenceModel>(
-            predicate: #Predicate<PersistenceModel> { $0.url == url }
-        )
+            predicate: #Predicate<PersistenceModel> { $0.url == url },
+            )
         let existingConfigs = try performDatabase {
             try context.fetch(duplicateDescriptor)
         }
@@ -212,7 +212,8 @@ final class PersistenceDomain {
             let (data, resp) = try await URLSession.shared.data(for: urlRequest)
 
             guard let httpResponse = resp as? HTTPURLResponse,
-                  (200 ... 299).contains(httpResponse.statusCode) else {
+                  (200 ... 299).contains(httpResponse.statusCode)
+            else {
                 throw PersistenceError.downloadFailed
             }
 
@@ -251,8 +252,8 @@ final class PersistenceDomain {
         let context = container.mainContext
 
         let deactivateDescriptor = FetchDescriptor<PersistenceModel>(
-            predicate: #Predicate<PersistenceModel> { $0.isActive == true }
-        )
+            predicate: #Predicate<PersistenceModel> { $0.isActive == true },
+            )
         let activeConfigs = try performDatabase {
             try context.fetch(deactivateDescriptor)
         }
@@ -293,7 +294,7 @@ final class PersistenceDomain {
             let result = try await ConfigValidation.shared.validate(configPath: path)
             guard result.isValid else {
                 throw PersistenceError.validationFailed(
-                    result.errorMessage ?? "Unknown configuration validation error.",
+                    result.errorMessage ?? "Configuration validation failed.",
                     )
             }
         } catch {
@@ -370,8 +371,8 @@ final class PersistenceDomain {
         let context = container.mainContext
 
         let autoUpdateDescriptor = FetchDescriptor<PersistenceModel>(
-            predicate: #Predicate<PersistenceModel> { $0.autoUpdate == true }
-        )
+            predicate: #Predicate<PersistenceModel> { $0.autoUpdate == true },
+            )
 
         do {
             let autoUpdateConfigs = try performDatabase {
@@ -389,7 +390,7 @@ final class PersistenceDomain {
                 } catch {
                     let chain = error.errorChainDescription
                     logger.error(
-                        "Failed to update configuration \(cfg.name): \(error.localizedDescription)\n\(chain)",
+                        "Configuration update failed for \(cfg.name): \(error.localizedDescription)\n\(chain)",
                         )
                     if cfg.isActive {
                         await sendNotification(
@@ -400,7 +401,7 @@ final class PersistenceDomain {
                 }
             }
         } catch {
-            logger.error("Failed to fetch auto-update configs: \(error.localizedDescription)")
+            logger.error("Auto-update configuration fetch failed: \(error.localizedDescription)")
         }
     }
 
@@ -411,7 +412,7 @@ final class PersistenceDomain {
             } catch {
                 let chain = error.errorChainDescription
                 logger.error(
-                    "Failed to update configuration \(config.name): \(error.localizedDescription)\n\(chain)",
+                    "Configuration update failed for \(config.name): \(error.localizedDescription)\n\(chain)",
                     )
             }
         }
@@ -475,8 +476,8 @@ final class PersistenceDomain {
         let context = container.mainContext
 
         let deactivateDescriptor = FetchDescriptor<RemoteInstance>(
-            predicate: #Predicate<RemoteInstance> { $0.isActive == true }
-        )
+            predicate: #Predicate<RemoteInstance> { $0.isActive == true },
+            )
         let activeInstances = try? context.fetch(deactivateDescriptor)
         for inst in activeInstances ?? [] {
             inst.isActive = false
@@ -537,7 +538,7 @@ enum PersistenceError: MainError {
     }
 
     var userFriendlyMessage: String {
-        errorDescription ?? "Remote configuration error"
+        errorDescription ?? "Remote configuration operation failed"
     }
 
     var errorDescription: String? {

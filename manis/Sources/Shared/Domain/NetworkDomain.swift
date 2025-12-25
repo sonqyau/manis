@@ -22,7 +22,7 @@ final class NetworkDomain {
 
     private var pathMonitor: NWPathMonitor?
     private let queue = FIFOQueue(name: "NetworkDomain")
-    private let monitorQueue = DispatchQueue(label: "com.manis.networkmonitor", qos: .utility)
+    private let monitorQueue = DispatchQueue(label: "com.manis.network.monitor", qos: .utility)
 
     private var proxyStore: SCDynamicStore?
     private var ipStore: SCDynamicStore?

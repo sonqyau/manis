@@ -96,7 +96,7 @@ struct LifecycleFeature: @preconcurrency Reducer {
 
         await performRecoverableStep(
             "Default configuration initialization",
-            warning: "Failed to generate the default configuration. Verify write permissions.",
+            warning: "Default configuration generation failed. Verify write permissions.",
             initializationWarnings: &initializationWarnings,
             ) {
             try context.resourceService.ensureDefaultConfig()

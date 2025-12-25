@@ -21,6 +21,7 @@ let package = Package(
         .package(url: "https://github.com/ra1028/DifferenceKit", from: "1.3.0"),
         .package(url: "https://github.com/apple/swift-system", from: "1.6.3"),
         .package(url: "https://github.com/CharlesJS/SwiftyXPC", from: "0.5.4"),
+        .package(url: "https://github.com/trilemma-dev/SecureXPC", from: "0.8.0"),
         .package(url: "https://github.com/dfed/swift-async-queue", from: "1.0.1"),
         .package(url: "https://github.com/apple/swift-algorithms", from: "1.2.1"),
         .package(url: "https://github.com/apple/swift-http-types", from: "1.5.1"),
@@ -89,7 +90,7 @@ let package = Package(
         .executableTarget(
             name: "MainXPC",
             dependencies: [
-                .product(name: "SwiftyXPC", package: "SwiftyXPC"),
+                .product(name: "SecureXPC", package: "SecureXPC"),
             ],
             path: "manis/XPC",
             exclude: [

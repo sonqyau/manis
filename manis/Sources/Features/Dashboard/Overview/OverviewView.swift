@@ -25,7 +25,7 @@ struct OverviewView: View {
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
-        .navigationTitle("System overview")
+        .navigationTitle("System Overview")
         .task { bindableStore.send(.onAppear) }
         .onDisappear { bindableStore.send(.onDisappear) }
     }
@@ -66,7 +66,7 @@ struct OverviewView: View {
             }
             .padding(.vertical, 6)
         } header: {
-            Label("Current metrics", systemSymbol: .gaugeWithDotsNeedleBottom50percent)
+            Label("Performance Metrics", systemSymbol: .gaugeWithDotsNeedleBottom50percent)
         }
     }
 
@@ -78,7 +78,7 @@ struct OverviewView: View {
             }
             .padding(.vertical, 6)
         } header: {
-            Label("Traffic history", systemSymbol: .chartXyaxisLine)
+            Label("Network Traffic", systemSymbol: .chartXyaxisLine)
         }
     }
 
@@ -95,8 +95,8 @@ struct OverviewView: View {
                         }
                     }
 
-                LabeledContent("Status") {
-                    Text(isConnected ? "Connected" : "Disconnected")
+                LabeledContent("Connection Status") {
+                    Text(isConnected ? "Active" : "Inactive")
                         .if(isConnected) { $0.foregroundStyle(.green) }
                         .ifNot(isConnected) { $0.foregroundStyle(.red) }
                 }

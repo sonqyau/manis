@@ -62,7 +62,7 @@ final class Keychain: @unchecked Sendable {
     }
 
     func canAccessKeychain() -> Bool {
-        return valet.canAccessKeychain()
+        valet.canAccessKeychain()
     }
 
     private func mapError(_ error: Error) -> ManisKeychainError {
@@ -106,9 +106,9 @@ enum ManisKeychainError: MainError {
     var userFriendlyMessage: String {
         switch self {
         case .unexpectedStatus:
-            "Unable to access secure storage. Please check your system permissions."
+            "Secure storage access denied. Verify system permissions."
         case .stringEncodingFailure:
-            "Unable to process the secret for secure storage."
+            "Secret processing failed for secure storage."
         case .permissionDenied:
             "Access to secure storage was denied. Please grant keychain access."
         case .keychainUnavailable:
@@ -124,7 +124,7 @@ enum ManisKeychainError: MainError {
             }
             return "Keychain operation failed with status code \(status)"
         case .stringEncodingFailure:
-            return "Unable to encode secret for secure storage"
+            return "Secret encoding failed for secure storage"
         case .permissionDenied:
             return "Keychain access permission denied"
         case .keychainUnavailable:

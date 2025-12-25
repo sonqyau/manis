@@ -252,7 +252,7 @@ struct MenuBarContentView: View {
                 }
             }
         } header: {
-            Label("Proxy groups", systemSymbol: .serverRack)
+            Label("Proxy Selection", systemSymbol: .serverRack)
         }
     }
 
@@ -267,8 +267,8 @@ struct MenuBarContentView: View {
                             title: "System Proxy",
                             icon: .network,
                             isActive: bindableStore.systemProxyEnabled,
-                            activeColor: .blue
-                        )
+                            activeColor: .blue,
+                            )
                     }
                     .buttonStyle(.plain)
 
@@ -279,8 +279,8 @@ struct MenuBarContentView: View {
                             title: "TUN Mode",
                             icon: .shieldFill,
                             isActive: bindableStore.tunModeEnabled,
-                            activeColor: .green
-                        )
+                            activeColor: .green,
+                            )
                     }
                     .buttonStyle(.plain)
                 }
@@ -293,7 +293,7 @@ struct MenuBarContentView: View {
                             .font(.body)
                             .foregroundStyle(.orange)
                             .accessibilityHidden(true)
-                        Text("Reload Config")
+                        Text("Reload Configuration")
                             .font(.caption)
                             .foregroundStyle(.orange)
                         Spacer()
@@ -303,8 +303,8 @@ struct MenuBarContentView: View {
                     .frame(maxWidth: .infinity)
                     .background(
                         Color.orange.opacity(0.08),
-                        in: RoundedRectangle(cornerRadius: 10)
-                    )
+                        in: RoundedRectangle(cornerRadius: 10),
+                        )
                 }
                 .buttonStyle(.plain)
             }
@@ -317,8 +317,8 @@ struct MenuBarContentView: View {
         title: String,
         icon: SFSymbol,
         isActive: Bool = false,
-        activeColor: Color = .blue
-    ) -> some View {
+        activeColor: Color = .blue,
+        ) -> some View {
         HStack(spacing: 8) {
             Image(systemSymbol: icon)
                 .font(.body)
@@ -334,8 +334,8 @@ struct MenuBarContentView: View {
         .frame(maxWidth: .infinity)
         .background(
             isActive ? activeColor.opacity(0.15) : Color.secondary.opacity(0.08),
-            in: RoundedRectangle(cornerRadius: 10)
-        )
+            in: RoundedRectangle(cornerRadius: 10),
+            )
     }
 
     private var navigationSection: some View {
@@ -363,7 +363,7 @@ struct MenuBarContentView: View {
                 .buttonStyle(.plain)
             }
         } header: {
-            Label("Shortcuts", systemSymbol: .arrowshapeTurnUpRightCircle)
+            Label("Navigation", systemSymbol: .arrowshapeTurnUpRightCircle)
         }
     }
 }
@@ -449,7 +449,7 @@ private struct MenuBarProxyGroupRow: View {
                             .padding(.vertical, 4)
                             .background(Color.accentColor.opacity(0.12), in: Capsule())
                     } else {
-                        Text("Not Connected")
+                        Text("No Active Proxy")
                             .foregroundColor(.secondary)
                     }
                 }
@@ -523,7 +523,7 @@ private struct MenuBarProxyNodeRow: View {
             return "--"
         }
         if delay == 0 {
-            return "Timeout"
+            return "Connection Timeout"
         }
         return "\(delay)ms"
     }

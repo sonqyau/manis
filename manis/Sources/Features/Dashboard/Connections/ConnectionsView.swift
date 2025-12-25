@@ -1,9 +1,9 @@
+import Algorithms
 import ComposableArchitecture
 import Perception
 import SFSafeSymbols
 import SwiftNavigation
 import SwiftUI
-import Algorithms
 
 struct ConnectionsView: View {
     let store: StoreOf<ConnectionsFeature>

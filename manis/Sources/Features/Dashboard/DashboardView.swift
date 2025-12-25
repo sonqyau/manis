@@ -65,7 +65,7 @@ struct DashboardView: View {
             }
             .buttonStyle(.plain)
         }
-        .navigationTitle("Dashboard")
+        .navigationTitle("Control Panel")
         .frame(minWidth: 200)
     }
 
@@ -74,7 +74,7 @@ struct DashboardView: View {
             if let selectedTab = bindableStore.selectedTab {
                 destinationView(for: selectedTab)
             } else {
-                Text("Select a tab to get started")
+                Text("Select a tab to begin")
                     .foregroundColor(.secondary)
                     .font(.title2)
             }

@@ -244,7 +244,7 @@ final class MihomoDomain {
 
         if let secret {
             request.headerFields = [
-                HTTPField.Name.authorization: "Bearer \(secret)"
+                HTTPField.Name.authorization: "Bearer \(secret)",
             ]
         }
 
@@ -252,7 +252,7 @@ final class MihomoDomain {
             request.headerFields[.contentType] = "application/json"
         }
 
-        if let body = body {
+        if let body {
             request.headerFields[.contentLength] = "\(body.count)"
         }
 
@@ -297,7 +297,7 @@ final class MihomoDomain {
         let events = client.events
         let stream = events.compactMap { event -> TrafficSnapshot? in
             switch event {
-            case .text(let text):
+            case let .text(text):
                 guard let data = text.data(using: .utf8),
                       let traffic = try? JSONDecoder().decode(TrafficSnapshot.self, from: data)
                 else {
@@ -366,7 +366,7 @@ final class MihomoDomain {
         let events = client.events
         let stream = events.compactMap { event -> MemorySnapshot? in
             switch event {
-            case .text(let text):
+            case let .text(text):
                 guard let data = text.data(using: .utf8),
                       let memory = try? JSONDecoder().decode(MemorySnapshot.self, from: data)
                 else {

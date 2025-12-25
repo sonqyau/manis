@@ -10,12 +10,12 @@ final class XPCService: @unchecked Sendable {
         logger.info("XPC Service initialized")
     }
 
-    func getVersion() async throws -> XPCResponse {
+    func getVersion() async throws -> String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
-        return .version(version)
+        return version
     }
 
-    func getKernelStatus() async throws -> XPCResponse {
+    func getKernelStatus() async throws -> ManisKernelStatus {
         let status = try await daemonBridge.getMihomoStatus()
         let kernelStatus = ManisKernelStatus(
             isRunning: status.isRunning,
@@ -23,105 +23,77 @@ final class XPCService: @unchecked Sendable {
             externalController: status.externalController,
             secret: status.secret,
             )
-        return .kernelStatus(kernelStatus)
+        return kernelStatus
     }
 
-    func startKernel(_ request: XPCRequest) async throws -> XPCResponse {
-        guard let executablePath = request.executablePath,
-              let configPath = request.configPath,
-              let configContent = request.configContent
-        else {
-            throw MainXPCError(domain: "com.manis.XPC", code: -2, message: "Missing required parameters")
-        }
-
+    func startKernel(_ request: KernelStartRequest) async throws -> String {
         let result = try await daemonBridge.startMihomo(
-            executablePath: executablePath,
-            configPath: configPath,
-            configContent: configContent,
+            executablePath: request.executablePath,
+            configPath: request.configPath,
+            configContent: request.configContent,
             )
 
-        return .message(result)
+        return result
     }
 
-    func stopKernel() async throws -> XPCResponse {
+    func stopKernel() async throws -> String {
         try await daemonBridge.stopMihomo()
-        return .message("Kernel stopped successfully")
+        return "Kernel terminated successfully"
     }
 
-    func restartKernel() async throws -> XPCResponse {
+    func restartKernel() async throws -> String {
         let result = try await daemonBridge.restartMihomo()
-        return .message(result)
+        return result
     }
 
-    func enableConnect(_ request: XPCRequest) async throws -> XPCResponse {
-        guard let httpPort = request.httpPort,
-              let socksPort = request.socksPort
-        else {
-            throw MainXPCError(domain: "com.manis.XPC", code: -2, message: "Missing required ports")
-        }
-
+    func enableConnect(_ request: ConnectRequest) async throws -> String {
         try await daemonBridge.enableConnect(
-            httpPort: httpPort,
-            socksPort: socksPort,
+            httpPort: request.httpPort,
+            socksPort: request.socksPort,
             pacURL: request.pacURL,
-            bypassList: request.bypassList ?? [],
+            bypassList: request.bypassList,
             )
 
-        return .message("System proxy enabled successfully")
+        return "System proxy activated successfully"
     }
 
-    func disableConnect() async throws -> XPCResponse {
+    func disableConnect() async throws -> String {
         try await daemonBridge.disableConnect()
-        return .message("System proxy disabled successfully")
+        return "System proxy deactivated successfully"
     }
 
-    func getConnectStatus() async throws -> XPCResponse {
+    func getConnectStatus() async throws -> ConnectStatus {
         let status = try await daemonBridge.getConnectStatus()
-        return .systemProxyStatus(status)
+        return status
     }
 
-    func configureDNS(_ request: XPCRequest) async throws -> XPCResponse {
-        guard let servers = request.servers else {
-            throw MainXPCError(domain: "com.manis.XPC", code: -2, message: "Missing required DNS parameters")
-        }
-
-        try await daemonBridge.configureDNS(servers: servers, hijackEnabled: request.hijackEnabled)
-        return .message("DNS configured successfully")
+    func configureDNS(_ request: DNSRequest) async throws -> String {
+        try await daemonBridge.configureDNS(servers: request.servers, hijackEnabled: request.hijackEnabled)
+        return "DNS configuration updated successfully"
     }
 
-    func flushDNSCache() async throws -> XPCResponse {
+    func flushDNSCache() async throws -> String {
         try await daemonBridge.flushDNSCache()
-        return .message("DNS cache flushed successfully")
+        return "DNS cache cleared successfully"
     }
 
-    func getUsedPorts() async throws -> XPCResponse {
+    func getUsedPorts() async throws -> [Int] {
         let ports = try await daemonBridge.getUsedPorts()
-        return .usedPorts(ports)
+        return ports
     }
 
-    func testConnectivity(_ request: XPCRequest) async throws -> XPCResponse {
-        guard let host = request.host,
-              let port = request.port,
-              let timeout = request.timeout
-        else {
-            throw MainXPCError(domain: "com.manis.XPC", code: -2, message: "Missing connectivity test parameters")
-        }
-
+    func testConnectivity(_ request: ConnectivityRequest) async throws -> Bool {
         let isConnected = try await daemonBridge.testConnectivity(
-            host: host,
-            port: port,
-            timeout: timeout,
+            host: request.host,
+            port: request.port,
+            timeout: request.timeout,
             )
 
-        return .connectivity(isConnected)
+        return isConnected
     }
 
-    func updateTun(_ request: XPCRequest) async throws -> XPCResponse {
-        guard let dnsServer = request.dnsServer else {
-            throw MainXPCError(domain: "com.manis.XPC", code: -2, message: "Missing TUN parameters")
-        }
-
-        try await daemonBridge.updateTun(enabled: request.enabled, dnsServer: dnsServer)
-        return .message("TUN updated successfully")
+    func updateTun(_ request: TunRequest) async throws -> String {
+        try await daemonBridge.updateTun(enabled: request.enabled, dnsServer: request.dnsServer)
+        return "TUN configuration updated successfully"
     }
 }

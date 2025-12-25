@@ -1,8 +1,8 @@
+import Algorithms
 import ComposableArchitecture
 import SwiftData
 import SwiftUI
 import UserNotifications
-import Algorithms
 
 extension NSNotification.Name {
     static let openDashboardWindow = NSNotification.Name("openDashboardWindow")

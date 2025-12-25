@@ -1,8 +1,8 @@
+import Algorithms
 import AsyncAlgorithms
 import Foundation
 import OSLog
 import SystemPackage
-import Algorithms
 
 actor NetworkService {
     private let logger = Logger(subsystem: "com.manis.Daemon", category: "NetworkService")
@@ -28,8 +28,8 @@ actor NetworkService {
         host: String,
         port: Int,
         interval: Duration = .seconds(10),
-        timeout: TimeInterval = 3.0
-    ) async -> AsyncStream<Bool> {
+        timeout: TimeInterval = 3.0,
+        ) async -> AsyncStream<Bool> {
         logger.debug("Starting connectivity monitoring for \(host):\(port)")
 
         let timer = AsyncTimerSequence(interval: interval, clock: ContinuousClock())
@@ -46,11 +46,11 @@ actor NetworkService {
     }
 
     func getUsedPorts() async -> [Int] {
-        return await scanUsedPortsAsync()
+        await scanUsedPortsAsync()
     }
 
     private func scanUsedPortsAsync() async -> [Int] {
-        return await withCheckedContinuation { continuation in
+        await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 let ports = self.scanUsedPorts()
                 continuation.resume(returning: ports)
@@ -109,12 +109,14 @@ actor NetworkService {
             let localAddress = components[3]
 
             guard let portString = localAddress.components(separatedBy: ".").last,
-                  let port = Int(portString) else {
+                  let port = Int(portString)
+            else {
                 return nil
             }
 
             return port
-        }.uniqued()
+        }
+        .uniqued()
         .sorted()
     }
 

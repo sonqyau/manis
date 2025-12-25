@@ -143,6 +143,12 @@ struct ConnectInfo: Codable, Sendable {
     let port: Int32
 }
 
+struct KernelStartRequest: Codable, Sendable {
+    let executablePath: String
+    let configPath: String
+    let configContent: String
+}
+
 extension ManisKernelStatus: Codable {
     convenience init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -229,6 +235,31 @@ struct XPCClient: XPC {
             logger.warning("XPC connection invalidated (custom domain)")
             return true
         }
+
+        if ns.domain == "SMAppServiceErrorDomain" {
+            switch ns.code {
+            case 3:
+                logger.warning("XPC service requires user approval")
+                return false
+            case 2:
+                logger.error("XPC service not found in bundle")
+                return false
+            default:
+                logger.warning("SMAppService error: \(ns.code)")
+                return false
+            }
+        }
+
+        if ns.domain == NSPOSIXErrorDomain, ns.code == ETIMEDOUT {
+            logger.warning("XPC operation timed out")
+            return true
+        }
+
+        if ns.domain == NSPOSIXErrorDomain, ns.code == EPERM {
+            logger.error("XPC permission denied")
+            return false
+        }
+
         return false
     }
 
@@ -263,9 +294,9 @@ struct XPCClient: XPC {
                 let response: XPCResponse = try await connection.sendMessage(name: "getKernelStatus")
 
                 switch response {
-                case .kernelStatus(let status):
+                case let .kernelStatus(status):
                     return status
-                case .error(let error):
+                case let .error(error):
                     throw KernelControlError.remote(error)
                 default:
                     throw NSError(domain: "com.manis.XPC", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unexpected response type"])
@@ -285,15 +316,15 @@ struct XPCClient: XPC {
                     method: "startKernel",
                     executablePath: executablePath,
                     configPath: configPath,
-                    configContent: configContent
-                )
+                    configContent: configContent,
+                    )
 
                 let response: XPCResponse = try await connection.sendMessage(name: "startKernel", request: request)
 
                 switch response {
                 case .message:
                     return
-                case .error(let error):
+                case let .error(error):
                     throw KernelControlError.remote(error)
                 default:
                     throw NSError(domain: "com.manis.XPC", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unexpected response type"])
@@ -314,7 +345,7 @@ struct XPCClient: XPC {
                 switch response {
                 case .message:
                     return
-                case .error(let error):
+                case let .error(error):
                     throw KernelControlError.remote(error)
                 default:
                     throw NSError(domain: "com.manis.XPC", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unexpected response type"])

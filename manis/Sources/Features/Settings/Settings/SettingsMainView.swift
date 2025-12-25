@@ -53,7 +53,7 @@ struct SettingsMainView: View {
         } header: {
             Label("Privileged Helper", systemSymbol: .lockShield)
         } footer: {
-            Text("This is required to start/stop the kernel.")
+            Text("Required for kernel start/stop operations.")
                 .foregroundStyle(.secondary)
         }
     }
@@ -78,9 +78,9 @@ struct SettingsMainView: View {
                 .disabled(store.state.isProcessing)
             }
         } header: {
-            Label("Kernel", systemSymbol: .cpu)
+            Label("Kernel Management", systemSymbol: .cpu)
         } footer: {
-            Text("The manis never talks to the privileged helper directly.")
+            Text("Manis communicates with the privileged helper indirectly.")
                 .foregroundStyle(.secondary)
         }
     }
@@ -128,7 +128,7 @@ struct SettingsMainView: View {
                     HStack {
                         ProgressView()
                             .controlSize(.small)
-                        Text("Performing system operation...")
+                        Text("Executing system operation...")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -136,9 +136,9 @@ struct SettingsMainView: View {
                 }
             }
         } header: {
-            Label("System Management", systemSymbol: .wrenchAndScrewdriver)
+            Label("System Operations", systemSymbol: .wrenchAndScrewdriver)
         } footer: {
-            Text("Manage core system operations. These operations require an active kernel connection.")
+            Text("Core system management functions require active kernel connection.")
                 .foregroundStyle(.secondary)
         }
     }
@@ -215,7 +215,7 @@ struct SettingsMainView: View {
                 Spacer()
             }
         } header: {
-            Label("Status", systemSymbol: .infoCircle)
+            Label("System Status", systemSymbol: .infoCircle)
         }
     }
 
@@ -233,13 +233,13 @@ struct SettingsMainView: View {
 
             EmptyView()
                 .if(store.state.launchAtLogin.requiresApproval) { _ in
-                    helperApprovalNotice(text: "Authorize Mihomo under Login Items in System Settings")
+                    helperApprovalNotice(text: "Authorize Mihomo in Login Items within System Settings")
                     helperApprovalActions(needsStatusRefresh: false)
                 }
         } header: {
-            Label("Startup", systemSymbol: .powerCircle)
+            Label("System Startup", systemSymbol: .powerCircle)
         } footer: {
-            Text("Start Manis automatically when you sign in to macOS.")
+            Text("Launch Manis automatically during macOS login.")
                 .foregroundStyle(.secondary)
         }
     }
@@ -264,7 +264,7 @@ struct SettingsMainView: View {
                 openConfigEditor()
             } label: {
                 HStack {
-                    Label("Edit Local Config", systemSymbol: .textDocument)
+                    Label("Edit Local Configuration", systemSymbol: .textDocument)
                     Spacer()
                     Image(systemSymbol: .pencil)
                         .font(.caption)
@@ -274,9 +274,9 @@ struct SettingsMainView: View {
             }
             .buttonStyle(.plain)
         } header: {
-            Label("Configuration", systemSymbol: .gear)
+            Label("Application Configuration", systemSymbol: .gear)
         } footer: {
-            Text("Manage local and remote Mihomo configuration profiles, or edit the local config file directly.")
+            Text("Manage local and remote Mihomo configuration profiles, or directly edit the local configuration.")
                 .foregroundStyle(.secondary)
         }
     }
@@ -361,9 +361,9 @@ struct SettingsMainView: View {
                 "System Proxy",
                 isOn: Binding(
                     get: { store.state.systemProxyEnabled },
-                    set: { _ in store.send(.toggleSystemProxy) }
+                    set: { _ in store.send(.toggleSystemProxy) },
+                    ),
                 )
-            )
             .toggleStyle(.switch)
             .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
 
@@ -371,16 +371,16 @@ struct SettingsMainView: View {
                 "TUN Mode",
                 isOn: Binding(
                     get: { store.state.tunModeEnabled },
-                    set: { _ in store.send(.toggleTunMode) }
+                    set: { _ in store.send(.toggleTunMode) },
+                    ),
                 )
-            )
             .toggleStyle(.switch)
             .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
 
             if store.state.mixedPort != nil || store.state.httpPort != nil || store.state.socksPort != nil {
                 VStack(alignment: .leading, spacing: 8) {
                     if let mixedPort = store.state.mixedPort {
-                        portInfoRow(title: "Mixed Port", value: "\(mixedPort)", detail: "HTTP(S) and SOCKS proxy mixed port")
+                        portInfoRow(title: "Mixed Port", value: "\(mixedPort)", detail: "Combined HTTP(S) and SOCKS proxy port")
                     }
                     if let httpPort = store.state.httpPort {
                         portInfoRow(title: "HTTP Port", value: "\(httpPort)", detail: "HTTP(S) proxy server port")
@@ -391,9 +391,9 @@ struct SettingsMainView: View {
                 }
             }
         } header: {
-            Label("Proxy Settings", systemSymbol: .network)
+            Label("Network Configuration", systemSymbol: .network)
         } footer: {
-            Text("Configure proxy modes and view port information. System proxy enables ordinary HTTP proxies that only support TCP.")
+            Text("Configure proxy modes and view port assignments. System proxy supports TCP-only HTTP connections.")
                 .foregroundStyle(.secondary)
         }
     }
@@ -405,7 +405,7 @@ struct SettingsMainView: View {
                     Button {
                         store.send(.flushFakeIPCache)
                     } label: {
-                        Label("Flush Fake IP Cache", systemSymbol: .trashCircle)
+                        Label("Clear Fake IP Cache", systemSymbol: .trashCircle)
                     }
                     .buttonStyle(.bordered)
                     .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
@@ -413,7 +413,7 @@ struct SettingsMainView: View {
                     Button {
                         store.send(.flushDNSCache)
                     } label: {
-                        Label("Flush DNS Cache", systemSymbol: .trashCircleFill)
+                        Label("Clear DNS Cache", systemSymbol: .trashCircleFill)
                     }
                     .buttonStyle(.bordered)
                     .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
@@ -422,15 +422,15 @@ struct SettingsMainView: View {
                 Button {
                     store.send(.triggerGC)
                 } label: {
-                    Label("Trigger Garbage Collection", systemSymbol: .memorychip)
+                    Label("Initiate Memory Cleanup", systemSymbol: .memorychip)
                 }
                 .buttonStyle(.bordered)
                 .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
             }
         } header: {
-            Label("Cache Management", systemSymbol: .externaldrive)
+            Label("Cache Operations", systemSymbol: .externaldrive)
         } footer: {
-            Text("Manage DNS and Fake IP caches, and trigger memory garbage collection.")
+            Text("Manage DNS and Fake IP caches, and initiate memory garbage collection.")
                 .foregroundStyle(.secondary)
         }
     }
@@ -454,7 +454,7 @@ struct SettingsMainView: View {
         } header: {
             Label("System Information", systemSymbol: .infoCircleFill)
         } footer: {
-            Text("Real-time system information from the Mihomo core.")
+            Text("Real-time metrics from the Mihomo core.")
                 .foregroundStyle(.secondary)
         }
     }
@@ -482,7 +482,7 @@ struct SettingsMainView: View {
     }
 
     private func helperApprovalNotice(
-        text: String = "Allow the helper under Privacy & Security → Developer Tools",
+        text: String = "Allow the helper in Privacy & Security → Developer Tools",
         ) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemSymbol: .exclamationmarkTriangleFill)

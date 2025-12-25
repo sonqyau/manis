@@ -228,7 +228,7 @@ enum SettingsError: MainError {
             "Settings manager has not been initialized"
 
         case let .initializationFailed(error):
-            "Unable to initialize settings: \(error.localizedDescription)"
+            "Settings initialization failed: \(error.localizedDescription)"
         }
     }
 

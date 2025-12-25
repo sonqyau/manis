@@ -29,9 +29,9 @@ struct ProvidersView: View {
         .alert(
             Binding<AlertState<ProvidersFeature.AlertAction>?>(
                 get: { bindableStore.alert },
-                set: { _ in }
-            )
-        ) { action in
+                set: { _ in },
+                ),
+            ) { action in
             if let action {
                 bindableStore.send(.alert(action))
             }

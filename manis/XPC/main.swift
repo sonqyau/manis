@@ -1,68 +1,64 @@
 import Foundation
 import OSLog
-import SwiftyXPC
+import SecureXPC
 
 let logger = Logger(subsystem: "com.manis.XPC", category: "Main")
 
 logger.info("Starting MainXPC")
 
-let listener = try XPCListener(type: .service, codeSigningRequirement: nil)
+let server = try XPCServer.forThisXPCService()
 let xpcService = XPCService()
 
-listener.setMessageHandler(name: "getVersion") { _ in
-    try await xpcService.getVersion()
-}
+let getVersionRoute = XPCRoute.named("getVersion").withReplyType(String.self)
 
-listener.setMessageHandler(name: "getKernelStatus") { _ in
-    try await xpcService.getKernelStatus()
-}
+server.registerRoute(getVersionRoute, handler: xpcService.getVersion)
 
-listener.setMessageHandler(name: "startKernel") { (_: XPCConnection, request: XPCRequest) in
-    try await xpcService.startKernel(request)
-}
+let getKernelStatusRoute = XPCRoute.named("getKernelStatus").withReplyType(ManisKernelStatus.self)
 
-listener.setMessageHandler(name: "stopKernel") { _ in
-    try await xpcService.stopKernel()
-}
+server.registerRoute(getKernelStatusRoute, handler: xpcService.getKernelStatus)
 
-listener.setMessageHandler(name: "restartKernel") { _ in
-    try await xpcService.restartKernel()
-}
+let startKernelRoute = XPCRoute.named("startKernel").withMessageType(KernelStartRequest.self).withReplyType(String.self)
 
-listener.setMessageHandler(name: "enableConnect") { (_: XPCConnection, request: XPCRequest) in
-    try await xpcService.enableConnect(request)
-}
+server.registerRoute(startKernelRoute, handler: xpcService.startKernel)
 
-listener.setMessageHandler(name: "disableConnect") { _ in
-    try await xpcService.disableConnect()
-}
+let stopKernelRoute = XPCRoute.named("stopKernel").withReplyType(String.self)
 
-listener.setMessageHandler(name: "getConnectStatus") { _ in
-    try await xpcService.getConnectStatus()
-}
+server.registerRoute(stopKernelRoute, handler: xpcService.stopKernel)
 
-listener.setMessageHandler(name: "configureDNS") { (_: XPCConnection, request: XPCRequest) in
-    try await xpcService.configureDNS(request)
-}
+let restartKernelRoute = XPCRoute.named("restartKernel").withReplyType(String.self)
 
-listener.setMessageHandler(name: "flushDNSCache") { _ in
-    try await xpcService.flushDNSCache()
-}
+server.registerRoute(restartKernelRoute, handler: xpcService.restartKernel)
 
-listener.setMessageHandler(name: "getUsedPorts") { _ in
-    try await xpcService.getUsedPorts()
-}
+let enableConnectRoute = XPCRoute.named("enableConnect").withMessageType(ConnectRequest.self).withReplyType(String.self)
 
-listener.setMessageHandler(name: "testConnectivity") { (_: XPCConnection, request: XPCRequest) in
-    try await xpcService.testConnectivity(request)
-}
+server.registerRoute(enableConnectRoute, handler: xpcService.enableConnect)
 
-listener.setMessageHandler(name: "updateTun") { (_: XPCConnection, request: XPCRequest) in
-    try await xpcService.updateTun(request)
-}
+let disableConnectRoute = XPCRoute.named("disableConnect").withReplyType(String.self)
 
-listener.errorHandler = { _, error in
-    logger.error("XPC connection error: \(error)")
-}
+server.registerRoute(disableConnectRoute, handler: xpcService.disableConnect)
 
-listener.activate()
+let getConnectStatusRoute = XPCRoute.named("getConnectStatus").withReplyType(ConnectStatus.self)
+
+server.registerRoute(getConnectStatusRoute, handler: xpcService.getConnectStatus)
+
+let configureDNSRoute = XPCRoute.named("configureDNS").withMessageType(DNSRequest.self).withReplyType(String.self)
+
+server.registerRoute(configureDNSRoute, handler: xpcService.configureDNS)
+
+let flushDNSCacheRoute = XPCRoute.named("flushDNSCache").withReplyType(String.self)
+
+server.registerRoute(flushDNSCacheRoute, handler: xpcService.flushDNSCache)
+
+let getUsedPortsRoute = XPCRoute.named("getUsedPorts").withReplyType([Int].self)
+
+server.registerRoute(getUsedPortsRoute, handler: xpcService.getUsedPorts)
+
+let testConnectivityRoute = XPCRoute.named("testConnectivity").withMessageType(ConnectivityRequest.self).withReplyType(Bool.self)
+
+server.registerRoute(testConnectivityRoute, handler: xpcService.testConnectivity)
+
+let updateTunRoute = XPCRoute.named("updateTun").withMessageType(TunRequest.self).withReplyType(String.self)
+
+server.registerRoute(updateTunRoute, handler: xpcService.updateTun)
+
+server.startAndBlock()

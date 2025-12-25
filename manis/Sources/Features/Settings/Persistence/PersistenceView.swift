@@ -37,7 +37,7 @@ struct ConfigDetailView: View {
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
-        .navigationTitle("Configuration Profiles")
+        .navigationTitle("Configuration Management")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 if store.isLocalMode {
@@ -94,7 +94,7 @@ struct ConfigDetailView: View {
                     .foregroundStyle(store.isLocalMode ? .blue : .green)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(store.isLocalMode ? "Local Mode" : "Remote Mode")
+                    Text(store.isLocalMode ? "Local Configuration Mode" : "Remote Configuration Mode")
                         .font(.headline)
 
                     if let instance = store.activeRemoteInstance {

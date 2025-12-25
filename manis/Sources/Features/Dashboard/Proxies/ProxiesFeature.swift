@@ -83,33 +83,27 @@ struct ProxiesFeature: @preconcurrency Reducer {
 
                 let stagedProxiesChangeset = StagedChangeset(source: Array(state.proxies.values), target: Array(snapshot.proxies.values))
                 for changeset in stagedProxiesChangeset {
-                    for delete in changeset.elementDeleted {
-                        if delete.element < state.proxies.count {
-                            let keys = Array(state.proxies.keys)
-                            if delete.element < keys.count {
-                                state.proxies.removeValue(forKey: keys[delete.element])
+                    for delete in changeset.elementDeleted where delete.element < state.proxies.count {
+                        let keys = Array(state.proxies.keys)
+                        if delete.element < keys.count {
+                            state.proxies.removeValue(forKey: keys[delete.element])
+                        }
+                    }
+                    for insert in changeset.elementInserted where insert.element < snapshot.proxies.count {
+                        let keys = Array(snapshot.proxies.keys)
+                        if insert.element < keys.count {
+                            let key = keys[insert.element]
+                            if let proxy = snapshot.proxies[key] {
+                                state.proxies[proxy.name] = proxy
                             }
                         }
                     }
-                    for insert in changeset.elementInserted {
-                        if insert.element < snapshot.proxies.count {
-                            let keys = Array(snapshot.proxies.keys)
-                            if insert.element < keys.count {
-                                let key = keys[insert.element]
-                                if let proxy = snapshot.proxies[key] {
-                                    state.proxies[proxy.name] = proxy
-                                }
-                            }
-                        }
-                    }
-                    for update in changeset.elementUpdated {
-                        if update.element < snapshot.proxies.count {
-                            let keys = Array(snapshot.proxies.keys)
-                            if update.element < keys.count {
-                                let key = keys[update.element]
-                                if let proxy = snapshot.proxies[key] {
-                                    state.proxies[proxy.name] = proxy
-                                }
+                    for update in changeset.elementUpdated where update.element < snapshot.proxies.count {
+                        let keys = Array(snapshot.proxies.keys)
+                        if update.element < keys.count {
+                            let key = keys[update.element]
+                            if let proxy = snapshot.proxies[key] {
+                                state.proxies[proxy.name] = proxy
                             }
                         }
                     }

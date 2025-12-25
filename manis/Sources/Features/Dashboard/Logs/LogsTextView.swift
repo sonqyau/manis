@@ -1,10 +1,10 @@
+import Algorithms
 import ComposableArchitecture
 import Perception
 import SFSafeSymbols
 import STTextView
 import SwiftUI
 import SwiftUIIntrospect
-import Algorithms
 
 struct LogsTextView: View {
     let store: StoreOf<LogsFeature>

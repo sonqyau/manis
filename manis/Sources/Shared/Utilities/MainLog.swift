@@ -1,6 +1,6 @@
+import Algorithms
 import Foundation
 import OSLog
-import Algorithms
 
 enum MainLogLevel: String, Codable, Comparable {
     case debug

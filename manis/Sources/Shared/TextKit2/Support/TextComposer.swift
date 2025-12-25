@@ -1,6 +1,6 @@
+import Algorithms
 import Foundation
 import Rearrange
-import Algorithms
 
 public enum TextComposer {
     public struct SearchResult {

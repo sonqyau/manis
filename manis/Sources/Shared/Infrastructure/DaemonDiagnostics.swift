@@ -1,6 +1,7 @@
 import Foundation
-import ServiceManagement
 import OSLog
+import ServiceManagement
+import SwiftyXPC
 
 @MainActor
 struct DaemonDiagnostics {
@@ -120,7 +121,7 @@ struct DiagnosticReport {
     var systemPermissions: SystemPermissionsStatus = .unknown
 
     var summary: String {
-        return """
+        """
         SMAppService: \(smAppServiceStatus)
         Bundle: \(bundleStructure)
         Legacy: \(legacyInstallation)
@@ -145,7 +146,7 @@ struct DiagnosticReport {
             recs.append("Unknown daemon status - try reinstalling")
         }
 
-        if case .invalid(let reason) = bundleStructure {
+        if case let .invalid(reason) = bundleStructure {
             recs.append("Fix bundle structure: \(reason)")
         }
 
@@ -157,7 +158,7 @@ struct DiagnosticReport {
             recs.append("XPC service unavailable - check daemon status")
         }
 
-        if case .insufficient(let reason) = systemPermissions {
+        if case let .insufficient(reason) = systemPermissions {
             recs.append("Fix permissions: \(reason)")
         }
 

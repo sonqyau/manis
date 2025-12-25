@@ -1,9 +1,9 @@
+import Algorithms
 import Foundation
 import OSLog
 import Rearrange
 import SystemPackage
 import Yams
-import Algorithms
 
 enum ConfigValidationError: MainError {
     case executableNotFound
@@ -174,7 +174,7 @@ final class ConfigValidation {
 
     func quickValidate(configPath: String) throws -> ValidationResult {
         guard let data = FileManager.default.contents(atPath: configPath) else {
-            return .failure("Unable to read configuration file")
+            return .failure("Configuration file read failed")
         }
 
         guard let content = String(data: data, encoding: .utf8) else {
