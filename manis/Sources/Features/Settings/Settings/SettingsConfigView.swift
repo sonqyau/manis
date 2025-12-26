@@ -1,6 +1,10 @@
 import Algorithms
+import ComposableArchitecture
+import Foundation
+import NonEmpty
 import Rearrange
 import STTextView
+import SwiftNavigation
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -147,7 +151,7 @@ struct SettingsConfigView: View {
     }
 
     private func performReplace() {
-        guard !findText.isEmpty, !replaceText.isEmpty else { return }
+        guard NonEmpty(rawValue: findText) != nil, NonEmpty(rawValue: replaceText) != nil else { return }
 
         if let currentRange = getCurrentSearchResult() {
             let mutation = RangeMutation(range: currentRange, delta: replaceText.count - findText.count)
@@ -158,7 +162,7 @@ struct SettingsConfigView: View {
     }
 
     private func performReplaceAll() {
-        guard !findText.isEmpty else { return }
+        guard NonEmpty(rawValue: findText) != nil else { return }
 
         let allRanges = findAllOccurrences(of: findText, in: text)
         var mutations: [RangeMutation] = []
@@ -174,7 +178,7 @@ struct SettingsConfigView: View {
     }
 
     private func findAllOccurrences(of searchText: String, in content: String) -> [NSRange] {
-        guard !searchText.isEmpty else { return [] }
+        guard NonEmpty(rawValue: searchText) != nil else { return [] }
 
         var ranges: [NSRange] = []
         var searchRange = NSRange(location: 0, length: content.count)
@@ -206,8 +210,9 @@ struct SettingsConfigView: View {
     }
 
     private func getCurrentSearchResult() -> NSRange? {
-        guard !searchResults.isEmpty, currentSearchIndex < searchResults.count else { return nil }
-        return searchResults[currentSearchIndex]
+        guard let nonEmptyResults = NonEmpty(rawValue: searchResults),
+              currentSearchIndex < nonEmptyResults.count else { return nil }
+        return nonEmptyResults[currentSearchIndex]
     }
 
     private func updateSearchResults(after mutation: RangeMutation) {

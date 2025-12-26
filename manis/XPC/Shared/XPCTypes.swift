@@ -1,14 +1,21 @@
 import Foundation
+import Tagged
+
+typealias XPCPort = Tagged<XPCTypes, Int>
+typealias XPCProcessID = Tagged<XPCTypes, Int32>
+typealias XPCConfigPath = Tagged<XPCTypes, String>
+
+struct XPCTypes {}
 
 struct KernelStartRequest: Codable, Sendable {
-    let executablePath: String
-    let configPath: String
+    let executablePath: XPCConfigPath
+    let configPath: XPCConfigPath
     let configContent: String
 }
 
 struct ConnectRequest: Codable, Sendable {
-    let httpPort: Int
-    let socksPort: Int
+    let httpPort: XPCPort
+    let socksPort: XPCPort
     let pacURL: String?
     let bypassList: [String]
 }
@@ -20,7 +27,7 @@ struct DNSRequest: Codable, Sendable {
 
 struct ConnectivityRequest: Codable, Sendable {
     let host: String
-    let port: Int
+    let port: XPCPort
     let timeout: TimeInterval
 }
 
@@ -31,34 +38,34 @@ struct TunRequest: Codable, Sendable {
 
 struct XPCRequest: Codable, Sendable {
     let method: String
-    let executablePath: String?
-    let configPath: String?
+    let executablePath: XPCConfigPath?
+    let configPath: XPCConfigPath?
     let configContent: String?
-    let httpPort: Int?
-    let socksPort: Int?
+    let httpPort: XPCPort?
+    let socksPort: XPCPort?
     let pacURL: String?
     let bypassList: [String]?
     let servers: [String]?
     let hijackEnabled: Bool
     let host: String?
-    let port: Int?
+    let port: XPCPort?
     let timeout: TimeInterval?
     let enabled: Bool
     let dnsServer: String?
 
     init(
         method: String,
-        executablePath: String? = nil,
-        configPath: String? = nil,
+        executablePath: XPCConfigPath? = nil,
+        configPath: XPCConfigPath? = nil,
         configContent: String? = nil,
-        httpPort: Int? = nil,
-        socksPort: Int? = nil,
+        httpPort: XPCPort? = nil,
+        socksPort: XPCPort? = nil,
         pacURL: String? = nil,
         bypassList: [String]? = nil,
         servers: [String]? = nil,
         hijackEnabled: Bool = false,
         host: String? = nil,
-        port: Int? = nil,
+        port: XPCPort? = nil,
         timeout: TimeInterval? = nil,
         enabled: Bool = false,
         dnsServer: String? = nil,
@@ -156,7 +163,7 @@ enum XPCResponse: Codable, Sendable {
 
 struct ManisKernelStatus: Codable, Sendable {
     let isRunning: Bool
-    let processId: Int32
+    let processId: XPCProcessID
     let externalController: String?
     let secret: String?
 }
@@ -172,7 +179,7 @@ struct ConnectStatus: Codable, Sendable {
 
 struct ConnectInfo: Codable, Sendable {
     let host: String
-    let port: Int32
+    let port: XPCPort
 }
 
 struct MainXPCError: Error, Codable, Sendable {
@@ -196,34 +203,34 @@ struct MainXPCError: Error, Codable, Sendable {
 
 struct DaemonRequest: Codable, Sendable {
     let method: String
-    let executablePath: String?
-    let configPath: String?
+    let executablePath: XPCConfigPath?
+    let configPath: XPCConfigPath?
     let configContent: String?
-    let httpPort: Int?
-    let socksPort: Int?
+    let httpPort: XPCPort?
+    let socksPort: XPCPort?
     let pacURL: String?
     let bypassList: [String]?
     let servers: [String]?
     let hijackEnabled: Bool
     let host: String?
-    let port: Int?
+    let port: XPCPort?
     let timeout: TimeInterval?
     let enabled: Bool
     let dnsServer: String?
 
     init(
         method: String,
-        executablePath: String? = nil,
-        configPath: String? = nil,
+        executablePath: XPCConfigPath? = nil,
+        configPath: XPCConfigPath? = nil,
         configContent: String? = nil,
-        httpPort: Int? = nil,
-        socksPort: Int? = nil,
+        httpPort: XPCPort? = nil,
+        socksPort: XPCPort? = nil,
         pacURL: String? = nil,
         bypassList: [String]? = nil,
         servers: [String]? = nil,
         hijackEnabled: Bool = false,
         host: String? = nil,
-        port: Int? = nil,
+        port: XPCPort? = nil,
         timeout: TimeInterval? = nil,
         enabled: Bool = false,
         dnsServer: String? = nil,
@@ -321,9 +328,9 @@ enum DaemonResponse: Codable, Sendable {
 
 struct MihomoStatus: Codable, Sendable {
     let isRunning: Bool
-    let processId: Int32
+    let processId: XPCProcessID
     let startTime: Date?
-    let configPath: String?
+    let configPath: XPCConfigPath?
     let externalController: String?
     let secret: String?
     let logs: [String]

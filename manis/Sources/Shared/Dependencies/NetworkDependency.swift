@@ -11,21 +11,24 @@ enum NetworkInspectorClientKey: DependencyKey {
     static let liveValue = NetworkInspectorClient(
         isConnectSetToMihomo: { httpPort, socksPort, strict in
             await MainActor.run {
-                NetworkDomain.shared.isConnectSetToMihomo(
-                    httpPort: httpPort,
-                    socksPort: socksPort,
+                let networkDomain = NetworkDomain()
+                return networkDomain.isConnectSetToMihomo(
+                    httpPort: Port(httpPort),
+                    socksPort: Port(socksPort),
                     strict: strict,
                     )
             }
         },
         getPrimaryInterfaceName: {
             await MainActor.run {
-                NetworkDomain.shared.getPrimaryInterfaceName()
+                let networkDomain = NetworkDomain()
+                return networkDomain.getPrimaryInterfaceName()
             }
         },
         getPrimaryIPAddress: { allowIPv6 in
             await MainActor.run {
-                NetworkDomain.shared.getPrimaryIPAddress(allowIPv6: allowIPv6)
+                let networkDomain = NetworkDomain()
+                return networkDomain.getPrimaryIPAddress(allowIPv6: allowIPv6)
             }
         },
         )

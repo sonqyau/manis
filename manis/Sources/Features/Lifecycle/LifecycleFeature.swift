@@ -1,7 +1,9 @@
 import AppKit
 import ComposableArchitecture
 import Foundation
+import NonEmpty
 import SwiftData
+import SwiftNavigation
 import UserNotifications
 
 @MainActor
@@ -235,13 +237,13 @@ struct LifecycleFeature: @preconcurrency Reducer {
 
     @MainActor
     private static func presentInitializationWarnings(_ initializationWarnings: [String]) async {
-        guard !initializationWarnings.isEmpty else {
+        guard let nonEmptyWarnings = NonEmpty(rawValue: initializationWarnings) else {
             return
         }
 
         let alert = NSAlert()
         alert.messageText = "Limited Functionality"
-        let joined = initializationWarnings.map { "• \($0)" }.joined(separator: "\n")
+        let joined = nonEmptyWarnings.map { "• \($0)" }.joined(separator: "\n")
         alert.informativeText = joined
         alert.alertStyle = .warning
         alert.addButton(withTitle: "OK")

@@ -1,6 +1,8 @@
 import ComposableArchitecture
 import Foundation
+import NonEmpty
 import Perception
+import Sharing
 import SwiftNavigation
 
 @MainActor
@@ -46,6 +48,18 @@ struct SettingsFeature: @preconcurrency Reducer {
         var memoryUsage: String = "--"
         var trafficInfo: String = "--"
         var version: String = "--"
+
+        var sharedLaunchAtLogin: Shared<Bool> {
+            Shared(wrappedValue: false, .appStorage("launchAtLogin"))
+        }
+
+        var sharedSystemProxyEnabled: Shared<Bool> {
+            Shared(wrappedValue: false, .appStorage("systemProxyEnabled"))
+        }
+
+        var sharedTunModeEnabled: Shared<Bool> {
+            Shared(wrappedValue: false, .appStorage("tunModeEnabled"))
+        }
     }
 
     enum AlertAction: Equatable, DismissibleAlertAction {
@@ -253,9 +267,9 @@ struct SettingsFeature: @preconcurrency Reducer {
 
             case let .mihomoSnapshotUpdated(snapshot):
                 if let config = snapshot.config {
-                    state.mixedPort = config.mixedPort
-                    state.httpPort = config.port
-                    state.socksPort = config.socksPort
+                    state.mixedPort = config.mixedPort?.rawValue
+                    state.httpPort = config.port?.rawValue
+                    state.socksPort = config.socksPort?.rawValue
                     state.systemProxyEnabled = snapshot.isConnected && (config.port != nil || config.mixedPort != nil)
                     state.tunModeEnabled = false
                 }
@@ -455,10 +469,13 @@ struct SettingsFeature: @preconcurrency Reducer {
         state.isProcessing = true
         state.alert = nil
 
-        return .run { @MainActor send in
+        return .run { @MainActor [sharedLaunchAtLogin = state.sharedLaunchAtLogin] send in
             Bootstrap.isEnabled.toggle()
             let enabled = Bootstrap.isEnabled
             settingsService.launchAtLogin = enabled
+
+            sharedLaunchAtLogin.withLock { $0 = enabled }
+
             send(.confirmBootstrap)
             send(.operationFinished(nil))
         }
@@ -588,7 +605,7 @@ struct SettingsFeature: @preconcurrency Reducer {
             return
         }
 
-        guard let externalController, !externalController.isEmpty else {
+        guard let externalController, NonEmpty(rawValue: externalController) != nil else {
             return
         }
 
@@ -691,7 +708,7 @@ struct SettingsFeature: @preconcurrency Reducer {
     private func toggleSystemProxyEffect(state: inout State) -> Effect<Action> {
         let service = mihomoService
         let currentState = state.systemProxyEnabled
-        return .run { @MainActor send in
+        return .run { @MainActor [sharedSystemProxyEnabled = state.sharedSystemProxyEnabled] send in
             do {
                 let newState = !currentState
                 let updates: [String: Any] = [
@@ -700,6 +717,8 @@ struct SettingsFeature: @preconcurrency Reducer {
                 ]
 
                 try await service.updateConfig(updates)
+
+                sharedSystemProxyEnabled.withLock { $0 = newState }
                 send(.systemProxyToggled(newState, nil))
             } catch {
                 let message = (error as NSError).localizedDescription
@@ -711,7 +730,7 @@ struct SettingsFeature: @preconcurrency Reducer {
     private func toggleTunModeEffect(state: inout State) -> Effect<Action> {
         let service = mihomoService
         let currentState = state.tunModeEnabled
-        return .run { @MainActor send in
+        return .run { @MainActor [sharedTunModeEnabled = state.sharedTunModeEnabled] send in
             do {
                 let newState = !currentState
                 let tunConfig: [String: Any] = [
@@ -723,6 +742,8 @@ struct SettingsFeature: @preconcurrency Reducer {
                 let updates: [String: Any] = ["tun": tunConfig]
 
                 try await service.updateConfig(updates)
+
+                sharedTunModeEnabled.withLock { $0 = newState }
                 send(.tunModeToggled(newState, nil))
             } catch {
                 let message = (error as NSError).localizedDescription

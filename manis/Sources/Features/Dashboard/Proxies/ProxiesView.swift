@@ -1,5 +1,7 @@
 import Collections
 import ComposableArchitecture
+import Foundation
+import NonEmpty
 import Perception
 import SFSafeSymbols
 import SwiftNavigation
@@ -25,10 +27,10 @@ struct ProxiesView: View {
 
     private var filteredGroups: [(String, GroupInfo)] {
         let groups = bindableStore.groups.sorted { $0.key < $1.key }
-        guard !bindableStore.searchText.isEmpty else {
-            return groups
+        guard NonEmpty(rawValue: bindableStore.searchText) == nil else {
+            return groups.filter { $0.key.localizedCaseInsensitiveContains(bindableStore.searchText) }
         }
-        return groups.filter { $0.key.localizedCaseInsensitiveContains(bindableStore.searchText) }
+        return groups
     }
 
     var body: some View {
@@ -174,10 +176,10 @@ private struct ProxyGroupCard: View {
                     if !group.all.isEmpty {
                         ForEach(group.all, id: \.self) { proxyName in
                             ProxyNodeRow(
-                                proxyName: proxyName,
-                                isSelected: proxyName == group.now,
-                                proxyInfo: proxies[proxyName],
-                                ) { onSelectProxy(proxyName) }
+                                proxyName: proxyName.rawValue,
+                                isSelected: proxyName.rawValue == group.now,
+                                proxyInfo: proxies[proxyName.rawValue],
+                                ) { onSelectProxy(proxyName.rawValue) }
                         }
                     } else {
                         Text("No proxies are available.")

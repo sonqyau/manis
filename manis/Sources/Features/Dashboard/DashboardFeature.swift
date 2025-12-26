@@ -1,5 +1,6 @@
 import ComposableArchitecture
 import Foundation
+import Sharing
 import SwiftNavigation
 import SwiftUI
 import SwiftUINavigation
@@ -16,6 +17,10 @@ struct DashboardFeature: @preconcurrency Reducer {
         var providers: ProvidersFeature.State = .init()
         var dns: DNSFeature.State = .init()
         var logs: LogsFeature.State = .init()
+
+        var sharedSelectedTab: Shared<DashboardTab?> {
+            Shared(wrappedValue: nil, .appStorage("selectedDashboardTab"))
+        }
     }
 
     @CasePathable
@@ -59,7 +64,12 @@ struct DashboardFeature: @preconcurrency Reducer {
             switch action {
             case .onAppear:
                 if state.selectedTab == nil {
-                    state.selectedTab = .overview
+                    let defaultTab = DashboardTab.overview
+                    state.selectedTab = defaultTab
+
+                    return .run { @MainActor [sharedSelectedTab = state.sharedSelectedTab] _ in
+                        sharedSelectedTab.withLock { $0 = defaultTab }
+                    }
                 }
                 return .none
 
@@ -68,7 +78,10 @@ struct DashboardFeature: @preconcurrency Reducer {
 
             case let .selectTab(tab):
                 state.selectedTab = tab
-                return .none
+
+                return .run { @MainActor [sharedSelectedTab = state.sharedSelectedTab] _ in
+                    sharedSelectedTab.withLock { $0 = tab }
+                }
 
             case .overview:
                 return .none

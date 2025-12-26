@@ -1,4 +1,5 @@
 import Foundation
+import NonEmpty
 import Rearrange
 
 enum InputValidationError: MainError {
@@ -74,7 +75,7 @@ enum InputValidation {
 
     static func sanitizedIdentifier(_ value: String, fieldName: String) throws -> String {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
+        guard NonEmpty(rawValue: trimmed) != nil else {
             throw InputValidationError.emptyField(fieldName)
         }
 
@@ -91,7 +92,7 @@ enum InputValidation {
 
     static func sanitizedURLString(_ value: String) throws -> String {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
+        guard NonEmpty(rawValue: trimmed) != nil else {
             throw InputValidationError.emptyField("URL")
         }
 

@@ -40,7 +40,7 @@ final class APIDomainMihomoServiceAdapter: MihomoService, @unchecked Sendable {
     private let domain: MihomoDomain
     private let cancellableQueue = CancellableQueue(underlyingQueue: FIFOQueue(name: "MihomoService"))
 
-    init(domain: MihomoDomain = .shared) {
+    init(domain: MihomoDomain = MihomoDomain()) {
         self.domain = domain
     }
 
@@ -69,11 +69,11 @@ final class APIDomainMihomoServiceAdapter: MihomoService, @unchecked Sendable {
     }
 
     func selectProxy(group: String, proxy: String) async throws {
-        try await domain.selectProxy(group: group, proxy: proxy)
+        try await domain.selectProxy(group: ProxyName(group), proxy: ProxyName(proxy))
     }
 
     func closeConnection(id: String) async throws {
-        try await domain.closeConnection(id: id)
+        try await domain.closeConnection(id: ConnectionID(id))
     }
 
     func closeAllConnections() async throws {
@@ -81,7 +81,7 @@ final class APIDomainMihomoServiceAdapter: MihomoService, @unchecked Sendable {
     }
 
     func testGroupDelay(name: String) async throws {
-        _ = try await domain.testGroupDelay(name: name)
+        _ = try await domain.testGroupDelay(name: ProxyName(name))
     }
 
     func startLogStream(level: String?) async {
@@ -105,15 +105,15 @@ final class APIDomainMihomoServiceAdapter: MihomoService, @unchecked Sendable {
     }
 
     func updateProxyProvider(name: String) async throws {
-        try await domain.updateProxyProvider(name: name)
+        try await domain.updateProxyProvider(name: ProxyName(name))
     }
 
     func healthCheckProxyProvider(name: String) async throws {
-        try await domain.healthCheckProxyProvider(name: name)
+        try await domain.healthCheckProxyProvider(name: ProxyName(name))
     }
 
     func updateRuleProvider(name: String) async throws {
-        try await domain.updateRuleProvider(name: name)
+        try await domain.updateRuleProvider(name: ProxyName(name))
     }
 
     func flushDNSCache() async throws {

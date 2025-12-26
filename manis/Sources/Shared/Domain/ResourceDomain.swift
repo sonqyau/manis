@@ -1,5 +1,6 @@
 import Compression
 import Foundation
+import NonEmpty
 import OSLog
 import SystemPackage
 
@@ -144,7 +145,8 @@ final class ResourceDomain {
     }
 
     func updateGeoIPDatabase() async throws {
-        let apis = [MihomoDomain.shared.upgradeGeo1, MihomoDomain.shared.upgradeGeo2]
+        let mihomoDomain = MihomoDomain()
+        let apis = [mihomoDomain.upgradeGeo1, mihomoDomain.upgradeGeo2]
         guard let updateAPI = apis.randomElement() else {
             throw ResourceError.updateFailed(NSError(domain: "ResourceDomain", code: -1))
         }
@@ -184,7 +186,7 @@ final class ResourceDomain {
 
     private func decompressLZFSE(_ data: Data) throws -> Data {
         let decompressed = try (data as NSData).decompressed(using: .lzfse) as Data
-        guard !decompressed.isEmpty else { throw ResourceError.decompressionFailed }
+        guard NonEmpty(rawValue: decompressed) != nil else { throw ResourceError.decompressionFailed }
         return decompressed
     }
 }

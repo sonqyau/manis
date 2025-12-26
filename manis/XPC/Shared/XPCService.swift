@@ -28,8 +28,8 @@ final class XPCService: @unchecked Sendable {
 
     func startKernel(_ request: KernelStartRequest) async throws -> String {
         let result = try await daemonBridge.startMihomo(
-            executablePath: request.executablePath,
-            configPath: request.configPath,
+            executablePath: request.executablePath.rawValue,
+            configPath: request.configPath.rawValue,
             configContent: request.configContent,
             )
 
@@ -48,8 +48,8 @@ final class XPCService: @unchecked Sendable {
 
     func enableConnect(_ request: ConnectRequest) async throws -> String {
         try await daemonBridge.enableConnect(
-            httpPort: request.httpPort,
-            socksPort: request.socksPort,
+            httpPort: request.httpPort.rawValue,
+            socksPort: request.socksPort.rawValue,
             pacURL: request.pacURL,
             bypassList: request.bypassList,
             )
@@ -85,7 +85,7 @@ final class XPCService: @unchecked Sendable {
     func testConnectivity(_ request: ConnectivityRequest) async throws -> Bool {
         let isConnected = try await daemonBridge.testConnectivity(
             host: request.host,
-            port: request.port,
+            port: request.port.rawValue,
             timeout: request.timeout,
             )
 

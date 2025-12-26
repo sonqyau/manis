@@ -66,7 +66,7 @@ struct ProxiesFeature: @preconcurrency Reducer {
                         if insert.element < keys.count {
                             let key = keys[insert.element]
                             if let group = snapshot.groups[key] {
-                                state.groups[group.name] = group
+                                state.groups[group.name.rawValue] = group
                             }
                         }
                     }
@@ -75,7 +75,7 @@ struct ProxiesFeature: @preconcurrency Reducer {
                         if update.element < keys.count {
                             let key = keys[update.element]
                             if let group = snapshot.groups[key] {
-                                state.groups[group.name] = group
+                                state.groups[group.name.rawValue] = group
                             }
                         }
                     }
@@ -94,7 +94,7 @@ struct ProxiesFeature: @preconcurrency Reducer {
                         if insert.element < keys.count {
                             let key = keys[insert.element]
                             if let proxy = snapshot.proxies[key] {
-                                state.proxies[proxy.name] = proxy
+                                state.proxies[proxy.name.rawValue] = proxy
                             }
                         }
                     }
@@ -103,7 +103,7 @@ struct ProxiesFeature: @preconcurrency Reducer {
                         if update.element < keys.count {
                             let key = keys[update.element]
                             if let proxy = snapshot.proxies[key] {
-                                state.proxies[proxy.name] = proxy
+                                state.proxies[proxy.name.rawValue] = proxy
                             }
                         }
                     }

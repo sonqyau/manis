@@ -5,7 +5,6 @@ excluded:
   - .build
   - .swiftpm
   - manis/Resources
-  - manis/Daemons
 
 disabled_rules:
   - cyclomatic_complexity

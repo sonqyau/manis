@@ -8,6 +8,7 @@ import HTTPTypesFoundation
 import Observation
 import OSLog
 import Perception
+import Sharing
 
 @MainActor
 @Observable
@@ -28,7 +29,30 @@ final class MihomoDomain {
         var isConnected: Bool
     }
 
-    static let shared = MihomoDomain()
+    @ObservationIgnored
+    @Shared(.inMemory("mihomoState")) private var sharedState: State = .init(
+        trafficHistory: [],
+        currentTraffic: nil,
+        connections: [],
+        memoryUsage: 0,
+        version: "",
+        logs: [],
+        proxies: [:],
+        groups: [:],
+        rules: [],
+        proxyProviders: [:],
+        ruleProviders: [:],
+        config: nil,
+        isConnected: false,
+        )
+
+    @ObservationIgnored
+    @Shared(.inMemory("mihomoConnection")) private var connectionInfo: ConnectionInfo = .init()
+
+    struct ConnectionInfo: Equatable {
+        var baseURL: String = "http://127.0.0.1:9090"
+        var secret: String?
+    }
 
     private let logger = MainLog.shared.logger(for: .api)
     private let clock: any Clock<Duration>
@@ -93,38 +117,35 @@ final class MihomoDomain {
     private var connectionTask: Task<Void, Never>?
     private var dataRefreshTask: Task<Void, Never>?
 
-    private var baseURL: String
-    private var secret: String?
     private static let maxTrafficPoints = 120
     private static let maxLogEntries = 500
 
-    private init(clock: any Clock<Duration> = ContinuousClock()) {
+    init(clock: any Clock<Duration> = ContinuousClock()) {
         self.clock = clock
-        stateSubject = CurrentValueSubject(
-            State(
-                trafficHistory: [],
-                currentTraffic: nil,
-                connections: [],
-                memoryUsage: 0,
-                version: "",
-                logs: [],
-                proxies: [:],
-                groups: [:],
-                rules: [],
-                proxyProviders: [:],
-                ruleProviders: [:],
-                config: nil,
-                isConnected: false,
-                ),
+        let initialState = State(
+            trafficHistory: [],
+            currentTraffic: nil,
+            connections: [],
+            memoryUsage: 0,
+            version: "",
+            logs: [],
+            proxies: [:],
+            groups: [:],
+            rules: [],
+            proxyProviders: [:],
+            ruleProviders: [:],
+            config: nil,
+            isConnected: false,
             )
-        baseURL = "http://127.0.0.1:9090"
-        secret = nil
+        stateSubject = CurrentValueSubject(initialState)
     }
 
     nonisolated func configure(baseURL: String, secret: String?) {
         Task { @MainActor in
-            self.baseURL = baseURL
-            self.secret = secret
+            $connectionInfo.withLock { connectionInfo in
+                connectionInfo.baseURL = baseURL
+                connectionInfo.secret = secret
+            }
         }
     }
 
@@ -233,7 +254,8 @@ final class MihomoDomain {
         body: Data? = nil,
         queryItems: [URLQueryItem] = [],
         ) async throws -> (Data, HTTPURLResponse) {
-        var components = URLComponents(string: "\(baseURL)\(path)")
+        let currentConnection = connectionInfo
+        var components = URLComponents(string: "\(currentConnection.baseURL)\(path)")
         components?.queryItems = queryItems.isEmpty ? nil : queryItems
 
         guard let url = components?.url else {
@@ -242,7 +264,7 @@ final class MihomoDomain {
 
         var request = HTTPRequest(method: method, url: url)
 
-        if let secret {
+        if let secret = currentConnection.secret {
             request.headerFields = [
                 HTTPField.Name.authorization: "Bearer \(secret)",
             ]
@@ -276,13 +298,14 @@ final class MihomoDomain {
     }
 
     private func startTrafficStream() async {
-        guard let url = URL(string: "\(baseURL)/traffic".replacingOccurrences(of: "http", with: "ws"))
+        let currentConnection = connectionInfo
+        guard let url = URL(string: "\(currentConnection.baseURL)/traffic".replacingOccurrences(of: "http", with: "ws"))
         else {
             return
         }
 
         var request = HTTPRequest(method: .get, url: url)
-        if let secret {
+        if let secret = currentConnection.secret {
             request.headerFields[.authorization] = "Bearer \(secret)"
         }
 
@@ -345,13 +368,14 @@ final class MihomoDomain {
     }
 
     private func startMemoryStream() async {
-        guard let url = URL(string: "\(baseURL)/memory".replacingOccurrences(of: "http", with: "ws"))
+        let currentConnection = connectionInfo
+        guard let url = URL(string: "\(currentConnection.baseURL)/memory".replacingOccurrences(of: "http", with: "ws"))
         else {
             return
         }
 
         var request = HTTPRequest(method: .get, url: url)
-        if let secret {
+        if let secret = currentConnection.secret {
             request.headerFields[.authorization] = "Bearer \(secret)"
         }
 
@@ -385,12 +409,13 @@ final class MihomoDomain {
     }
 
     private func fetchConnections() async {
-        guard let url = URL(string: "\(baseURL)/connections") else {
+        let currentConnection = connectionInfo
+        guard let url = URL(string: "\(currentConnection.baseURL)/connections") else {
             return
         }
 
         var request = HTTPRequest(method: .get, url: url)
-        if let secret {
+        if let secret = currentConnection.secret {
             request.headerFields[.authorization] = "Bearer \(secret)"
         }
 
@@ -421,12 +446,13 @@ final class MihomoDomain {
     }
 
     private func fetchVersion() {
-        guard let url = URL(string: "\(baseURL)/version") else {
+        let currentConnection = connectionInfo
+        guard let url = URL(string: "\(currentConnection.baseURL)/version") else {
             return
         }
 
         var request = HTTPRequest(method: .get, url: url)
-        if let secret {
+        if let secret = currentConnection.secret {
             request.headerFields[.authorization] = "Bearer \(secret)"
         }
 
@@ -510,18 +536,19 @@ final class MihomoDomain {
     }
 
     func startLogStream(level: String? = nil) async {
+        let currentConnection = connectionInfo
         var path = "/logs"
         if let level {
             path += "?level=\(level)"
         }
 
-        guard let url = URL(string: "\(baseURL)\(path)".replacingOccurrences(of: "http", with: "ws"))
+        guard let url = URL(string: "\(currentConnection.baseURL)\(path)".replacingOccurrences(of: "http", with: "ws"))
         else {
             return
         }
 
         var request = HTTPRequest(method: .get, url: url)
-        if let secret {
+        if let secret = currentConnection.secret {
             request.headerFields[.authorization] = "Bearer \(secret)"
         }
 
@@ -620,28 +647,28 @@ final class MihomoDomain {
         await fetchConnections()
     }
 
-    func closeConnection(id: String) async throws {
-        _ = try await makeRequest(path: "/connections/\(id)", method: .delete)
-        logger.info("Closed connection: \(id)")
+    func closeConnection(id: ConnectionID) async throws {
+        _ = try await makeRequest(path: "/connections/\(id.rawValue)", method: .delete)
+        logger.info("Closed connection: \(id.rawValue)")
         await fetchConnections()
     }
 
-    func selectProxy(group: String, proxy: String) async throws {
-        let encodedGroup = group.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? group
+    func selectProxy(group: ProxyName, proxy: ProxyName) async throws {
+        let encodedGroup = group.rawValue.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? group.rawValue
         let request = ProxySelectRequest(name: proxy)
         let body = try JSONEncoder().encode(request)
         _ = try await makeRequest(path: "/proxies/\(encodedGroup)", method: .put, body: body)
-        logger.info("Selected proxy \(proxy) for group \(group)")
+        logger.info("Selected proxy \(proxy.rawValue) for group \(group.rawValue)")
         await fetchProxies()
         await fetchGroups()
     }
 
     func testProxyDelay(
-        name: String,
+        name: ProxyName,
         url: String = "https://www.apple.com/library/test/success.html",
         timeout: Int = 5000,
         ) async throws -> ProxyDelayTest {
-        let encodedName = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
+        let encodedName = name.rawValue.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name.rawValue
         let queryItems = [
             URLQueryItem(name: "url", value: url),
             URLQueryItem(name: "timeout", value: "\(timeout)"),
@@ -654,42 +681,42 @@ final class MihomoDomain {
     }
 
     func testGroupDelay(
-        name: String,
+        name: ProxyName,
         url: String = "https://www.apple.com/library/test/success.html",
         timeout: Int = 5000,
         ) async throws {
-        let encodedName = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
+        let encodedName = name.rawValue.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name.rawValue
         let queryItems = [
             URLQueryItem(name: "url", value: url),
             URLQueryItem(name: "timeout", value: "\(timeout)"),
         ]
         _ = try await makeRequest(path: "/group/\(encodedName)/delay", queryItems: queryItems)
-        logger.info("Tested group delay: \(name)")
+        logger.info("Tested group delay: \(name.rawValue)")
         await fetchGroups()
     }
 
-    func updateProxyProvider(name: String) async throws {
-        let encodedName = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
+    func updateProxyProvider(name: ProxyName) async throws {
+        let encodedName = name.rawValue.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name.rawValue
         _ = try await makeRequest(
             path: "/providers/proxies/\(encodedName)",
             method: .put,
             body: Data(),
             )
-        logger.info("Updated proxy provider: \(name)")
+        logger.info("Updated proxy provider: \(name.rawValue)")
         await fetchProxyProviders()
     }
 
-    func healthCheckProxyProvider(name: String) async throws {
-        let encodedName = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
+    func healthCheckProxyProvider(name: ProxyName) async throws {
+        let encodedName = name.rawValue.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name.rawValue
         _ = try await makeRequest(path: "/providers/proxies/\(encodedName)/healthcheck")
-        logger.info("Health check for proxy provider: \(name)")
+        logger.info("Health check for proxy provider: \(name.rawValue)")
         await fetchProxyProviders()
     }
 
-    func updateRuleProvider(name: String) async throws {
-        let encodedName = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
+    func updateRuleProvider(name: ProxyName) async throws {
+        let encodedName = name.rawValue.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name.rawValue
         _ = try await makeRequest(path: "/providers/rules/\(encodedName)", method: .put, body: Data())
-        logger.info("Updated rule provider: \(name)")
+        logger.info("Updated rule provider: \(name.rawValue)")
         await fetchRuleProviders()
     }
 

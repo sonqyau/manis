@@ -3,6 +3,7 @@ import Collections
 @preconcurrency import Combine
 import ComposableArchitecture
 import Foundation
+import NonEmpty
 import SwiftNavigation
 
 @MainActor
@@ -104,9 +105,9 @@ struct MenuBarFeature: @preconcurrency Reducer {
             state.statusDescription = snapshot.isConnected ? "Connected" : "Disconnected"
 
             if let config = snapshot.config {
-                state.mixedPort = config.mixedPort
-                state.httpPort = config.port
-                state.socksPort = config.socksPort
+                state.mixedPort = config.mixedPort?.rawValue
+                state.httpPort = config.port?.rawValue
+                state.socksPort = config.socksPort?.rawValue
             }
 
             if let config = snapshot.config {
@@ -233,12 +234,27 @@ struct MenuBarFeature: @preconcurrency Reducer {
     private static func buildSelectorGroups(
         from groups: OrderedDictionary<String, GroupInfo>,
         ) -> [State.ProxySelectorGroup] {
-        groups
+        let filteredGroups = groups
             .filter { $0.value.type.lowercased() == "selector" }
             .sorted { $0.key < $1.key }
             .map { key, info in
                 State.ProxySelectorGroup(id: key, info: info)
             }
+
+        return filteredGroups
+    }
+
+    private static func buildNonEmptySelectorGroups(
+        from groups: OrderedDictionary<String, GroupInfo>,
+        ) -> NonEmpty<[State.ProxySelectorGroup]>? {
+        let filteredGroups = groups
+            .filter { $0.value.type.lowercased() == "selector" }
+            .sorted { $0.key < $1.key }
+            .map { key, info in
+                State.ProxySelectorGroup(id: key, info: info)
+            }
+
+        return NonEmpty(rawValue: filteredGroups)
     }
 
     private func toggleSystemProxyEffect(currentState: Bool) -> Effect<Action> {

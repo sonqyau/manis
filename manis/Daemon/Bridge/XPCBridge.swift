@@ -1,71 +1,39 @@
 import ConcurrencyExtras
 import Foundation
 import OSLog
+import SwiftyXPC
 @preconcurrency import XPC
 
 final class XPCBridge: @unchecked Sendable {
     private let daemonService: DaemonService
     private let logger = Logger(subsystem: "com.manis.Daemon", category: "XPCListener")
     private let shouldQuit = LockIsolated(false)
+    private let listener: SwiftyXPC.XPCListener
 
-    init(daemonService: DaemonService) {
+    init(daemonService: DaemonService) throws {
         self.daemonService = daemonService
+        self.listener = try SwiftyXPC.XPCListener(type: .machService(name: "com.manis.Daemon"), codeSigningRequirement: nil)
+        setupMessageHandlers()
+    }
+
+    private func setupMessageHandlers() {
+        listener.setMessageHandler(name: "handleRequest") { [weak self] (_: SwiftyXPC.XPCConnection, request: DaemonRequest) async throws -> DaemonResponse in
+            guard let self else {
+                throw DaemonError.serviceUnavailable("Service unavailable")
+            }
+
+            return await self.daemonService.handleRequest(request)
+        }
+
+        listener.errorHandler = { [weak self] (_: SwiftyXPC.XPCConnection, error: Error) in
+            self?.logger.error("XPC connection error: \(error)")
+        }
     }
 
     func start() async throws {
-        let listener = try createListener()
-
-        do {
-            try listener.activate()
-            logger.info("XPC Daemon listener activated")
-        } catch {
-            logger.error("Failed to activate XPC listener: \(error)")
-            throw error
-        }
-
+        listener.activate()
+        logger.info("XPC Daemon listener activated")
         await runEventLoop()
-    }
-
-    private func createListener() throws -> XPCListener {
-        try XPCListener(
-            service: "com.manis.Daemon",
-            targetQueue: nil,
-            options: [],
-            ) { [weak self] request in
-            guard let self else {
-                return request.reject(reason: "Service unavailable")
-            }
-
-            let (decision, _) = request.accept(
-                incomingMessageHandler: { @Sendable receivedMessage in
-                    Task { @Sendable in
-                        let response = await self.handleMessage(receivedMessage)
-                        receivedMessage.reply(response)
-                    }
-                    return nil
-                },
-                cancellationHandler: { [weak self] _ in
-                    self?.shouldQuit.setValue(true)
-                    self?.logger.info("XPC connection cancelled, shutting down")
-                },
-                )
-            return decision
-        }
-    }
-
-    private func handleMessage(_ receivedMessage: XPCReceivedMessage) async -> DaemonResponse {
-        do {
-            let request = try receivedMessage.decode(as: DaemonRequest.self)
-            logger.debug("Received XPC request: \(request.method)")
-
-            let response = await daemonService.handleRequest(request)
-            logger.debug("Sending XPC response for: \(request.method)")
-
-            return response
-        } catch {
-            logger.error("Failed to handle XPC message: \(error)")
-            return .error(MainXPCError(error: error))
-        }
     }
 
     private func runEventLoop() async {

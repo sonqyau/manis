@@ -437,7 +437,7 @@ private struct MenuBarProxyGroupRow: View {
                         .foregroundColor(.secondary)
                         .accessibilityHidden(true)
 
-                    Text(group.info.name)
+                    Text(group.info.name.rawValue)
                         .font(.headline)
 
                     Spacer()
@@ -464,11 +464,11 @@ private struct MenuBarProxyGroupRow: View {
                 VStack(spacing: 4) {
                     ForEach(group.info.all, id: \.self) { proxyName in
                         MenuBarProxyNodeRow(
-                            proxyName: proxyName,
-                            isSelected: proxyName == group.info.now,
-                            proxyInfo: proxies[proxyName],
+                            proxyName: proxyName.rawValue,
+                            isSelected: proxyName.rawValue == group.info.now,
+                            proxyInfo: proxies[proxyName.rawValue],
                             ) {
-                            onSelect(group.id, proxyName)
+                            onSelect(group.id, proxyName.rawValue)
                         }
                     }
                 }

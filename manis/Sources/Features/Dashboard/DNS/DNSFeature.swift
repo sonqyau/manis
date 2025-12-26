@@ -1,5 +1,6 @@
 import ComposableArchitecture
 import Foundation
+import NonEmpty
 
 @MainActor
 struct DNSFeature: @preconcurrency Reducer {
@@ -7,7 +8,14 @@ struct DNSFeature: @preconcurrency Reducer {
     struct State {
         var domain: String = ""
         var recordType: String = "A"
-        var recordTypes: [String] = ["A", "AAAA", "CNAME", "MX", "TXT", "NS"]
+        var recordTypes: NonEmpty<[String]> = {
+            let types = ["A", "AAAA", "CNAME", "MX", "TXT", "NS"]
+            guard let nonEmptyTypes = NonEmpty(rawValue: types) else {
+                fatalError("DNS record types array should never be empty")
+            }
+            return nonEmptyTypes
+        }()
+
         var queryResult: DNSQueryResponse?
         var isQuerying: Bool = false
         var isFlushingCache: Bool = false
@@ -46,7 +54,7 @@ struct DNSFeature: @preconcurrency Reducer {
                 return .none
 
             case .performQuery:
-                guard !state.domain.isEmpty, !state.isQuerying else {
+                guard NonEmpty(rawValue: state.domain) != nil, !state.isQuerying else {
                     return .none
                 }
                 state.isQuerying = true

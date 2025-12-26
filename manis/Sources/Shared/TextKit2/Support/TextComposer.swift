@@ -1,5 +1,6 @@
 import Algorithms
 import Foundation
+import NonEmpty
 import Rearrange
 
 public enum TextComposer {
@@ -183,10 +184,11 @@ public enum TextComposer {
         let validRanges = ranges.filter(\.isValid)
         guard !validRanges.isEmpty else { return [] }
 
-        let sorted = validRanges.sorted { $0.location < $1.location }
-        var merged: [NSRange] = [sorted[0]]
+        let sortedValidRanges = validRanges.sorted { $0.location < $1.location }
+        guard let nonEmptySorted = NonEmpty(rawValue: sortedValidRanges) else { return [] }
+        var merged: [NSRange] = [nonEmptySorted.first]
 
-        for range in sorted.dropFirst() {
+        for range in nonEmptySorted.dropFirst() {
             let last = merged[merged.count - 1]
             if range.location <= last.max {
                 merged[merged.count - 1] = last.union(with: range)
@@ -203,9 +205,9 @@ public enum TextComposer {
         ranges: [NSRange],
         ) -> [String] {
         let sortedRanges = ranges.filter(\.isValid).sorted { $0.location < $1.location }
-        guard !sortedRanges.isEmpty else { return [text] }
+        guard let nonEmptyRanges = NonEmpty(rawValue: sortedRanges) else { return [text] }
 
-        let chunkedRanges = sortedRanges.chunked { current, next in
+        let chunkedRanges = nonEmptyRanges.chunked { current, next in
             current.max <= next.location
         }
 

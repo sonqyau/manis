@@ -1,10 +1,23 @@
 import DifferenceKit
 import Foundation
+import Tagged
+
+enum PortTag {}
+enum ProcessIDTag {}
+enum ProxyNameTag {}
+enum ConnectionIDTag {}
+enum ConfigPathTag {}
+
+typealias Port = Tagged<PortTag, Int>
+typealias ProcessID = Tagged<ProcessIDTag, Int32>
+typealias ProxyName = Tagged<ProxyNameTag, String>
+typealias ConnectionID = Tagged<ConnectionIDTag, String>
+typealias ConfigPath = Tagged<ConfigPathTag, String>
 
 struct ClashConfig: Codable {
-    let port: Int?
-    let socksPort: Int?
-    let mixedPort: Int?
+    let port: Port?
+    let socksPort: Port?
+    let mixedPort: Port?
     let allowLan: Bool
     let bindAddress: String?
     let mode: String?
@@ -29,9 +42,9 @@ struct ClashConfig: Codable {
     }
 
     init(
-        port: Int? = nil,
-        socksPort: Int? = nil,
-        mixedPort: Int? = nil,
+        port: Port? = nil,
+        socksPort: Port? = nil,
+        mixedPort: Port? = nil,
         allowLan: Bool = false,
         bindAddress: String? = nil,
         mode: String? = nil,
@@ -65,14 +78,14 @@ struct ProxiesResponse: Codable {
 }
 
 struct ProxyInfo: Codable, Differentiable {
-    let name: String
+    let name: ProxyName
     let type: String
     let udp: Bool
     let now: String?
-    let all: [String]
+    let all: [ProxyName]
     let history: [ProxyDelay]
 
-    var differenceIdentifier: String {
+    var differenceIdentifier: ProxyName {
         name
     }
 
@@ -85,11 +98,11 @@ struct ProxyInfo: Codable, Differentiable {
     }
 
     init(
-        name: String,
+        name: ProxyName,
         type: String,
         udp: Bool = false,
         now: String? = nil,
-        all: [String] = [],
+        all: [ProxyName] = [],
         history: [ProxyDelay] = [],
         ) {
         self.name = name
@@ -111,7 +124,7 @@ struct ProxyDelayTest: Codable {
 }
 
 struct ProxySelectRequest: Codable {
-    let name: String
+    let name: ProxyName
 }
 
 struct GroupsResponse: Codable {
@@ -119,12 +132,12 @@ struct GroupsResponse: Codable {
 }
 
 struct GroupInfo: Codable, Differentiable {
-    let name: String
+    let name: ProxyName
     let type: String
     let now: String?
-    let all: [String]
+    let all: [ProxyName]
 
-    var differenceIdentifier: String {
+    var differenceIdentifier: ProxyName {
         name
     }
 
@@ -135,10 +148,10 @@ struct GroupInfo: Codable, Differentiable {
     }
 
     init(
-        name: String,
+        name: ProxyName,
         type: String,
         now: String? = nil,
-        all: [String] = [],
+        all: [ProxyName] = [],
         ) {
         self.name = name
         self.type = type
@@ -154,7 +167,7 @@ struct RulesResponse: Codable {
 struct RuleInfo: Codable, Differentiable {
     let type: String
     let payload: String
-    let proxy: String
+    let proxy: ProxyName
 
     var differenceIdentifier: String {
         "\(type)::\(payload)::\(proxy)"
@@ -172,13 +185,13 @@ struct ProxyProvidersResponse: Codable {
 }
 
 struct ProxyProviderInfo: Codable, Differentiable {
-    let name: String
+    let name: ProxyName
     let type: String
     let vehicleType: String
     let proxies: [ProxyInfo]
     let updatedAt: Date?
 
-    var differenceIdentifier: String {
+    var differenceIdentifier: ProxyName {
         name
     }
 
@@ -201,14 +214,14 @@ struct RuleProvidersResponse: Codable {
 }
 
 struct RuleProviderInfo: Codable, Differentiable {
-    let name: String
+    let name: ProxyName
     let type: String
     let vehicleType: String
     let behavior: String
     let ruleCount: Int
     let updatedAt: Date?
 
-    var differenceIdentifier: String {
+    var differenceIdentifier: ProxyName {
         name
     }
 
@@ -275,5 +288,3 @@ struct DNSQueryResponse: Codable {
 struct APIError: Codable, Error {
     let message: String
 }
-
-struct MihomoModel {}

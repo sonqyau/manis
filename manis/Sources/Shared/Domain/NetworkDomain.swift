@@ -4,7 +4,9 @@ import CFNetwork
 import Clocks
 import Foundation
 import Network
+import NonEmpty
 import OSLog
+import Sharing
 import SystemConfiguration
 
 extension Notification.Name {
@@ -15,7 +17,15 @@ extension Notification.Name {
 
 @MainActor
 final class NetworkDomain {
-    static let shared = NetworkDomain()
+    @ObservationIgnored
+    @Shared(.inMemory("networkState")) private var networkState: NetworkState = .init()
+
+    struct NetworkState {
+        var currentPath: NWPath?
+        var primaryInterface: String?
+        var primaryIPAddress: String?
+        var isMonitoring: Bool = false
+    }
 
     private let logger = MainLog.shared.logger(for: .network)
     private let clock: any Clock<Duration>
@@ -27,13 +37,9 @@ final class NetworkDomain {
     private var proxyStore: SCDynamicStore?
     private var ipStore: SCDynamicStore?
 
-    private(set) var currentPath: NWPath?
-    private(set) var primaryInterface: String?
-    private(set) var primaryIPAddress: String?
-
     private var isMonitoring = false
 
-    private init(clock: any Clock<Duration> = ContinuousClock()) {
+    init(clock: any Clock<Duration> = ContinuousClock()) {
         self.clock = clock
     }
 
@@ -92,7 +98,10 @@ final class NetworkDomain {
                     return
                 }
 
-                currentPath = path
+                $networkState.withLock { networkState in
+                    networkState.currentPath = path
+                }
+
                 logger.debug(
                     "Network path state changed",
                     metadata: [
@@ -102,7 +111,9 @@ final class NetworkDomain {
                     )
 
                 if let interface = path.availableInterfaces.first {
-                    primaryInterface = interface.name
+                    $networkState.withLock { networkState in
+                        networkState.primaryInterface = interface.name
+                    }
                 }
 
                 NotificationCenter.default.post(name: .networkInterfaceDidChange, object: self)
@@ -252,7 +263,7 @@ final class NetworkDomain {
     }
 
     func getPrimaryInterfaceName() -> String? {
-        if let cached = primaryInterface {
+        if let cached = networkState.primaryInterface {
             return cached
         }
 
@@ -267,7 +278,9 @@ final class NetworkDomain {
               let iface = dict[kSCDynamicStorePropNetPrimaryInterface as String] as? String
         else { return nil }
 
-        primaryInterface = iface
+        $networkState.withLock { networkState in
+            networkState.primaryInterface = iface
+        }
         return iface
     }
 
@@ -287,7 +300,7 @@ final class NetworkDomain {
     }
 
     func getPrimaryIPAddress(allowIPv6: Bool = false) -> String? {
-        if let cached = primaryIPAddress, !allowIPv6 {
+        if let cached = networkState.primaryIPAddress, !allowIPv6 {
             return cached
         }
         guard let ifName = getPrimaryInterfaceName() else {
@@ -303,8 +316,11 @@ final class NetworkDomain {
             )
         if let ipv4Info = SCDynamicStoreCopyValue(store, ipv4Key) as? [String: Any],
            let addresses = ipv4Info[kSCPropNetIPv4Addresses as String] as? [String],
-           let first = addresses.first {
-            primaryIPAddress = first
+           let nonEmptyAddresses = NonEmpty(rawValue: addresses),
+           let first = nonEmptyAddresses.first {
+            $networkState.withLock { networkState in
+                networkState.primaryIPAddress = first
+            }
             return first
         }
 
@@ -317,7 +333,8 @@ final class NetworkDomain {
             )
         guard let ipv6Info = SCDynamicStoreCopyValue(store, ipv6Key) as? [String: Any],
               let addresses = ipv6Info[kSCPropNetIPv6Addresses as String] as? [String],
-              let first = addresses.first
+              let nonEmptyAddresses = NonEmpty(rawValue: addresses),
+              let first = nonEmptyAddresses.first
         else {
             return nil
         }
@@ -329,19 +346,21 @@ final class NetworkDomain {
         CFNetworkCopySystemProxySettings()?.takeRetainedValue() as? [String: Any] ?? [:]
     }
 
-    func isConnectSetToMihomo(httpPort: Int, socksPort: Int, strict: Bool = true) -> Bool {
+    func isConnectSetToMihomo(httpPort: Port, socksPort: Port, strict: Bool = true) -> Bool {
         let settings = getConnectSettings()
         let http = settings[kCFNetworkProxiesHTTPPort as String] as? Int ?? 0
         let https = settings[kCFNetworkProxiesHTTPSPort as String] as? Int ?? 0
         let socks = settings[kCFNetworkProxiesSOCKSPort as String] as? Int ?? 0
 
         return strict
-            ? (http == httpPort && https == httpPort && socks == socksPort)
-            : (http == httpPort || https == httpPort || socks == socksPort)
+            ? (http == httpPort.rawValue && https == httpPort.rawValue && socks == socksPort.rawValue)
+            : (http == httpPort.rawValue || https == httpPort.rawValue || socks == socksPort.rawValue)
     }
 
     private func updatePrimaryIPAddress() {
-        primaryIPAddress = getPrimaryIPAddress(allowIPv6: false)
+        $networkState.withLock { networkState in
+            networkState.primaryIPAddress = getPrimaryIPAddress(allowIPv6: false)
+        }
     }
 }
 

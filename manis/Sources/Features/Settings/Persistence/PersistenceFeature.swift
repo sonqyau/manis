@@ -2,6 +2,7 @@
 import ComposableArchitecture
 import Foundation
 import IdentifiedCollections
+import Sharing
 import SwiftNavigation
 
 @MainActor
@@ -72,19 +73,19 @@ struct PersistenceFeature: @preconcurrency Reducer {
                 return refreshAllEffect(state: &state)
 
             case let .activateConfig(config):
-                return activateConfigEffect(config: config)
+                return activateConfigEffect(config: config, state: &state)
 
             case let .updateConfig(config):
-                return updateConfigEffect(config: config)
+                return updateConfigEffect(config: config, state: &state)
 
             case let .deleteConfig(config):
-                return deleteConfigEffect(config: config)
+                return deleteConfigEffect(config: config, state: &state)
 
             case let .activateInstance(instance):
-                return activateInstanceEffect(instance: instance)
+                return activateInstanceEffect(instance: instance, state: &state)
 
             case let .deleteInstance(instance):
-                return deleteInstanceEffect(instance: instance)
+                return deleteInstanceEffect(instance: instance, state: &state)
 
             case let .showAddConfig(flag):
                 state.showingAddConfig = flag
@@ -139,7 +140,7 @@ struct PersistenceFeature: @preconcurrency Reducer {
         }
     }
 
-    private func activateConfigEffect(config: PersistenceModel) -> Effect<Action> {
+    private func activateConfigEffect(config: PersistenceModel, state _: inout State) -> Effect<Action> {
         let service = persistenceService
         return .run { @MainActor send in
             do {
@@ -151,7 +152,7 @@ struct PersistenceFeature: @preconcurrency Reducer {
         }
     }
 
-    private func updateConfigEffect(config: PersistenceModel) -> Effect<Action> {
+    private func updateConfigEffect(config: PersistenceModel, state _: inout State) -> Effect<Action> {
         let service = persistenceService
         return .run { @MainActor send in
             do {
@@ -163,7 +164,7 @@ struct PersistenceFeature: @preconcurrency Reducer {
         }
     }
 
-    private func deleteConfigEffect(config: PersistenceModel) -> Effect<Action> {
+    private func deleteConfigEffect(config: PersistenceModel, state _: inout State) -> Effect<Action> {
         let service = persistenceService
         return .run { @MainActor send in
             do {
@@ -175,7 +176,7 @@ struct PersistenceFeature: @preconcurrency Reducer {
         }
     }
 
-    private func activateInstanceEffect(instance: RemoteInstance?) -> Effect<Action> {
+    private func activateInstanceEffect(instance: RemoteInstance?, state _: inout State) -> Effect<Action> {
         let service = persistenceService
         return .run { @MainActor send in
             await service.activateRemoteInstance(instance)
@@ -183,7 +184,7 @@ struct PersistenceFeature: @preconcurrency Reducer {
         }
     }
 
-    private func deleteInstanceEffect(instance: RemoteInstance) -> Effect<Action> {
+    private func deleteInstanceEffect(instance: RemoteInstance, state _: inout State) -> Effect<Action> {
         let service = persistenceService
         return .run { @MainActor send in
             do {

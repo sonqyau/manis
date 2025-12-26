@@ -69,8 +69,8 @@ final class DaemonBridge: @unchecked Sendable {
     func startMihomo(executablePath: String, configPath: String, configContent: String) async throws -> String {
         let request = DaemonRequest(
             method: "startMihomo",
-            executablePath: executablePath,
-            configPath: configPath,
+            executablePath: XPCConfigPath(executablePath),
+            configPath: XPCConfigPath(configPath),
             configContent: configContent,
             )
         let response = try await sendRequest(request)
@@ -105,8 +105,8 @@ final class DaemonBridge: @unchecked Sendable {
     func enableConnect(httpPort: Int, socksPort: Int, pacURL: String?, bypassList: [String]) async throws {
         let request = DaemonRequest(
             method: "enableConnect",
-            httpPort: httpPort,
-            socksPort: socksPort,
+            httpPort: XPCPort(httpPort),
+            socksPort: XPCPort(socksPort),
             pacURL: pacURL,
             bypassList: bypassList,
             )
@@ -174,7 +174,7 @@ final class DaemonBridge: @unchecked Sendable {
         let request = DaemonRequest(
             method: "testConnectivity",
             host: host,
-            port: port,
+            port: XPCPort(port),
             timeout: timeout,
             )
         let response = try await sendRequest(request)

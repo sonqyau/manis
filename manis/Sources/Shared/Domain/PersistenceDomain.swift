@@ -22,7 +22,7 @@ final class PersistenceDomain {
 
     private let logger = MainLog.shared.logger(for: .core)
     private let resourceManager = ResourceDomain.shared
-    private let apiClient = MihomoDomain.shared
+    private let apiClient = MihomoDomain()
     private let clock: any Clock<Duration>
 
     private let stateSubject: CurrentValueSubject<State, Never>
@@ -491,7 +491,7 @@ final class PersistenceDomain {
 
             logger.info("Activated remote instance: \(instance.name).")
         } else {
-            apiClient.configure(baseURL: "http://127.0.0.1:9090", secret: nil)
+            apiClient.configure(baseURL: "http://127.0.0.1:9090", secret: nil as String?)
             logger.info("Switched to local mode.")
         }
 

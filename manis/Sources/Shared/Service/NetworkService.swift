@@ -13,7 +13,7 @@ protocol NetworkService: Sendable {
 final class NetworkDomainServiceAdapter: NetworkService, @unchecked Sendable {
     private let domain: NetworkDomain
 
-    init(domain: NetworkDomain = .shared) {
+    init(domain: NetworkDomain = NetworkDomain()) {
         self.domain = domain
     }
 
@@ -34,6 +34,6 @@ final class NetworkDomainServiceAdapter: NetworkService, @unchecked Sendable {
     }
 
     func isConnectSetToMihomo(httpPort: Int, socksPort: Int, strict: Bool) -> Bool {
-        domain.isConnectSetToMihomo(httpPort: httpPort, socksPort: socksPort, strict: strict)
+        domain.isConnectSetToMihomo(httpPort: Port(httpPort), socksPort: Port(socksPort), strict: strict)
     }
 }

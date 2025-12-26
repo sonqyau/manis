@@ -2,7 +2,9 @@ import AppKit
 @preconcurrency import Combine
 import ComposableArchitecture
 import Foundation
+import NonEmpty
 import Rearrange
+import SwiftNavigation
 
 @MainActor
 struct RulesFeature: @preconcurrency Reducer {
@@ -154,7 +156,7 @@ struct RulesFeature: @preconcurrency Reducer {
     private func highlightSearchMatches(in text: String, query: String) -> NSAttributedString {
         let attributedString = NSMutableAttributedString(string: text)
 
-        guard !query.isEmpty else { return attributedString }
+        guard NonEmpty(rawValue: query) != nil else { return attributedString }
 
         let searchResults = TextComposer.findAll(
             query,

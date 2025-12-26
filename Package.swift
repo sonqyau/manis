@@ -91,6 +91,7 @@ let package = Package(
             name: "MainXPC",
             dependencies: [
                 .product(name: "SecureXPC", package: "SecureXPC"),
+                .product(name: "Tagged", package: "swift-tagged"),
             ],
             path: "manis/XPC",
             exclude: [
@@ -111,6 +112,7 @@ let package = Package(
                 .product(name: "Algorithms", package: "swift-algorithms"),
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
                 .product(name: "AsyncQueue", package: "swift-async-queue"),
+                .product(name: "SwiftyXPC", package: "SwiftyXPC"),
             ],
             path: "manis/Daemon",
             exclude: [

@@ -68,7 +68,7 @@ struct ProvidersFeature: @preconcurrency Reducer {
                         if insert.element < keys.count {
                             let key = keys[insert.element]
                             if let provider = snapshot.proxyProviders[key] {
-                                state.proxyProviders[provider.name] = provider
+                                state.proxyProviders[provider.name.rawValue] = provider
                             }
                         }
                     }
@@ -77,7 +77,7 @@ struct ProvidersFeature: @preconcurrency Reducer {
                         if update.element < keys.count {
                             let key = keys[update.element]
                             if let provider = snapshot.proxyProviders[key] {
-                                state.proxyProviders[provider.name] = provider
+                                state.proxyProviders[provider.name.rawValue] = provider
                             }
                         }
                     }
@@ -96,7 +96,7 @@ struct ProvidersFeature: @preconcurrency Reducer {
                         if insert.element < keys.count {
                             let key = keys[insert.element]
                             if let provider = snapshot.ruleProviders[key] {
-                                state.ruleProviders[provider.name] = provider
+                                state.ruleProviders[provider.name.rawValue] = provider
                             }
                         }
                     }
@@ -105,7 +105,7 @@ struct ProvidersFeature: @preconcurrency Reducer {
                         if update.element < keys.count {
                             let key = keys[update.element]
                             if let provider = snapshot.ruleProviders[key] {
-                                state.ruleProviders[provider.name] = provider
+                                state.ruleProviders[provider.name.rawValue] = provider
                             }
                         }
                     }
