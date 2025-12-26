@@ -587,7 +587,7 @@ struct SettingsFeature: @preconcurrency Reducer {
             }
         }
 
-        throw NSError(domain: "com.manis", code: -100, userInfo: [NSLocalizedDescriptionKey: "kernel binary not found in app bundle (Resources/Kernel/binary)"])
+        throw NSError(domain: "com.manis", code: -100, userInfo: [NSLocalizedDescriptionKey: "kernel binary not found in app bundle (Resources/Kernel/mihomo/binary)"])
     }
 
     private func applyKernelStatusToMihomoService(

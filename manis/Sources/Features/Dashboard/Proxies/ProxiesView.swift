@@ -9,12 +9,10 @@ import SwiftUI
 import SwiftUIIntrospect
 
 struct ProxiesView: View {
-    let store: StoreOf<ProxiesFeature>
     @Bindable private var bindableStore: StoreOf<ProxiesFeature>
     @FocusState private var isSearchFocused: Bool
 
     init(store: StoreOf<ProxiesFeature>) {
-        self.store = store
         _bindableStore = Bindable(wrappedValue: store)
     }
 

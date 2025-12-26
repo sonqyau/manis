@@ -56,19 +56,4 @@ enum DaemonError: Error, Sendable {
     case configurationError(String)
     case processError(String)
     case networkError(String)
-
-    var localizedDescription: String {
-        switch self {
-        case let .invalidStateTransition(from, to):
-            "Invalid state transition from \(from) to \(to)"
-        case let .serviceUnavailable(service):
-            "Service unavailable: \(service)"
-        case let .configurationError(message):
-            "Configuration error: \(message)"
-        case let .processError(message):
-            "Process error: \(message)"
-        case let .networkError(message):
-            "Network error: \(message)"
-        }
-    }
 }

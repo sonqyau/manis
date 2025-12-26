@@ -3,11 +3,9 @@ import Perception
 import SwiftUI
 
 struct ProvidersView: View {
-    let store: StoreOf<ProvidersFeature>
     @Bindable private var bindableStore: StoreOf<ProvidersFeature>
 
     init(store: StoreOf<ProvidersFeature>) {
-        self.store = store
         _bindableStore = Bindable(wrappedValue: store)
     }
 

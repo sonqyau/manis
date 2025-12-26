@@ -7,44 +7,6 @@ import SystemPackage
 actor NetworkService {
     private let logger = Logger(subsystem: "com.manis.Daemon", category: "NetworkService")
 
-    func monitorPorts(interval: Duration = .seconds(5)) async -> AsyncStream<[Int]> {
-        logger.debug("Starting port monitoring")
-
-        let timer = AsyncTimerSequence(interval: interval, clock: ContinuousClock())
-            .compactMap { _ in }
-            .debounce(for: .seconds(0.3))
-
-        return AsyncStream { continuation in
-            Task {
-                for await _ in timer {
-                    let ports = await scanUsedPortsAsync()
-                    continuation.yield(ports)
-                }
-            }
-        }
-    }
-
-    func monitorConnectivity(
-        host: String,
-        port: Int,
-        interval: Duration = .seconds(10),
-        timeout: TimeInterval = 3.0,
-        ) async -> AsyncStream<Bool> {
-        logger.debug("Starting connectivity monitoring for \(host):\(port)")
-
-        let timer = AsyncTimerSequence(interval: interval, clock: ContinuousClock())
-            .debounce(for: .seconds(0.5))
-
-        return AsyncStream { continuation in
-            Task {
-                for await _ in timer {
-                    let isConnected = await testConnectivity(host: host, port: port, timeout: timeout)
-                    continuation.yield(isConnected)
-                }
-            }
-        }
-    }
-
     func getUsedPorts() async -> [Int] {
         await scanUsedPortsAsync()
     }

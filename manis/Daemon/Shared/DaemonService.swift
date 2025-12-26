@@ -20,12 +20,6 @@ actor DaemonService {
         logger.info("DaemonService initialized")
     }
 
-    private func transitionTo(_ newState: DaemonState) {
-        let oldState = state
-        state = newState
-        logger.info("State transition: \(String(describing: oldState)) -> \(String(describing: newState))")
-    }
-
     func handleRequest(_ request: DaemonRequest) async -> DaemonResponse {
         logger.debug("Handling request: \(request.method)")
 

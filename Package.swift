@@ -77,6 +77,7 @@ let package = Package(
                 "Daemon",
                 "Supporting Files/Info.plist",
                 "manis.entitlements",
+                "Resources/Kernel/sing-swift"
             ],
             resources: [
                 .process("Resources"),

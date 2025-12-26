@@ -134,3 +134,4 @@ iOSInjectionProject/
 manis/Resources/
 !manis/Resources/Assets.xcassets/
 !manis/Resources/Localizations/
+!manis/Resources/Kernel/sing-swift/

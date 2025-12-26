@@ -44,17 +44,6 @@ final class DaemonBridge: @unchecked Sendable {
         return response
     }
 
-    func getVersion() async throws -> String {
-        let request = DaemonRequest(method: "getVersion")
-        let response = try await sendRequest(request)
-
-        guard case let .version(version) = response else {
-            throw MainXPCError(domain: "com.manis.XPC", code: -1, message: "Unexpected response type")
-        }
-
-        return version
-    }
-
     func getMihomoStatus() async throws -> MihomoStatus {
         let request = DaemonRequest(method: "getMihomoStatus")
         let response = try await sendRequest(request)

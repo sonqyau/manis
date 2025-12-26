@@ -11,7 +11,7 @@ protocol PersistenceService: Sendable {
     var activeRemoteInstance: RemoteInstance? { get }
 
     func initialize(container: ModelContainer) throws
-    func addConfig(name: String, url: String) async throws
+    func addConfig(name: String, url: String, autoUpdate: Bool) async throws
     func removeConfig(_ config: PersistenceModel) throws
     func updateConfig(_ config: PersistenceModel) async throws
     func activateConfig(_ config: PersistenceModel) async throws
@@ -42,8 +42,8 @@ final class RemoteConfigPersistenceServiceAdapter: PersistenceService, @unchecke
         try domain.initialize(container: container)
     }
 
-    func addConfig(name: String, url: String) async throws {
-        try await domain.addConfig(name: name, url: url)
+    func addConfig(name: String, url: String, autoUpdate: Bool) async throws {
+        try await domain.addConfig(name: name, url: url, autoUpdate: autoUpdate)
     }
 
     func removeConfig(_ config: PersistenceModel) throws {

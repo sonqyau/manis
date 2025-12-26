@@ -6,14 +6,13 @@ import SwiftUI
 import SwiftUIIntrospect
 
 struct LogsMainView: View {
-    let store: StoreOf<LogsFeature>
     @Bindable private var bindableStore: StoreOf<LogsFeature>
     @FocusState private var isSearchFocused: Bool
+    @State private var useAdvancedView = false
 
     private let logLevels = ["debug", "info", "warning", "error"]
 
     init(store: StoreOf<LogsFeature>) {
-        self.store = store
         _bindableStore = Bindable(wrappedValue: store)
     }
 
@@ -113,6 +112,9 @@ struct LogsMainView: View {
                     }
                     .buttonStyle(.borderedProminent)
                 }
+
+                Toggle("Advanced Text View", isOn: $useAdvancedView)
+                    .toggleStyle(.switch)
             }
             .padding(.vertical, 6)
         } header: {
@@ -122,47 +124,55 @@ struct LogsMainView: View {
 
     private var logsSection: some View {
         Section {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 4) {
-                        EmptyView()
-                            .if(bindableStore.filteredLogs.isEmpty) { _ in
-                                ContentUnavailableView {
-                                    Label(
-                                        bindableStore.isStreaming ? "No log entries available" : "Log stream inactive",
-                                        systemImage: "doc.text.magnifyingglass",
-                                        )
-                                } description: {
-                                    Text(
-                                        bindableStore.isStreaming
-                                            ? "Waiting for incoming log messages"
-                                            : "Enable streaming to receive log data",
-                                        )
-                                }
-                                .frame(maxWidth: .infinity, minHeight: 200)
-                            }
-                            .ifNot(bindableStore.filteredLogs.isEmpty) { _ in
-                                ForEach(bindableStore.filteredLogs) { log in
-                                    LogRow(log: log)
-                                        .id(log.id)
-                                }
-                            }
-                    }
-                    .padding(12)
-                }
-                .background(Color(nsColor: .textBackgroundColor))
-                .onChange(of: bindableStore.filteredLogs.count) { _, _ in
-                    if bindableStore.autoScroll, let lastLog = bindableStore.filteredLogs.last {
-                        withAnimation(.smooth) {
-                            proxy.scrollTo(lastLog.id, anchor: .bottom)
-                        }
-                    }
-                }
+            if useAdvancedView {
+                LogsTextView(store: bindableStore)
+            } else {
+                basicLogsView
             }
-            .frame(minHeight: 280)
         } header: {
             Label("Log Entries", systemImage: "doc.text")
         }
+    }
+
+    private var basicLogsView: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 4) {
+                    EmptyView()
+                        .if(bindableStore.filteredLogs.isEmpty) { _ in
+                            ContentUnavailableView {
+                                Label(
+                                    bindableStore.isStreaming ? "No log entries available" : "Log stream inactive",
+                                    systemImage: "doc.text.magnifyingglass",
+                                    )
+                            } description: {
+                                Text(
+                                    bindableStore.isStreaming
+                                        ? "Waiting for incoming log messages"
+                                        : "Enable streaming to receive log data",
+                                    )
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 200)
+                        }
+                        .ifNot(bindableStore.filteredLogs.isEmpty) { _ in
+                            ForEach(bindableStore.filteredLogs) { log in
+                                LogRow(log: log)
+                                    .id(log.id)
+                            }
+                        }
+                }
+                .padding(12)
+            }
+            .background(Color(nsColor: .textBackgroundColor))
+            .onChange(of: bindableStore.filteredLogs.count) { _, _ in
+                if bindableStore.autoScroll, let lastLog = bindableStore.filteredLogs.last {
+                    withAnimation(.smooth) {
+                        proxy.scrollTo(lastLog.id, anchor: .bottom)
+                    }
+                }
+            }
+        }
+        .frame(minHeight: 280)
     }
 }
 

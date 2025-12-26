@@ -155,7 +155,7 @@ final class PersistenceDomain {
         }
     }
 
-    func addConfig(name: String, url: String) async throws(PersistenceError) {
+    func addConfig(name: String, url: String, autoUpdate: Bool = true) async throws(PersistenceError) {
         guard let container = modelContainer else { throw PersistenceError.notInitialized }
         guard URL(string: url) != nil else { throw PersistenceError.invalidURL }
 
@@ -169,7 +169,7 @@ final class PersistenceDomain {
         guard existingConfigs.isEmpty else { throw PersistenceError.duplicateURL }
 
         do {
-            let cfg = PersistenceModel(name: name, url: url)
+            let cfg = PersistenceModel(name: name, url: url, autoUpdate: autoUpdate)
             container.mainContext.insert(cfg)
 
             try container.mainContext.save()

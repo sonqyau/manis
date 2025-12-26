@@ -6,7 +6,6 @@ import SwiftNavigation
 import SwiftUI
 
 struct ConnectionsView: View {
-    let store: StoreOf<ConnectionsFeature>
     @Bindable private var bindableStore: StoreOf<ConnectionsFeature>
     @State private var sortOrder = [
         KeyPathComparator(
@@ -17,7 +16,6 @@ struct ConnectionsView: View {
     @FocusState private var isSearchFocused: Bool
 
     init(store: StoreOf<ConnectionsFeature>) {
-        self.store = store
         _bindableStore = Bindable(wrappedValue: store)
     }
 
@@ -252,13 +250,6 @@ struct ConnectionsView: View {
         } header: {
             Label("Active connections", systemImage: "list.bullet.rectangle")
         }
-    }
-
-    private func typeIcon(for type: String) -> String {
-        let lowercasedType = type.lowercased()
-        return lowercasedType == "http" || lowercasedType == "https"
-            ? "globe"
-            : lowercasedType.hasPrefix("socks") ? "network" : "info.circle"
     }
 
     private var totalDownload: String {

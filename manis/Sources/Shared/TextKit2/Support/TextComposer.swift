@@ -48,7 +48,7 @@ public enum TextComposer {
                 range: searchRange,
                 )
 
-            if foundRange.location == NSNotFound {
+            if !foundRange.isValid {
                 break
             }
 
@@ -123,6 +123,10 @@ public enum TextComposer {
         in range: NSRange,
         from text: String,
         ) -> (result: String, mutation: RangeMutation) {
+        guard range.isValid else {
+            return (text, RangeMutation(range: NSRange(location: 0, length: 0), delta: 0))
+        }
+
         let clampedRange = range.clamped(to: text.count)
         let mutation = RangeMutation(range: clampedRange, delta: -clampedRange.length)
 
@@ -170,10 +174,9 @@ public enum TextComposer {
         in text: String,
         allowEmpty: Bool = true,
         ) -> NSRange? {
-        guard range.location != NSNotFound else { return nil }
-        guard range.location >= 0 else { return nil }
+        guard range.isValid else { return nil }
         guard range.max <= text.count else { return nil }
-        guard allowEmpty || range.length > 0 else { return nil }
+        guard allowEmpty || !range.isEmpty else { return nil }
 
         return range
     }
@@ -190,7 +193,7 @@ public enum TextComposer {
 
         for range in nonEmptySorted.dropFirst() {
             let last = merged[merged.count - 1]
-            if range.location <= last.max {
+            if last.intersects(range) {
                 merged[merged.count - 1] = last.union(with: range)
             } else {
                 merged.append(range)

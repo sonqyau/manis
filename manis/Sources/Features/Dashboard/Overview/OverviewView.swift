@@ -6,11 +6,9 @@ import SFSafeSymbols
 import SwiftUI
 
 struct OverviewView: View {
-    let store: StoreOf<OverviewFeature>
     @Bindable private var bindableStore: StoreOf<OverviewFeature>
 
     init(store: StoreOf<OverviewFeature>) {
-        self.store = store
         _bindableStore = Bindable(wrappedValue: store)
     }
 

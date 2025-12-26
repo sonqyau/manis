@@ -33,15 +33,6 @@ actor DNSService {
         }
     }
 
-    func getStatus() async -> DNSConfiguration? {
-        switch state {
-        case let .configured(config):
-            config
-        default:
-            nil
-        }
-    }
-
     private func configureDNSServers(config: DNSConfiguration) async throws {
         try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {

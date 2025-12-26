@@ -1,6 +1,29 @@
 import Foundation
 import SwiftData
 
+enum KernelType: String, CaseIterable, Codable {
+    case mihomo = "mihomo"
+    case singSwift = "sing-swift"
+
+    var displayName: String {
+        switch self {
+        case .mihomo:
+            return "mihomo (Clash Meta)"
+        case .singSwift:
+            return "sing-swift"
+        }
+    }
+
+    var isNative: Bool {
+        switch self {
+        case .mihomo:
+            return false
+        case .singSwift:
+            return true
+        }
+    }
+}
+
 @Model
 final class SettingsModel {
     var apiPort = 9090
@@ -23,6 +46,8 @@ final class SettingsModel {
     var dashboardRefreshInterval: TimeInterval = 5.0
 
     var selectedProxies: [String: String] = [:]
+
+    var selectedKernel = KernelType.mihomo.rawValue
 
     var dashboardWindowFrame: String?
     var settingsWindowFrame: String?
@@ -167,6 +192,21 @@ final class SettingsManager {
         set {
             settings?.selectedProxies = newValue
             try? save()
+        }
+    }
+
+    var selectedKernel: String {
+        get { settings?.selectedKernel ?? KernelType.mihomo.rawValue }
+        set {
+            settings?.selectedKernel = newValue
+            try? save()
+        }
+    }
+
+    var selectedKernelType: KernelType {
+        get { KernelType(rawValue: selectedKernel) ?? .mihomo }
+        set {
+            selectedKernel = newValue.rawValue
         }
     }
 

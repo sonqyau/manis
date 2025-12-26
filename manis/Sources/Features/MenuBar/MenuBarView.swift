@@ -7,7 +7,6 @@ import SwiftUI
 import SwiftUINavigation
 
 struct MenuBarIconView: View {
-    let store: StoreOf<MenuBarFeature>
     @Bindable private var bindableStore: StoreOf<MenuBarFeature>
 
     private var isActive: Bool {
@@ -19,7 +18,6 @@ struct MenuBarIconView: View {
     }
 
     init(store: StoreOf<MenuBarFeature>) {
-        self.store = store
         _bindableStore = Bindable(wrappedValue: store)
     }
 
@@ -53,7 +51,6 @@ struct MenuBarIconView: View {
 }
 
 struct MenuBarContentView: View {
-    let store: StoreOf<MenuBarFeature>
     @Bindable private var bindableStore: StoreOf<MenuBarFeature>
     @Environment(\.openWindow)
     private var openWindow
@@ -67,7 +64,6 @@ struct MenuBarContentView: View {
     }
 
     init(store: StoreOf<MenuBarFeature>) {
-        self.store = store
         _bindableStore = Bindable(wrappedValue: store)
     }
 
@@ -243,7 +239,7 @@ struct MenuBarContentView: View {
 
     private var proxyGroupsSection: some View {
         Section {
-            ForEach(store.selectorGroups) { proxyGroup in
+            ForEach(bindableStore.selectorGroups) { proxyGroup in
                 MenuBarProxyGroupRow(
                     group: proxyGroup,
                     proxies: bindableStore.proxies,
@@ -258,52 +254,39 @@ struct MenuBarContentView: View {
 
     private var quickActionsSection: some View {
         Section {
-            VStack(spacing: 8) {
-                HStack(spacing: 8) {
-                    Button {
-                        bindableStore.send(.toggleSystemProxy)
-                    } label: {
-                        quickActionTile(
-                            title: "System Proxy",
-                            icon: .network,
-                            isActive: bindableStore.systemProxyEnabled,
-                            activeColor: .blue,
-                            )
-                    }
-                    .buttonStyle(.plain)
-
-                    Button {
-                        bindableStore.send(.toggleTunMode)
-                    } label: {
-                        quickActionTile(
-                            title: "TUN Mode",
-                            icon: .shieldFill,
-                            isActive: bindableStore.tunModeEnabled,
-                            activeColor: .green,
-                            )
-                    }
-                    .buttonStyle(.plain)
+            HStack(spacing: 8) {
+                Button {
+                    bindableStore.send(.toggleSystemProxy)
+                } label: {
+                    quickActionTile(
+                        title: "System Proxy",
+                        icon: .network,
+                        isActive: bindableStore.systemProxyEnabled,
+                        activeColor: .blue,
+                        )
                 }
+                .buttonStyle(.plain)
+
+                Button {
+                    bindableStore.send(.toggleTunMode)
+                } label: {
+                    quickActionTile(
+                        title: "TUN Mode",
+                        icon: .shieldFill,
+                        isActive: bindableStore.tunModeEnabled,
+                        activeColor: .green,
+                        )
+                }
+                .buttonStyle(.plain)
 
                 Button {
                     bindableStore.send(.reloadConfig)
                 } label: {
-                    HStack(spacing: 8) {
-                        Image(systemSymbol: .arrowClockwise)
-                            .font(.body)
-                            .foregroundStyle(.orange)
-                            .accessibilityHidden(true)
-                        Text("Reload Configuration")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .frame(maxWidth: .infinity)
-                    .background(
-                        Color.orange.opacity(0.08),
-                        in: RoundedRectangle(cornerRadius: 10),
+                    quickActionTile(
+                        title: "Config",
+                        icon: .arrowClockwise,
+                        isActive: false,
+                        activeColor: .orange,
                         )
                 }
                 .buttonStyle(.plain)
@@ -365,54 +348,6 @@ struct MenuBarContentView: View {
         } header: {
             Label("Navigation", systemSymbol: .arrowshapeTurnUpRightCircle)
         }
-    }
-}
-
-struct MenuBarNavigationButton: View {
-    let title: String
-    let icon: SFSymbol
-    var tint: Color?
-    var showsChevron: Bool
-    var role: ButtonRole?
-    let action: () -> Void
-
-    init(
-        title: String,
-        icon: SFSymbol,
-        tint: Color? = nil,
-        showsChevron: Bool = true,
-        role: ButtonRole? = nil,
-        action: @escaping () -> Void,
-        ) {
-        self.title = title
-        self.icon = icon
-        self.tint = tint
-        self.showsChevron = showsChevron
-        self.role = role
-        self.action = action
-    }
-
-    var body: some View {
-        Button(role: role, action: action) {
-            HStack(spacing: 8) {
-                Label(title, systemSymbol: icon)
-                    .foregroundStyle(tint ?? .primary)
-                Spacer()
-                if showsChevron {
-                    Image(systemSymbol: .chevronRight)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .accessibilityHidden(true)
-                }
-            }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill((tint ?? Color.secondary).opacity(0.08)),
-                )
-        }
-        .buttonStyle(.plain)
     }
 }
 
@@ -548,5 +483,3 @@ private struct MenuBarProxyNodeRow: View {
         return delayColor == .secondary ? Color.secondary.opacity(0.6) : delayColor
     }
 }
-
-enum MenuBarView {}

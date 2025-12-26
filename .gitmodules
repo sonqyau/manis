@@ -1,0 +1,3 @@
+[submodule "manis/Resources/Kernel/sing-swift"]
+	path = manis/Resources/Kernel/sing-swift
+	url = https://github.com/sonqyau/sing-swift.git

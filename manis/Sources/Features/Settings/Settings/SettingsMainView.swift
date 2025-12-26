@@ -58,103 +58,12 @@ struct SettingsMainView: View {
         }
     }
 
-    private var kernelSection: some View {
-        Section {
-            HStack(spacing: 12) {
-                Button {
-                    store.send(store.state.kernelIsRunning ? .stopKernel : .startKernel)
-                } label: {
-                    Label(store.state.kernelIsRunning ? "Stop Kernel" : "Start Kernel", systemSymbol: store.state.kernelIsRunning ? .stopCircle : .playCircle)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(store.state.isProcessing)
-
-                Button {
-                    store.send(.refreshKernelStatus)
-                } label: {
-                    Label("Refresh Status", systemSymbol: .arrowClockwise)
-                }
-                .buttonStyle(.bordered)
-                .disabled(store.state.isProcessing)
-            }
-        } header: {
-            Label("Kernel Management", systemSymbol: .cpu)
-        } footer: {
-            Text("Manis communicates with the privileged helper indirectly.")
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private var systemManagementSection: some View {
-        Section {
-            VStack(spacing: 12) {
-                HStack(spacing: 12) {
-                    Button {
-                        store.send(.restartCore)
-                    } label: {
-                        Label("Restart Core", systemSymbol: .arrowClockwise)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(store.state.isPerformingSystemOperation || !store.state.kernelIsRunning)
-
-                    Button {
-                        store.send(.upgradeCore)
-                    } label: {
-                        Label("Upgrade Core", systemSymbol: .arrowUpCircle)
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(store.state.isPerformingSystemOperation || !store.state.kernelIsRunning)
-                }
-
-                HStack(spacing: 12) {
-                    Button {
-                        store.send(.upgradeUI)
-                    } label: {
-                        Label("Upgrade UI", systemSymbol: .paintbrush)
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(store.state.isPerformingSystemOperation || !store.state.kernelIsRunning)
-
-                    Button {
-                        store.send(.upgradeGeo)
-                    } label: {
-                        Label("Upgrade GEO", systemSymbol: .globe)
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(store.state.isPerformingSystemOperation || !store.state.kernelIsRunning)
-                }
-
-                if store.state.isPerformingSystemOperation {
-                    HStack {
-                        ProgressView()
-                            .controlSize(.small)
-                        Text("Executing system operation...")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.top, 4)
-                }
-            }
-        } header: {
-            Label("System Operations", systemSymbol: .wrenchAndScrewdriver)
-        } footer: {
-            Text("Core system management functions require active kernel connection.")
-                .foregroundStyle(.secondary)
-        }
-    }
-
     var body: some View {
         NavigationStack {
             Form {
-                statusSection
-                launchAtLoginSection
-                daemonSection
-                kernelSection
-                proxySettingsSection
-                systemManagementSection
-                cacheManagementSection
-                systemInfoSection
-                configurationSection
+                mergedStatusSection
+                mergedSystemSection
+                mergedKernelSection
                 aboutSection
             }
             .formStyle(.grouped)
@@ -216,68 +125,6 @@ struct SettingsMainView: View {
             }
         } header: {
             Label("System Status", systemSymbol: .infoCircle)
-        }
-    }
-
-    private var launchAtLoginSection: some View {
-        Section {
-            Toggle(
-                "Launch at Login",
-                isOn: Binding(
-                    get: { store.state.launchAtLogin.isEnabled },
-                    set: { _ in store.send(.toggleBootstrap) },
-                    ),
-                )
-            .toggleStyle(.switch)
-            .disabled(store.state.isProcessing)
-
-            EmptyView()
-                .if(store.state.launchAtLogin.requiresApproval) { _ in
-                    helperApprovalNotice(text: "Authorize Mihomo in Login Items within System Settings")
-                    helperApprovalActions(needsStatusRefresh: false)
-                }
-        } header: {
-            Label("System Startup", systemSymbol: .powerCircle)
-        } footer: {
-            Text("Launch Manis automatically during macOS login.")
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private var configurationSection: some View {
-        Section {
-            NavigationLink {
-                PersistenceView(store: persistenceStore)
-            } label: {
-                HStack {
-                    Label("Manage Configurations", systemSymbol: .textDocumentFill)
-                    Spacer()
-                    Image(systemSymbol: .chevronRight)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                        .accessibilityHidden(true)
-                }
-            }
-            .buttonStyle(.plain)
-
-            Button {
-                openConfigEditor()
-            } label: {
-                HStack {
-                    Label("Edit Local Configuration", systemSymbol: .textDocument)
-                    Spacer()
-                    Image(systemSymbol: .pencil)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                        .accessibilityHidden(true)
-                }
-            }
-            .buttonStyle(.plain)
-        } header: {
-            Label("Application Configuration", systemSymbol: .gear)
-        } footer: {
-            Text("Manage local and remote Mihomo configuration profiles, or directly edit the local configuration.")
-                .foregroundStyle(.secondary)
         }
     }
 
@@ -352,110 +199,6 @@ struct SettingsMainView: View {
             .buttonStyle(.plain)
         } header: {
             Label("About", systemSymbol: .infoCircle)
-        }
-    }
-
-    private var proxySettingsSection: some View {
-        Section {
-            Toggle(
-                "System Proxy",
-                isOn: Binding(
-                    get: { store.state.systemProxyEnabled },
-                    set: { _ in store.send(.toggleSystemProxy) },
-                    ),
-                )
-            .toggleStyle(.switch)
-            .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
-
-            Toggle(
-                "TUN Mode",
-                isOn: Binding(
-                    get: { store.state.tunModeEnabled },
-                    set: { _ in store.send(.toggleTunMode) },
-                    ),
-                )
-            .toggleStyle(.switch)
-            .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
-
-            if store.state.mixedPort != nil || store.state.httpPort != nil || store.state.socksPort != nil {
-                VStack(alignment: .leading, spacing: 8) {
-                    if let mixedPort = store.state.mixedPort {
-                        portInfoRow(title: "Mixed Port", value: "\(mixedPort)", detail: "Combined HTTP(S) and SOCKS proxy port")
-                    }
-                    if let httpPort = store.state.httpPort {
-                        portInfoRow(title: "HTTP Port", value: "\(httpPort)", detail: "HTTP(S) proxy server port")
-                    }
-                    if let socksPort = store.state.socksPort {
-                        portInfoRow(title: "SOCKS Port", value: "\(socksPort)", detail: "SOCKS5 proxy server port")
-                    }
-                }
-            }
-        } header: {
-            Label("Network Configuration", systemSymbol: .network)
-        } footer: {
-            Text("Configure proxy modes and view port assignments. System proxy supports TCP-only HTTP connections.")
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private var cacheManagementSection: some View {
-        Section {
-            VStack(spacing: 12) {
-                HStack(spacing: 12) {
-                    Button {
-                        store.send(.flushFakeIPCache)
-                    } label: {
-                        Label("Clear Fake IP Cache", systemSymbol: .trashCircle)
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
-
-                    Button {
-                        store.send(.flushDNSCache)
-                    } label: {
-                        Label("Clear DNS Cache", systemSymbol: .trashCircleFill)
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
-                }
-
-                Button {
-                    store.send(.triggerGC)
-                } label: {
-                    Label("Initiate Memory Cleanup", systemSymbol: .memorychip)
-                }
-                .buttonStyle(.bordered)
-                .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
-            }
-        } header: {
-            Label("Cache Operations", systemSymbol: .externaldrive)
-        } footer: {
-            Text("Manage DNS and Fake IP caches, and initiate memory garbage collection.")
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private var systemInfoSection: some View {
-        Section {
-            LabeledContent("Memory Usage") {
-                Text(store.state.memoryUsage)
-                    .font(.system(.body, design: .monospaced))
-            }
-
-            LabeledContent("Traffic") {
-                Text(store.state.trafficInfo)
-                    .font(.system(.body, design: .monospaced))
-            }
-
-            LabeledContent("Core Version") {
-                Text(store.state.version.isEmpty ? "--" : store.state.version)
-                    .font(.system(.body, design: .monospaced))
-            }
-        } header: {
-            Label("System Information", systemSymbol: .infoCircleFill)
-        } footer: {
-            Text("Real-time metrics from the Mihomo core.")
-                .foregroundStyle(.secondary)
         }
     }
 
@@ -538,5 +281,296 @@ struct SettingsMainView: View {
                 .foregroundStyle(.tertiary)
         }
         .padding(.vertical, 4)
+    }
+
+    private var mergedStatusSection: some View {
+        let status = store.state.statusOverview
+
+        return Section {
+            HStack(spacing: 16) {
+                Circle()
+                    .fill(status.indicatorIsActive ? Color.green.gradient : Color.secondary.gradient)
+                    .frame(width: 12, height: 12)
+                    .symbolEffect(.pulse, options: .repeating, isActive: status.indicatorIsActive)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(status.summary)
+                        .font(.headline)
+
+                    EmptyView()
+                        .if(let: status.hint) { _, hint in
+                            Text(hint)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                }
+
+                Spacer()
+            }
+
+            LabeledContent("Memory Usage") {
+                Text(store.state.memoryUsage)
+                    .font(.system(.body, design: .monospaced))
+            }
+
+            LabeledContent("Traffic") {
+                Text(store.state.trafficInfo)
+                    .font(.system(.body, design: .monospaced))
+            }
+
+            LabeledContent("Core Version") {
+                Text(store.state.version.isEmpty ? "--" : store.state.version)
+                    .font(.system(.body, design: .monospaced))
+            }
+        } header: {
+            Label("Status", systemSymbol: .infoCircle)
+        } footer: {
+            Text("Real-time system status and metrics from the Mihomo core.")
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var mergedSystemSection: some View {
+        Section {
+            Toggle(
+                "Launch at Login",
+                isOn: Binding(
+                    get: { store.state.launchAtLogin.isEnabled },
+                    set: { _ in store.send(.toggleBootstrap) },
+                    ),
+                )
+            .toggleStyle(.switch)
+            .disabled(store.state.isProcessing)
+
+            EmptyView()
+                .if(store.state.launchAtLogin.requiresApproval) { _ in
+                    helperApprovalNotice(text: "Authorize Mihomo in Login Items within System Settings")
+                    helperApprovalActions(needsStatusRefresh: false)
+                }
+
+            HStack(spacing: 12) {
+                Button {
+                    store.send(.installDaemon)
+                } label: {
+                    Label("Install", systemSymbol: .arrowDownCircle)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(store.state.isProcessing)
+
+                Button {
+                    store.send(.uninstallDaemon)
+                } label: {
+                    Label("Uninstall", systemSymbol: .trash)
+                }
+                .buttonStyle(.bordered)
+                .disabled(store.state.isProcessing)
+
+                Button {
+                    store.send(.refreshDaemonStatus)
+                } label: {
+                    Label("Refresh", systemSymbol: .arrowClockwise)
+                }
+                .buttonStyle(.bordered)
+                .disabled(store.state.isProcessing)
+
+                Spacer()
+
+                Text(store.state.daemonStatus)
+                    .foregroundStyle(.secondary)
+            }
+
+            Toggle(
+                "System Proxy",
+                isOn: Binding(
+                    get: { store.state.systemProxyEnabled },
+                    set: { _ in store.send(.toggleSystemProxy) },
+                    ),
+                )
+            .toggleStyle(.switch)
+            .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
+
+            Toggle(
+                "TUN Mode",
+                isOn: Binding(
+                    get: { store.state.tunModeEnabled },
+                    set: { _ in store.send(.toggleTunMode) },
+                    ),
+                )
+            .toggleStyle(.switch)
+            .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
+
+            if store.state.mixedPort != nil || store.state.httpPort != nil || store.state.socksPort != nil {
+                VStack(alignment: .leading, spacing: 8) {
+                    if let mixedPort = store.state.mixedPort {
+                        portInfoRow(title: "Mixed Port", value: "\(mixedPort)", detail: "Combined HTTP(S) and SOCKS proxy port")
+                    }
+                    if let httpPort = store.state.httpPort {
+                        portInfoRow(title: "HTTP Port", value: "\(httpPort)", detail: "HTTP(S) proxy server port")
+                    }
+                    if let socksPort = store.state.socksPort {
+                        portInfoRow(title: "SOCKS Port", value: "\(socksPort)", detail: "SOCKS5 proxy server port")
+                    }
+                }
+            }
+        } header: {
+            Label("System", systemSymbol: .powerCircle)
+        } footer: {
+            Text("System startup, privileged helper, and network proxy settings. System proxy supports TCP-only HTTP connections.")
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var mergedKernelSection: some View {
+        Section {
+            HStack(spacing: 12) {
+                Button {
+                    store.send(store.state.kernelIsRunning ? .stopKernel : .startKernel)
+                } label: {
+                    Label(store.state.kernelIsRunning ? "Stop Kernel" : "Start Kernel", systemSymbol: store.state.kernelIsRunning ? .stopCircle : .playCircle)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(store.state.isProcessing)
+
+                Button {
+                    store.send(.refreshKernelStatus)
+                } label: {
+                    Label("Refresh Status", systemSymbol: .arrowClockwise)
+                }
+                .buttonStyle(.bordered)
+                .disabled(store.state.isProcessing)
+
+                Picker("Kernel Type", selection: Binding(
+                    get: { KernelType(rawValue: SettingsManager.shared.selectedKernel) ?? .mihomo },
+                    set: { SettingsManager.shared.selectedKernelType = $0 }
+                )) {
+                    ForEach(KernelType.allCases, id: \.self) { kernel in
+                        HStack {
+                            Text(kernel.displayName)
+                            Spacer()
+                            if kernel.isNative {
+                                Text("Native")
+                                    .font(.caption)
+                                    .foregroundStyle(.green)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(.green.opacity(0.1), in: Capsule())
+                            }
+                        }
+                        .tag(kernel)
+                    }
+                }
+                .pickerStyle(.menu)
+                .disabled(store.state.isProcessing || store.state.kernelIsRunning)
+            }
+
+            if SettingsManager.shared.selectedKernelType == .singSwift {
+                HStack {
+                    Image(systemSymbol: .infoCircle)
+                        .foregroundStyle(.blue)
+                    Text("sing-swift kernel is under development")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.top, 4)
+            }
+
+            VStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    Button {
+                        store.send(.restartCore)
+                    } label: {
+                        Label("Restart Core", systemSymbol: .arrowClockwise)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(store.state.isPerformingSystemOperation || !store.state.kernelIsRunning)
+
+                    Button {
+                        store.send(.upgradeCore)
+                    } label: {
+                        Label("Upgrade Core", systemSymbol: .arrowUpCircle)
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(store.state.isPerformingSystemOperation || !store.state.kernelIsRunning)
+
+                    Button {
+                        store.send(.upgradeUI)
+                    } label: {
+                        Label("Upgrade UI", systemSymbol: .paintbrush)
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(store.state.isPerformingSystemOperation || !store.state.kernelIsRunning)
+                }
+
+                HStack(spacing: 12) {
+                    Button {
+                        store.send(.upgradeGeo)
+                    } label: {
+                        Label("Upgrade GEO", systemSymbol: .globe)
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(store.state.isPerformingSystemOperation || !store.state.kernelIsRunning)
+
+                    Button {
+                        store.send(.flushFakeIPCache)
+                    } label: {
+                        Label("Clear Fake IP Cache", systemSymbol: .trashCircle)
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
+
+                    Button {
+                        store.send(.flushDNSCache)
+                    } label: {
+                        Label("Clear DNS Cache", systemSymbol: .trashCircleFill)
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(store.state.isProcessing || !store.state.kernelIsRunning)
+                }
+
+                if store.state.isPerformingSystemOperation {
+                    HStack {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text("Executing system operation...")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.top, 4)
+                }
+            }
+
+            NavigationLink {
+                PersistenceView(store: persistenceStore)
+            } label: {
+                HStack {
+                    Label("Manage Configurations", systemSymbol: .textDocumentFill)
+                    Spacer()
+                    Image(systemSymbol: .chevronRight)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .accessibilityHidden(true)
+                }
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                openConfigEditor()
+            } label: {
+                HStack {
+                    Label("Edit Local Configuration", systemSymbol: .textDocument)
+                    Spacer()
+                    Image(systemSymbol: .pencil)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .accessibilityHidden(true)
+                }
+            }
+            .buttonStyle(.plain)
+        } header: {
+            Label("Kernel", systemSymbol: .cpu)
+        } footer: {
+            Text("Kernel management, operations, cache control, and configuration.")
+                .foregroundStyle(.secondary)
+        }
     }
 }

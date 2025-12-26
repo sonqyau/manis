@@ -3,12 +3,10 @@ import Perception
 import SwiftUI
 
 struct DNSView: View {
-    let store: StoreOf<DNSFeature>
     @Bindable private var bindableStore: StoreOf<DNSFeature>
     @FocusState private var isDomainFocused: Bool
 
     init(store: StoreOf<DNSFeature>) {
-        self.store = store
         _bindableStore = Bindable(wrappedValue: store)
     }
 

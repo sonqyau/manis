@@ -276,41 +276,6 @@ actor MihomoService {
         return false
     }
 
-    private func startProcessWithRetry(
-        executablePath: String,
-        configPath: String,
-        configContent: String,
-        secret _: String,
-        ) async throws -> String {
-        let maxRetries = 3
-        let retryDelay = Duration.seconds(2)
-
-        let retryStream = AsyncTimerSequence(interval: retryDelay, clock: ContinuousClock())
-            .compactMap { _ in }
-            .debounce(for: .milliseconds(100))
-
-        var attempt = 0
-
-        for await _ in retryStream {
-            attempt += 1
-            do {
-                let result = try await startProcess(
-                    executablePath: executablePath,
-                    configPath: configPath,
-                    configContent: configContent,
-                    )
-                return result
-            } catch {
-                logger.warning("Process start attempt \(attempt) failed: \(error)")
-                if attempt >= maxRetries {
-                    throw error
-                }
-            }
-        }
-
-        throw DaemonError.processError("Failed to start process after \(maxRetries) attempts")
-    }
-
     private func findMihomoExecutable() -> String {
         let possiblePaths = [
             "/usr/local/bin/mihomo",

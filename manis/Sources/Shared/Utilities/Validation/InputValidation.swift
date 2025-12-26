@@ -128,35 +128,4 @@ enum InputValidation {
 
         return trimmed
     }
-
-    static func extractSubstring(_ string: String, in range: NSRange) -> String? {
-        string[range].map(String.init)
-    }
-
-    static func extractSubstring(_ string: String, in range: Range<Int>) -> String? {
-        string[range].map(String.init)
-    }
-
-    static func validateCharacterRange(_ string: String, allowedSet: CharacterSet, fieldName: String) throws -> Bool {
-        let invalidRange = string.rangeOfCharacter(from: allowedSet.inverted)
-        if invalidRange != nil {
-            throw InputValidationError.invalidCharacters(fieldName)
-        }
-        return true
-    }
-
-    static func clampedLength(_ string: String, maxLength: Int) -> String {
-        if string.count <= maxLength {
-            return string
-        }
-
-        let endIndex = string.index(string.startIndex, offsetBy: maxLength)
-        return String(string[..<endIndex])
-    }
-
-    static func safeSubstring(_ string: String, startIndex: Int, length: Int) -> String? {
-        let range = NSRange(location: startIndex, length: length)
-        let clampedRange = range.clamped(to: string.count)
-        return string[clampedRange].map(String.init)
-    }
 }

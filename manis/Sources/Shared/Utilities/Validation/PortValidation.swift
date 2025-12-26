@@ -135,17 +135,3 @@ final class PortValidation {
         return result == 0
     }
 }
-
-extension NetworkDomain {
-    func isPortAvailable(_ port: Int) -> Bool {
-        PortValidation.shared.isPortAvailable(port)
-    }
-
-    func findAvailablePort(startingFrom startPort: Int = 7890) -> Int? {
-        PortValidation.shared.findAvailablePort(startingFrom: startPort)
-    }
-
-    func getUsedPorts() -> [Int] {
-        PortValidation.shared.getUsedPorts()
-    }
-}

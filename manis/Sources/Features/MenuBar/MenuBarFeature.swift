@@ -205,21 +205,6 @@ struct MenuBarFeature: @preconcurrency Reducer {
         }
     }
 
-    private func runOperation(
-        containerDescription _: String,
-        work: @escaping () async throws -> Void,
-        ) -> Effect<Action> {
-        .run { @MainActor send in
-            do {
-                try await work()
-                send(.operationFinished(nil))
-            } catch {
-                let message = (error as NSError).localizedDescription
-                send(.operationFinished(message))
-            }
-        }
-    }
-
     private static func formatSpeed(_ value: String?) -> String {
         value ?? "0 B/s"
     }
@@ -242,19 +227,6 @@ struct MenuBarFeature: @preconcurrency Reducer {
             }
 
         return filteredGroups
-    }
-
-    private static func buildNonEmptySelectorGroups(
-        from groups: OrderedDictionary<String, GroupInfo>,
-        ) -> NonEmpty<[State.ProxySelectorGroup]>? {
-        let filteredGroups = groups
-            .filter { $0.value.type.lowercased() == "selector" }
-            .sorted { $0.key < $1.key }
-            .map { key, info in
-                State.ProxySelectorGroup(id: key, info: info)
-            }
-
-        return NonEmpty(rawValue: filteredGroups)
     }
 
     private func toggleSystemProxyEffect(currentState: Bool) -> Effect<Action> {

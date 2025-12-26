@@ -3,12 +3,10 @@ import Perception
 import SwiftUI
 
 struct RulesView: View {
-    let store: StoreOf<RulesFeature>
     @Bindable private var bindableStore: StoreOf<RulesFeature>
     @FocusState private var isSearchFocused: Bool
 
     init(store: StoreOf<RulesFeature>) {
-        self.store = store
         _bindableStore = Bindable(wrappedValue: store)
     }
 

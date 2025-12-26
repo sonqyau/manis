@@ -416,7 +416,7 @@ struct AddRemoteConfigView: View {
         isAdding = true
 
         do {
-            try await PersistenceDomain.shared.addConfig(name: name, url: url)
+            try await PersistenceDomain.shared.addConfig(name: name, url: url, autoUpdate: autoUpdate)
             dismiss()
         } catch {
             errorMessage = error.localizedDescription
