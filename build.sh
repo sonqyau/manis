@@ -34,7 +34,7 @@ arch(){
 }
 
 kernel(){
-  local kernel_dir="$ROOT_DIR/manis/Resources/Kernel"
+  local kernel_dir="$ROOT_DIR/manis/Resources/Kernel/mihomo"
   mkdir -p "$kernel_dir"
 
   local arch
@@ -68,8 +68,8 @@ kernel(){
   fetch "$asset_url" "$tmp_gz" || fatal "Kernel binary download failed"
   gunzip -c "$tmp_gz" > "$tmp_bin" || fatal "Kernel binary decompression failed"
   chmod 755 "$tmp_bin"
-  mv -f "$tmp_bin" "${kernel_dir}/mihomo/binary"
-  info "Kernel binary: ${kernel_dir}/mihomo/binary"
+  mv -f "$tmp_bin" "${kernel_dir}/binary"
+  info "Kernel binary: ${kernel_dir}/binary"
 }
 
 config(){
