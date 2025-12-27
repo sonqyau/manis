@@ -35,7 +35,7 @@ public enum TextComposer {
         in text: String,
         options: NSString.CompareOptions = [.caseInsensitive],
         contextLength: Int = 50,
-        ) -> [SearchResult] {
+    ) -> [SearchResult] {
         guard !searchText.isEmpty else { return [] }
 
         var results: [SearchResult] = []
@@ -46,7 +46,7 @@ public enum TextComposer {
                 of: searchText,
                 options: options,
                 range: searchRange,
-                )
+            )
 
             if !foundRange.isValid {
                 break
@@ -58,7 +58,7 @@ public enum TextComposer {
             searchRange = NSRange(
                 location: foundRange.max,
                 length: text.count - foundRange.max,
-                )
+            )
         }
 
         return results
@@ -69,7 +69,7 @@ public enum TextComposer {
         with replacement: String,
         in text: String,
         options: NSString.CompareOptions = [.caseInsensitive],
-        ) -> (result: String, operations: [ReplaceOperation]) {
+    ) -> (result: String, operations: [ReplaceOperation]) {
         let searchResults = findAll(searchText, in: text, options: options)
         guard !searchResults.isEmpty else {
             return (text, [])
@@ -79,13 +79,13 @@ public enum TextComposer {
             let adjustedRange = NSRange(
                 location: result.range.location,
                 length: result.range.length,
-                )
+            )
 
             let operation = ReplaceOperation(
                 range: adjustedRange,
                 replacement: replacement,
                 originalText: result.matchedText,
-                )
+            )
             return operation
         }
 
@@ -96,7 +96,7 @@ public enum TextComposer {
                     with: operation.replacement,
                     options: [],
                     range: Range(operation.range, in: currentText),
-                    )
+                )
             }
             return currentText
         }
@@ -108,7 +108,7 @@ public enum TextComposer {
         _ insertText: String,
         at location: Int,
         in text: String,
-        ) -> (result: String, mutation: RangeMutation) {
+    ) -> (result: String, mutation: RangeMutation) {
         let clampedLocation = max(0, min(location, text.count))
         let insertRange = NSRange(location: clampedLocation, length: 0)
         let mutation = RangeMutation(range: insertRange, delta: insertText.count)
@@ -122,7 +122,7 @@ public enum TextComposer {
     public static func deleteText(
         in range: NSRange,
         from text: String,
-        ) -> (result: String, mutation: RangeMutation) {
+    ) -> (result: String, mutation: RangeMutation) {
         guard range.isValid else {
             return (text, RangeMutation(range: NSRange(location: 0, length: 0), delta: 0))
         }
@@ -141,7 +141,7 @@ public enum TextComposer {
     public static func extractLines(
         from text: String,
         in range: NSRange,
-        ) -> [String] {
+    ) -> [String] {
         let clampedRange = range.clamped(to: text.count)
         guard let substring = text[clampedRange] else { return [] }
 
@@ -151,7 +151,7 @@ public enum TextComposer {
     public static func findLineRange(
         containing location: Int,
         in text: String,
-        ) -> NSRange? {
+    ) -> NSRange? {
         guard location >= 0, location <= text.count else { return nil }
 
         let nsString = text as NSString
@@ -162,7 +162,7 @@ public enum TextComposer {
         _ ranges: [NSRange],
         in attributedString: NSMutableAttributedString,
         with attributes: [NSAttributedString.Key: Any],
-        ) {
+    ) {
         for range in ranges {
             let clampedRange = range.clamped(to: attributedString.length)
             attributedString.addAttributes(attributes, range: clampedRange)
@@ -173,7 +173,7 @@ public enum TextComposer {
         _ range: NSRange,
         in text: String,
         allowEmpty: Bool = true,
-        ) -> NSRange? {
+    ) -> NSRange? {
         guard range.isValid else { return nil }
         guard range.max <= text.count else { return nil }
         guard allowEmpty || !range.isEmpty else { return nil }
@@ -206,7 +206,7 @@ public enum TextComposer {
     public static func splitTextByRanges(
         _ text: String,
         ranges: [NSRange],
-        ) -> [String] {
+    ) -> [String] {
         let sortedRanges = ranges.filter(\.isValid).sorted { $0.location < $1.location }
         guard let nonEmptyRanges = NonEmpty(rawValue: sortedRanges) else { return [text] }
 
@@ -224,7 +224,7 @@ public enum TextComposer {
                 let beforeRange = NSRange(
                     location: currentLocation,
                     length: firstRange.location - currentLocation,
-                    )
+                )
                 if let beforeText = text[beforeRange] {
                     parts.append(String(beforeText))
                 }
@@ -245,7 +245,7 @@ public enum TextComposer {
             let afterRange = NSRange(
                 location: currentLocation,
                 length: text.count - currentLocation,
-                )
+            )
             if let afterText = text[afterRange] {
                 parts.append(String(afterText))
             }

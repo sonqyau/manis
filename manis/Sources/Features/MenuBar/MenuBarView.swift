@@ -89,8 +89,8 @@ struct MenuBarContentView: View {
             Binding<AlertState<MenuBarFeature.AlertAction>?>(
                 get: { bindableStore.alert },
                 set: { _ in },
-                ),
-            ) { action in
+            ),
+        ) { action in
             if let action {
                 bindableStore.send(.alert(action))
             }
@@ -126,7 +126,8 @@ struct MenuBarContentView: View {
                 Spacer()
 
                 if let interface = bindableStore.networkInterface,
-                   let ipAddress = bindableStore.ipAddress {
+                   let ipAddress = bindableStore.ipAddress
+                {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(interface)
                             .font(.caption2)
@@ -160,13 +161,13 @@ struct MenuBarContentView: View {
                         icon: .arrowDown,
                         value: bindableStore.downloadSpeed,
                         color: .blue,
-                        )
+                    )
                     Divider().frame(height: 20)
                     trafficStat(
                         icon: .arrowUp,
                         value: bindableStore.uploadSpeed,
                         color: .green,
-                        )
+                    )
                     Divider().frame(height: 20)
                     memoryStat(value: bindableStore.memoryUsage)
                 }
@@ -217,7 +218,7 @@ struct MenuBarContentView: View {
         icon: SFSymbol,
         isActive: Bool = false,
         activeColor: Color = .blue,
-        ) -> some View {
+    ) -> some View {
         HStack(spacing: 8) {
             Image(systemSymbol: icon)
                 .font(.body)
@@ -234,7 +235,7 @@ struct MenuBarContentView: View {
         .background(
             isActive ? activeColor.opacity(0.15) : Color.secondary.opacity(0.08),
             in: RoundedRectangle(cornerRadius: 10),
-            )
+        )
     }
 
     private var proxyGroupsSection: some View {
@@ -243,7 +244,7 @@ struct MenuBarContentView: View {
                 MenuBarProxyGroupRow(
                     group: proxyGroup,
                     proxies: bindableStore.proxies,
-                    ) { groupName, proxy in
+                ) { groupName, proxy in
                     bindableStore.send(.selectProxy(group: groupName, proxy: proxy))
                 }
             }
@@ -263,7 +264,7 @@ struct MenuBarContentView: View {
                         icon: .network,
                         isActive: bindableStore.systemProxyEnabled,
                         activeColor: .blue,
-                        )
+                    )
                 }
                 .buttonStyle(.plain)
 
@@ -275,7 +276,7 @@ struct MenuBarContentView: View {
                         icon: .shieldFill,
                         isActive: bindableStore.tunModeEnabled,
                         activeColor: .green,
-                        )
+                    )
                 }
                 .buttonStyle(.plain)
 
@@ -287,7 +288,7 @@ struct MenuBarContentView: View {
                         icon: .arrowClockwise,
                         isActive: false,
                         activeColor: .orange,
-                        )
+                    )
                 }
                 .buttonStyle(.plain)
             }
@@ -301,7 +302,7 @@ struct MenuBarContentView: View {
         icon: SFSymbol,
         isActive: Bool = false,
         activeColor: Color = .blue,
-        ) -> some View {
+    ) -> some View {
         HStack(spacing: 8) {
             Image(systemSymbol: icon)
                 .font(.body)
@@ -318,7 +319,7 @@ struct MenuBarContentView: View {
         .background(
             isActive ? activeColor.opacity(0.15) : Color.secondary.opacity(0.08),
             in: RoundedRectangle(cornerRadius: 10),
-            )
+        )
     }
 
     private var navigationSection: some View {
@@ -402,7 +403,7 @@ private struct MenuBarProxyGroupRow: View {
                             proxyName: proxyName.rawValue,
                             isSelected: proxyName.rawValue == group.info.now,
                             proxyInfo: proxies[proxyName.rawValue],
-                            ) {
+                        ) {
                             onSelect(group.id, proxyName.rawValue)
                         }
                     }
@@ -429,7 +430,7 @@ private struct MenuBarProxyNodeRow: View {
                     .overlay(
                         Circle()
                             .stroke(Color.secondary.opacity(0.3), lineWidth: 1),
-                        )
+                    )
 
                 Text(proxyName)
                     .font(.body)

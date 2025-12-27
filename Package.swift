@@ -7,7 +7,7 @@ let package = Package(
     name: "manis",
     defaultLocalization: "en",
     platforms: [
-        .macOS("26.0"),
+        .macOS(.v26),
     ],
     products: [
         .executable(name: "manis", targets: ["manis"]),
@@ -77,7 +77,7 @@ let package = Package(
                 "Daemon",
                 "Supporting Files/Info.plist",
                 "manis.entitlements",
-                "Resources/Kernel/sing-swift"
+                "Resources/Kernel/sing-swift",
             ],
             resources: [
                 .process("Resources"),
@@ -86,6 +86,8 @@ let package = Package(
                 .swiftLanguageMode(.v6),
                 .enableUpcomingFeature("StrictConcurrency"),
                 .enableUpcomingFeature("ApproachableConcurrency"),
+                .unsafeFlags(["-cross-module-optimization"],
+                             .when(configuration: .release)),
             ],
         ),
         .executableTarget(
@@ -102,6 +104,8 @@ let package = Package(
                 .swiftLanguageMode(.v6),
                 .enableUpcomingFeature("StrictConcurrency"),
                 .enableUpcomingFeature("ApproachableConcurrency"),
+                .unsafeFlags(["-cross-module-optimization"],
+                             .when(configuration: .release)),
             ],
         ),
         .executableTarget(
@@ -125,6 +129,8 @@ let package = Package(
                 .swiftLanguageMode(.v6),
                 .enableUpcomingFeature("StrictConcurrency"),
                 .enableUpcomingFeature("ApproachableConcurrency"),
+                .unsafeFlags(["-cross-module-optimization"],
+                             .when(configuration: .release)),
             ],
         ),
     ],

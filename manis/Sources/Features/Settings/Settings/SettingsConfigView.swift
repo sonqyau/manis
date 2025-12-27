@@ -43,7 +43,7 @@ struct SettingsConfigView: View {
             document: ConfigDocument(text: text),
             contentType: UTType(filenameExtension: fileExtension) ?? .plainText,
             defaultFilename: displayName,
-            ) { result in
+        ) { result in
             switch result {
             case let .success(url):
                 currentFileURL = url
@@ -55,7 +55,7 @@ struct SettingsConfigView: View {
         .fileImporter(
             isPresented: $showOpenDialog,
             allowedContentTypes: [UTType(filenameExtension: fileExtension) ?? .plainText],
-            ) { result in
+        ) { result in
             switch result {
             case let .success(url):
                 loadFile(from: url)
@@ -70,7 +70,7 @@ struct SettingsConfigView: View {
                 onFind: performFind,
                 onReplace: performReplace,
                 onReplaceAll: performReplaceAll,
-                )
+            )
         }
     }
 
@@ -125,7 +125,7 @@ struct SettingsConfigView: View {
             language: language,
             fontSize: 12,
             theme: isDarkTheme ? TextKit2Theme.dark : TextKit2Theme.light,
-            )
+        )
         .onChange(of: text) { _, _ in
             if !isEdited {
                 isEdited = true
@@ -188,7 +188,7 @@ struct SettingsConfigView: View {
                 of: searchText,
                 options: [.caseInsensitive],
                 range: searchRange,
-                )
+            )
 
             if foundRange.location == NSNotFound {
                 break
@@ -198,7 +198,7 @@ struct SettingsConfigView: View {
             searchRange = NSRange(
                 location: foundRange.max,
                 length: content.count - foundRange.max,
-                )
+            )
         }
 
         return ranges
@@ -338,6 +338,6 @@ struct ConfigEditorWindow: View {
             fileName: fileName,
             fileExtension: fileExtension,
             language: language,
-            )
+        )
     }
 }

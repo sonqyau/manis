@@ -2,24 +2,24 @@ import Foundation
 import SwiftData
 
 enum KernelType: String, CaseIterable, Codable {
-    case mihomo = "mihomo"
+    case mihomo
     case singSwift = "sing-swift"
 
     var displayName: String {
         switch self {
         case .mihomo:
-            return "mihomo (Clash Meta)"
+            "mihomo (Clash Meta)"
         case .singSwift:
-            return "sing-swift"
+            "sing-swift"
         }
     }
 
     var isNative: Bool {
         switch self {
         case .mihomo:
-            return false
+            false
         case .singSwift:
-            return true
+            true
         }
     }
 }
@@ -83,7 +83,7 @@ final class SettingsManager {
             schema: schema,
             isStoredInMemoryOnly: false,
             allowsSave: true,
-            )
+        )
 
         do {
             let container = try ModelContainer(for: schema, configurations: [configuration])

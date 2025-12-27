@@ -173,7 +173,7 @@ struct SettingsFeature: @preconcurrency Reducer {
                 state.launchAtLogin = .init(
                     isEnabled: launchState.isEnabled,
                     requiresApproval: launchState.requiresApproval,
-                    )
+                )
                 return .none
 
             case .toggleBootstrap:
@@ -213,13 +213,13 @@ struct SettingsFeature: @preconcurrency Reducer {
                     previousController: previousController,
                     previousSecret: previousSecret,
                     state: &state,
-                    )
+                )
 
                 state.statusOverview = .init(
                     indicatorIsActive: snapshot.isRunning,
                     summary: snapshot.isRunning ? "Kernel Running" : "Kernel Stopped",
                     hint: snapshot.externalController,
-                    )
+                )
 
                 state.isProcessing = false
                 return .none
@@ -308,12 +308,12 @@ struct SettingsFeature: @preconcurrency Reducer {
             indicatorIsActive: false,
             summary: "Ready",
             hint: nil,
-            )
+        )
 
         state.launchAtLogin = .init(
             isEnabled: launchState.isEnabled,
             requiresApproval: launchState.requiresApproval,
-            )
+        )
 
         state.daemonStatus = describeDaemonStatus()
 
@@ -373,7 +373,7 @@ struct SettingsFeature: @preconcurrency Reducer {
                         domain: "com.manis.app",
                         code: -1,
                         userInfo: [NSLocalizedDescriptionKey: "Unknown daemon status"],
-                        )
+                    )
                 }
 
                 send(.refreshDaemonStatus)
@@ -446,7 +446,7 @@ struct SettingsFeature: @preconcurrency Reducer {
     private func operationFinishedEffect(
         state: inout State,
         errorMessage: String?,
-        ) -> Effect<Action> {
+    ) -> Effect<Action> {
         state.isProcessing = false
         if let errorMessage {
             state.alert = .error(errorMessage)
@@ -458,7 +458,7 @@ struct SettingsFeature: @preconcurrency Reducer {
         state.launchAtLogin = .init(
             isEnabled: launchState.isEnabled,
             requiresApproval: launchState.requiresApproval,
-            )
+        )
         return .none
     }
 
@@ -499,9 +499,9 @@ struct SettingsFeature: @preconcurrency Reducer {
                             processId: status.processId,
                             externalController: status.externalController,
                             secret: status.secret,
-                            ),
                         ),
-                    )
+                    ),
+                )
             } catch {
                 let message = (error as NSError).localizedDescription
                 send(.kernelStatusFailed(message))
@@ -549,7 +549,7 @@ struct SettingsFeature: @preconcurrency Reducer {
                     executablePath: executablePath,
                     configPath: configDir.path,
                     configContent: configContent,
-                    )
+                )
                 send(.refreshKernelStatus)
             } catch {
                 let message = (error as NSError).localizedDescription
@@ -597,7 +597,7 @@ struct SettingsFeature: @preconcurrency Reducer {
         previousController: String?,
         previousSecret: String?,
         state: inout State,
-        ) {
+    ) {
         if !statusIsRunning {
             if state.statusOverview.indicatorIsActive {
                 mihomoService.disconnect()
@@ -693,7 +693,7 @@ struct SettingsFeature: @preconcurrency Reducer {
         state: inout State,
         success: Bool,
         errorMessage: String?,
-        ) -> Effect<Action> {
+    ) -> Effect<Action> {
         state.isPerformingSystemOperation = false
 
         if success {

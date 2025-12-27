@@ -37,7 +37,7 @@ struct XPCRequest: Codable, Sendable {
         timeout: TimeInterval? = nil,
         enabled: Bool = false,
         dnsServer: String? = nil,
-        ) {
+    ) {
         self.method = method
         self.executablePath = executablePath
         self.configPath = configPath
@@ -317,7 +317,7 @@ struct XPCClient: XPC {
                     executablePath: executablePath,
                     configPath: configPath,
                     configContent: configContent,
-                    )
+                )
 
                 let response: XPCResponse = try await connection.sendMessage(name: "startKernel", request: request)
 

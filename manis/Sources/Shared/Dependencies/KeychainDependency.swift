@@ -33,7 +33,7 @@ enum KeychainClientKey: DependencyKey {
         canAccessKeychain: {
             Keychain.shared.canAccessKeychain()
         },
-        )
+    )
 }
 
 extension DependencyValues {

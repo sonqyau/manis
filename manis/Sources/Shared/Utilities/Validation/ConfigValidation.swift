@@ -112,18 +112,20 @@ final class ConfigValidation {
     private init() {}
 
     func validate(configPath: String, workingDirectory: String? = nil) async throws
-    -> ValidationResult {
+        -> ValidationResult
+    {
         var execPath: String?
 
         if let bundleURL = Bundle.main.url(forResource: "miho_miho", withExtension: "bundle"),
            let bundle = Bundle(url: bundleURL),
-           let binaryURL = bundle.url(forResource: "manis", withExtension: nil) {
+           let binaryURL = bundle.url(forResource: "manis", withExtension: nil)
+        {
             execPath = binaryURL.path
         } else if let exec = Bundle.main.url(
             forResource: "manis",
             withExtension: nil,
             subdirectory: "Resources",
-            ) {
+        ) {
             execPath = exec.path
         }
 
@@ -162,7 +164,7 @@ final class ConfigValidation {
     func validateContent(_ content: String) async throws -> ValidationResult {
         let tmp = FilePath(FileManager.default.temporaryDirectory.appendingPathComponent(
             "cfg_\(UUID().uuidString).yaml",
-            ).path)
+        ).path)
         defer { try? FileManager.default.removeItem(atPath: tmp.string) }
 
         let fd = try FileDescriptor.open(tmp, .writeOnly, options: [.create, .truncate], permissions: FilePermissions(rawValue: 0o600))

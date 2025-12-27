@@ -28,8 +28,8 @@ struct ProvidersView: View {
             Binding<AlertState<ProvidersFeature.AlertAction>?>(
                 get: { bindableStore.alert },
                 set: { _ in },
-                ),
-            ) { action in
+            ),
+        ) { action in
             if let action {
                 bindableStore.send(.alert(action))
             }
@@ -49,7 +49,7 @@ struct ProvidersView: View {
             Picker("Provider type", selection: Binding(
                 get: { bindableStore.selectedSegment },
                 set: { bindableStore.send(.selectSegment($0)) },
-                )) {
+            )) {
                 Text("Proxy Providers").tag(0)
                 Text("Rule Providers").tag(1)
             }
@@ -66,7 +66,7 @@ struct ProvidersView: View {
                     "No proxy providers",
                     systemImage: "externaldrive.fill",
                     description: Text("No proxy providers are configured."),
-                    )
+                )
                 .frame(maxWidth: .infinity, minHeight: 120)
             } else {
                 ForEach(proxyProviders, id: \.0) { name, provider in
@@ -77,7 +77,7 @@ struct ProvidersView: View {
                         isHealthChecking: bindableStore.healthCheckingProxyProviders.contains(name),
                         onRefresh: { bindableStore.send(.refreshProxy(name)) },
                         onHealthCheck: { bindableStore.send(.healthCheckProxy(name)) },
-                        )
+                    )
                 }
             }
         } header: {
@@ -92,7 +92,7 @@ struct ProvidersView: View {
                     "No rule providers",
                     systemImage: "list.bullet.rectangle",
                     description: Text("No rule providers are configured."),
-                    )
+                )
                 .frame(maxWidth: .infinity, minHeight: 120)
             } else {
                 ForEach(ruleProviders, id: \.0) { name, provider in
@@ -100,7 +100,7 @@ struct ProvidersView: View {
                         name: name,
                         provider: provider,
                         isRefreshing: bindableStore.refreshingRuleProviders.contains(name),
-                        ) { bindableStore.send(.refreshRule(name)) }
+                    ) { bindableStore.send(.refreshRule(name)) }
                 }
             }
         } header: {

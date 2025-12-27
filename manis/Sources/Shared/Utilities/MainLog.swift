@@ -77,7 +77,7 @@ struct CategoryLogger: @unchecked Sendable {
         metadata: LogMetadata? = nil,
         error: (any Error)? = nil,
         message: @autoclosure () -> String,
-        ) {
+    ) {
         var resolvedMetadata = metadata
 
         if let error {
@@ -93,7 +93,7 @@ struct CategoryLogger: @unchecked Sendable {
             logger.log(
                 level: level.osLogType,
                 "\(logMessage, privacy: .public) [metadata: \(metadataDescription, privacy: .public)]",
-                )
+            )
         } else {
             logger.log(level: level.osLogType, "\(logMessage, privacy: .public)")
         }
@@ -103,7 +103,7 @@ struct CategoryLogger: @unchecked Sendable {
         _ message: @autoclosure () -> String,
         metadata: LogMetadata? = nil,
         error: (any Error)? = nil,
-        ) {
+    ) {
         log(level: .debug, metadata: metadata, error: error, message: message())
     }
 
@@ -111,7 +111,7 @@ struct CategoryLogger: @unchecked Sendable {
         _ message: @autoclosure () -> String,
         metadata: LogMetadata? = nil,
         error: (any Error)? = nil,
-        ) {
+    ) {
         log(level: .debug, metadata: metadata, error: error, message: message())
     }
 
@@ -119,7 +119,7 @@ struct CategoryLogger: @unchecked Sendable {
         _ message: @autoclosure () -> String,
         metadata: LogMetadata? = nil,
         error: (any Error)? = nil,
-        ) {
+    ) {
         log(level: .info, metadata: metadata, error: error, message: message())
     }
 
@@ -127,7 +127,7 @@ struct CategoryLogger: @unchecked Sendable {
         _ message: @autoclosure () -> String,
         metadata: LogMetadata? = nil,
         error: (any Error)? = nil,
-        ) {
+    ) {
         log(level: .notice, metadata: metadata, error: error, message: message())
     }
 
@@ -135,7 +135,7 @@ struct CategoryLogger: @unchecked Sendable {
         _ message: @autoclosure () -> String,
         metadata: LogMetadata? = nil,
         error: (any Error)? = nil,
-        ) {
+    ) {
         log(level: .warning, metadata: metadata, error: error, message: message())
     }
 
@@ -143,7 +143,7 @@ struct CategoryLogger: @unchecked Sendable {
         _ message: @autoclosure () -> String,
         metadata: LogMetadata? = nil,
         error: (any Error)? = nil,
-        ) {
+    ) {
         log(level: .error, metadata: metadata, error: error, message: message())
     }
 
@@ -151,7 +151,7 @@ struct CategoryLogger: @unchecked Sendable {
         _ message: @autoclosure () -> String,
         metadata: LogMetadata? = nil,
         error: (any Error)? = nil,
-        ) {
+    ) {
         log(level: .fault, metadata: metadata, error: error, message: message())
     }
 
@@ -159,7 +159,7 @@ struct CategoryLogger: @unchecked Sendable {
         _ message: @autoclosure () -> String,
         metadata: LogMetadata? = nil,
         error: (any Error)? = nil,
-        ) {
+    ) {
         log(level: .fault, metadata: metadata, error: error, message: message())
     }
 
@@ -215,7 +215,7 @@ final class MainLog: Sendable {
         _ message: String,
         level: MainLogLevel = .info,
         category: LogCategory = .app,
-        ) {
+    ) {
         let categoryLogger = logger(for: category)
         categoryLogger.log(level: level, message: message)
     }
@@ -255,7 +255,7 @@ enum Log {
         category: LogCategory = .app,
         metadata: @autoclosure () -> LogMetadata? = nil,
         error: @autoclosure () -> (any Error)? = nil,
-        ) {
+    ) {
         logger(for: category).debug(message(), metadata: metadata(), error: error())
     }
 
@@ -264,7 +264,7 @@ enum Log {
         category: LogCategory = .app,
         metadata: @autoclosure () -> LogMetadata? = nil,
         error: @autoclosure () -> (any Error)? = nil,
-        ) {
+    ) {
         logger(for: category).info(message(), metadata: metadata(), error: error())
     }
 
@@ -273,7 +273,7 @@ enum Log {
         category: LogCategory = .app,
         metadata: @autoclosure () -> LogMetadata? = nil,
         error: @autoclosure () -> (any Error)? = nil,
-        ) {
+    ) {
         logger(for: category).notice(message(), metadata: metadata(), error: error())
     }
 
@@ -282,7 +282,7 @@ enum Log {
         category: LogCategory = .app,
         metadata: @autoclosure () -> LogMetadata? = nil,
         error: @autoclosure () -> (any Error)? = nil,
-        ) {
+    ) {
         logger(for: category).warning(message(), metadata: metadata(), error: error())
     }
 
@@ -291,7 +291,7 @@ enum Log {
         category: LogCategory = .app,
         metadata: @autoclosure () -> LogMetadata? = nil,
         error: @autoclosure () -> (any Error)? = nil,
-        ) {
+    ) {
         logger(for: category).error(message(), metadata: metadata(), error: error())
     }
 
@@ -300,7 +300,7 @@ enum Log {
         category: LogCategory = .app,
         metadata: @autoclosure () -> LogMetadata? = nil,
         error: @autoclosure () -> (any Error)? = nil,
-        ) {
+    ) {
         logger(for: category).fault(message(), metadata: metadata(), error: error())
     }
 }

@@ -24,7 +24,7 @@ actor MihomoService {
             throw DaemonError.invalidStateTransition(
                 from: String(describing: state),
                 to: "starting",
-                )
+            )
         }
 
         state = .starting
@@ -37,7 +37,7 @@ actor MihomoService {
                         executablePath: executablePath,
                         configPath: configPath,
                         configContent: configContent,
-                        )
+                    )
                     continuation.resume(returning: result)
                 } catch {
                     await myself.handleError(error)
@@ -76,7 +76,7 @@ actor MihomoService {
             throw DaemonError.invalidStateTransition(
                 from: String(describing: state),
                 to: "restarting",
-                )
+            )
         }
 
         let configPath = processInfo.configPath
@@ -93,7 +93,7 @@ actor MihomoService {
             executablePath: executablePath,
             configPath: configPath,
             configContent: configContent,
-            )
+        )
     }
 
     func getStatus() async -> MihomoStatus {
@@ -107,7 +107,7 @@ actor MihomoService {
                 externalController: nil,
                 secret: nil,
                 logs: [],
-                )
+            )
 
         case .starting:
             MihomoStatus(
@@ -118,7 +118,7 @@ actor MihomoService {
                 externalController: nil,
                 secret: nil,
                 logs: ["Starting..."],
-                )
+            )
 
         case let .running(processInfo):
             MihomoStatus(
@@ -129,7 +129,7 @@ actor MihomoService {
                 externalController: processInfo.externalController,
                 secret: processInfo.secret,
                 logs: [],
-                )
+            )
 
         case .stopping:
             MihomoStatus(
@@ -140,7 +140,7 @@ actor MihomoService {
                 externalController: nil,
                 secret: nil,
                 logs: ["Stopping..."],
-                )
+            )
 
         case let .error(error):
             MihomoStatus(
@@ -151,7 +151,7 @@ actor MihomoService {
                 externalController: nil,
                 secret: nil,
                 logs: ["Error: \(error.localizedDescription)"],
-                )
+            )
         }
     }
 
@@ -190,7 +190,7 @@ actor MihomoService {
             configPath: configPath,
             externalController: forcedExternalController,
             secret: generatedSecret,
-            )
+        )
 
         state = .running(processInfo)
         logger.info("Mihomo process started with PID: \(proc.processIdentifier)")
@@ -266,7 +266,8 @@ actor MihomoService {
 
             if let response = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let hello = response["hello"] as? String,
-               hello == "clash.meta" || hello == "mihomo" {
+               hello == "clash.meta" || hello == "mihomo"
+            {
                 return true
             }
         } catch {

@@ -31,7 +31,7 @@ actor NetworkService {
         }
     }
 
-    nonisolated private func scanUsedPorts() -> [Int] {
+    private nonisolated func scanUsedPorts() -> [Int] {
         var ports: [Int] = []
 
         let process = Process()
@@ -58,7 +58,7 @@ actor NetworkService {
         return ports.sorted()
     }
 
-    nonisolated private func parseNetstatOutput(_ output: String) -> [Int] {
+    private nonisolated func parseNetstatOutput(_ output: String) -> [Int] {
         let lines = output.components(separatedBy: .newlines)
 
         return lines.compactMap { line -> Int? in
@@ -82,7 +82,7 @@ actor NetworkService {
         .sorted()
     }
 
-    nonisolated private func testConnection(host: String, port: Int, timeout: TimeInterval) -> Bool {
+    private nonisolated func testConnection(host: String, port: Int, timeout: TimeInterval) -> Bool {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/nc")
         process.arguments = ["-z", "-w", "\(Int(timeout))", host, "\(port)"]

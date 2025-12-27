@@ -129,7 +129,7 @@ struct LogsFeature: @preconcurrency Reducer {
                     mihomoService.stopLogStream()
                 }
                 : .none,
-            )
+        )
     }
 
     private func restartLogStream(level: String) -> Effect<Action> {
@@ -169,6 +169,6 @@ struct LogsFeature: @preconcurrency Reducer {
         state.summary = .init(
             totalLogs: state.logs.count,
             filteredLogs: search.isEmpty ? 0 : state.filteredLogs.count,
-            )
+        )
     }
 }

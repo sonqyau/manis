@@ -44,7 +44,7 @@ final class MihomoDomain {
         ruleProviders: [:],
         config: nil,
         isConnected: false,
-        )
+    )
 
     @ObservationIgnored
     @Shared(.inMemory("mihomoConnection")) private var connectionInfo: ConnectionInfo = .init()
@@ -136,7 +136,7 @@ final class MihomoDomain {
             ruleProviders: [:],
             config: nil,
             isConnected: false,
-            )
+        )
         stateSubject = CurrentValueSubject(initialState)
     }
 
@@ -213,7 +213,7 @@ final class MihomoDomain {
             ruleProviders: ruleProviders,
             config: config,
             isConnected: isConnected,
-            )
+        )
     }
 
     private func emitState() {
@@ -253,7 +253,7 @@ final class MihomoDomain {
         method: HTTPRequest.Method = .get,
         body: Data? = nil,
         queryItems: [URLQueryItem] = [],
-        ) async throws -> (Data, HTTPURLResponse) {
+    ) async throws -> (Data, HTTPURLResponse) {
         let currentConnection = connectionInfo
         var components = URLComponents(string: "\(currentConnection.baseURL)\(path)")
         components?.queryItems = queryItems.isEmpty ? nil : queryItems
@@ -340,7 +340,7 @@ final class MihomoDomain {
                 timestamp: Date(),
                 upload: Double(traffic.up),
                 download: Double(traffic.down),
-                )
+            )
 
             trafficHistory.append(point)
 
@@ -436,7 +436,7 @@ final class MihomoDomain {
                 throw DecodingError.dataCorruptedError(
                     in: container,
                     debugDescription: "Invalid date format.",
-                    )
+                )
             }
             let snapshot = try decoder.decode(ConnectionSnapshot.self, from: data)
             connections = snapshot.connections
@@ -599,7 +599,7 @@ final class MihomoDomain {
             method: .put,
             body: body,
             queryItems: [URLQueryItem(name: "force", value: "true")],
-            )
+        )
         logger.info("Reloaded Config")
         await fetchConfig()
     }
@@ -667,7 +667,7 @@ final class MihomoDomain {
         name: ProxyName,
         url: String = "https://www.apple.com/library/test/success.html",
         timeout: Int = 5000,
-        ) async throws -> ProxyDelayTest {
+    ) async throws -> ProxyDelayTest {
         let encodedName = name.rawValue.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name.rawValue
         let queryItems = [
             URLQueryItem(name: "url", value: url),
@@ -676,7 +676,7 @@ final class MihomoDomain {
         let (data, _) = try await makeRequest(
             path: "/proxies/\(encodedName)/delay",
             queryItems: queryItems,
-            )
+        )
         return try JSONDecoder().decode(ProxyDelayTest.self, from: data)
     }
 
@@ -684,7 +684,7 @@ final class MihomoDomain {
         name: ProxyName,
         url: String = "https://www.apple.com/library/test/success.html",
         timeout: Int = 5000,
-        ) async throws {
+    ) async throws {
         let encodedName = name.rawValue.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name.rawValue
         let queryItems = [
             URLQueryItem(name: "url", value: url),
@@ -701,7 +701,7 @@ final class MihomoDomain {
             path: "/providers/proxies/\(encodedName)",
             method: .put,
             body: Data(),
-            )
+        )
         logger.info("Updated proxy provider: \(name.rawValue)")
         await fetchProxyProviders()
     }

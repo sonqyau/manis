@@ -89,12 +89,12 @@ final class RemoteInstance: Identifiable {
                 try keychainDeps.keychain.setSecret(
                     secret,
                     RemoteInstanceKeychain.key(for: self.id),
-                    )
+                )
             } catch {
                 Self.logger.error(
                     "Settings initialization failed: \(error.localizedDescription)",
                     metadata: ["error": String(describing: error)],
-                    )
+                )
             }
         }
     }
@@ -104,12 +104,12 @@ final class RemoteInstance: Identifiable {
             let dependencies = RemoteInstanceDependencies()
             return try dependencies.keychain.secret(
                 RemoteInstanceKeychain.key(for: id),
-                )
+            )
         } catch {
             Self.logger.error(
                 "Keychain secret retrieval failed: \(error.localizedDescription)",
                 metadata: ["error": String(describing: error)],
-                )
+            )
             return nil
         }
     }
@@ -120,11 +120,11 @@ final class RemoteInstance: Identifiable {
             try dependencies.keychain.setSecret(
                 secret,
                 RemoteInstanceKeychain.key(for: id),
-                )
+            )
         } else {
             try dependencies.keychain.deleteSecret(
                 RemoteInstanceKeychain.key(for: id),
-                )
+            )
         }
     }
 

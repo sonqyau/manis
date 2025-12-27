@@ -159,7 +159,7 @@ struct ProxiesFeature: @preconcurrency Reducer {
         state: inout State,
         group: String,
         proxy: String,
-        ) -> Effect<Action> {
+    ) -> Effect<Action> {
         let key = Self.proxySelectionKey(group: group, proxy: proxy)
         guard !state.selectingProxies.contains(key) else {
             return .none
@@ -181,7 +181,7 @@ struct ProxiesFeature: @preconcurrency Reducer {
     private func testGroupDelayEffect(
         state: inout State,
         group: String,
-        ) -> Effect<Action> {
+    ) -> Effect<Action> {
         guard !state.testingGroups.contains(group) else {
             return .none
         }

@@ -16,14 +16,14 @@ struct WebSocketReconnectionConfig {
         initialDelay: 2.0,
         maxDelay: 60.0,
         backoffMultiplier: 2.0,
-        )
+    )
 
     static let disabled = Self(
         enabled: false,
         initialDelay: 0,
         maxDelay: 0,
         backoffMultiplier: 1.0,
-        )
+    )
 }
 
 enum WebSocketStreamEvent {
@@ -77,7 +77,7 @@ final class URLSessionWebSocketStreamClient: NSObject, WebSocketStreamClient, @u
         request: URLRequest,
         reconnectionConfig: WebSocketReconnectionConfig = .default,
         clock: any Clock<Duration> = ContinuousClock(),
-        ) {
+    ) {
         self.request = request
         self.reconnectionConfig = reconnectionConfig
         self.clock = clock
@@ -214,7 +214,7 @@ final class URLSessionWebSocketStreamClient: NSObject, WebSocketStreamClient, @u
             _currentDelay = min(
                 _currentDelay * backoffMultiplier,
                 maxDelay,
-                )
+            )
 
             await MainActor.run { [weak self] in
                 guard let self else { return }

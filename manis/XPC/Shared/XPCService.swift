@@ -22,7 +22,7 @@ final class XPCService: @unchecked Sendable {
             processId: status.processId,
             externalController: status.externalController,
             secret: status.secret,
-            )
+        )
         return kernelStatus
     }
 
@@ -31,7 +31,7 @@ final class XPCService: @unchecked Sendable {
             executablePath: request.executablePath.rawValue,
             configPath: request.configPath.rawValue,
             configContent: request.configContent,
-            )
+        )
 
         return result
     }
@@ -52,7 +52,7 @@ final class XPCService: @unchecked Sendable {
             socksPort: request.socksPort.rawValue,
             pacURL: request.pacURL,
             bypassList: request.bypassList,
-            )
+        )
 
         return "System proxy activated successfully"
     }
@@ -87,7 +87,7 @@ final class XPCService: @unchecked Sendable {
             host: request.host,
             port: request.port.rawValue,
             timeout: request.timeout,
-            )
+        )
 
         return isConnected
     }

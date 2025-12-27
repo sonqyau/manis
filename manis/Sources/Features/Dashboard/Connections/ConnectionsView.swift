@@ -11,7 +11,7 @@ struct ConnectionsView: View {
         KeyPathComparator(
             \ConnectionSnapshot.Connection.start,
             order: .reverse,
-            ),
+        ),
     ]
     @FocusState private var isSearchFocused: Bool
 
@@ -23,14 +23,14 @@ struct ConnectionsView: View {
         Binding(
             get: { bindableStore.searchText },
             set: { bindableStore.send(.updateSearch($0)) },
-            )
+        )
     }
 
     private var filterBinding: Binding<ConnectionFilter> {
         Binding(
             get: { bindableStore.selectedFilter },
             set: { bindableStore.send(.selectFilter($0)) },
-            )
+        )
     }
 
     private var filteredConnections: [ConnectionSnapshot.Connection] {
@@ -67,8 +67,8 @@ struct ConnectionsView: View {
             Binding<AlertState<ConnectionsFeature.AlertAction>?>(
                 get: { bindableStore.alert },
                 set: { _ in },
-                ),
-            ) { action in
+            ),
+        ) { action in
             if let action {
                 bindableStore.send(.alert(action))
             }
@@ -161,7 +161,7 @@ struct ConnectionsView: View {
                 filteredConnections,
                 selection: .constant(Set<ConnectionSnapshot.Connection.ID>()),
                 sortOrder: $sortOrder,
-                ) {
+            ) {
                 TableColumn("Host") { connection in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(connection.displayDestination)
@@ -203,8 +203,8 @@ struct ConnectionsView: View {
                         ByteCountFormatter.string(
                             fromByteCount: connection.download,
                             countStyle: .binary,
-                            ),
-                        )
+                        ),
+                    )
                     .font(.caption)
                 }
                 .width(ideal: 110)
@@ -214,8 +214,8 @@ struct ConnectionsView: View {
                         ByteCountFormatter.string(
                             fromByteCount: connection.upload,
                             countStyle: .binary,
-                            ),
-                        )
+                        ),
+                    )
                     .font(.caption)
                 }
                 .width(ideal: 110)
@@ -256,13 +256,13 @@ struct ConnectionsView: View {
         ByteCountFormatter.string(
             fromByteCount: filteredConnections.reduce(into: 0) { $0 += $1.download },
             countStyle: .binary,
-            )
+        )
     }
 
     private var totalUpload: String {
         ByteCountFormatter.string(
             fromByteCount: filteredConnections.reduce(into: 0) { $0 += $1.upload },
             countStyle: .binary,
-            )
+        )
     }
 }

@@ -21,7 +21,7 @@ struct MainApp: App {
     init() {
         let appFeatureStore = Store(
             initialState: AppFeature.State(),
-            ) { AppFeature() }
+        ) { AppFeature() }
         self.appFeatureStore = appFeatureStore
         AppDelegate.appFeatureStore = appFeatureStore
         menuBarStore = appFeatureStore.scope(state: \.menuBar, action: \.menuBar)
@@ -47,7 +47,7 @@ struct MainApp: App {
             SettingsMainView(
                 store: appFeatureStore.scope(state: \.settings, action: \.settings),
                 persistenceStore: persistenceStore,
-                )
+            )
             .frame(minWidth: 600, minHeight: 500)
         }
         .defaultSize(width: 700, height: 600)

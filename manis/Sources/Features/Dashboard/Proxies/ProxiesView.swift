@@ -20,7 +20,7 @@ struct ProxiesView: View {
         Binding(
             get: { bindableStore.searchText },
             set: { bindableStore.send(.updateSearch($0)) },
-            )
+        )
     }
 
     private var filteredGroups: [(String, GroupInfo)] {
@@ -57,7 +57,7 @@ struct ProxiesView: View {
                                 onTestDelay: {
                                     bindableStore.send(.testGroupDelay(name))
                                 },
-                                )
+                            )
                         }
                     }
             } header: {
@@ -73,8 +73,8 @@ struct ProxiesView: View {
             Binding<AlertState<ProxiesFeature.AlertAction>?>(
                 get: { bindableStore.alert },
                 set: { _ in },
-                ),
-            ) { action in
+            ),
+        ) { action in
             if let action {
                 bindableStore.send(.alert(action))
             }
@@ -177,7 +177,7 @@ private struct ProxyGroupCard: View {
                                 proxyName: proxyName.rawValue,
                                 isSelected: proxyName.rawValue == group.now,
                                 proxyInfo: proxies[proxyName.rawValue],
-                                ) { onSelectProxy(proxyName.rawValue) }
+                            ) { onSelectProxy(proxyName.rawValue) }
                         }
                     } else {
                         Text("No proxies are available.")
@@ -210,7 +210,7 @@ private struct ProxyNodeRow: View {
                     .overlay(
                         Circle()
                             .stroke(Color.secondary.opacity(0.3), lineWidth: 1),
-                        )
+                    )
 
                 Text(proxyName)
                     .font(.body)
@@ -226,7 +226,7 @@ private struct ProxyNodeRow: View {
                             Color(delay == 0 ? .red : delay < 100 ? .green : delay < 300 ? .orange : .red)
                                 .opacity(0.15),
                             in: Capsule(),
-                            )
+                        )
                         .if(delay == 0) { $0.foregroundStyle(.red) }
                         .if(delay > 0 && delay < 100) { $0.foregroundStyle(.green) }
                         .if(delay >= 100 && delay < 300) { $0.foregroundStyle(.orange) }

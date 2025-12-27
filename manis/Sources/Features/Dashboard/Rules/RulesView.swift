@@ -14,7 +14,7 @@ struct RulesView: View {
         Binding(
             get: { bindableStore.searchText },
             set: { bindableStore.send(.updateSearch($0)) },
-            )
+        )
     }
 
     var body: some View {

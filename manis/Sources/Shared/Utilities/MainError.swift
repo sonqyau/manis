@@ -126,7 +126,8 @@ public extension Error {
             return applicationError.userFriendlyMessage
         }
         if let localizedError = self as? LocalizedError,
-           let description = localizedError.errorDescription {
+           let description = localizedError.errorDescription
+        {
             return description
         }
         return localizedDescription
@@ -234,7 +235,7 @@ extension ErrorCategory {
                 domain: type(of: applicationError).errorDomain,
                 code: applicationError.errorCode,
                 userInfo: applicationError.errorUserInfo,
-                )
+            )
             self.recoveryOptions = applicationError.recoveryOptions
             self.helpAnchor = applicationError.helpAnchor
         } else {
@@ -261,7 +262,7 @@ extension ErrorCategory {
         helpAnchor: String? = nil,
         underlyingError: Error? = nil,
         category: ErrorCategory = .generic,
-        ) -> Self {
+    ) -> Self {
         var userInfo = [String: Any](minimumCapacity: 8)
         userInfo[NSLocalizedDescriptionKey] = description
 
@@ -289,7 +290,7 @@ extension NSError {
         helpAnchor: String? = nil,
         underlyingError: Error? = nil,
         category: ErrorCategory = .generic,
-        ) {
+    ) {
         var userInfo = [String: Any](minimumCapacity: 8)
         userInfo[NSLocalizedDescriptionKey] = description
 

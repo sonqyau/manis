@@ -168,7 +168,7 @@ struct ProvidersFeature: @preconcurrency Reducer {
     private func refreshProxyEffect(
         state: inout State,
         name: String,
-        ) -> Effect<Action> {
+    ) -> Effect<Action> {
         guard !state.refreshingProxyProviders.contains(name) else {
             return .none
         }
@@ -189,7 +189,7 @@ struct ProvidersFeature: @preconcurrency Reducer {
     private func healthCheckProxyEffect(
         state: inout State,
         name: String,
-        ) -> Effect<Action> {
+    ) -> Effect<Action> {
         guard !state.healthCheckingProxyProviders.contains(name) else {
             return .none
         }
@@ -210,7 +210,7 @@ struct ProvidersFeature: @preconcurrency Reducer {
     private func refreshRuleEffect(
         state: inout State,
         name: String,
-        ) -> Effect<Action> {
+    ) -> Effect<Action> {
         guard !state.refreshingRuleProviders.contains(name) else {
             return .none
         }

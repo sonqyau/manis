@@ -16,6 +16,18 @@ updates:
         patterns:
           - "*"
 
+  - package-ecosystem: "gitsubmodule"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+    assignees:
+      - "sonqyau"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "deps(sing-swift)"
+
   - package-ecosystem: "swift"
     directory: "/"
     schedule:
